@@ -1,102 +1,130 @@
 <template>
   <div class="space-y-4">
     <!-- Operational Shift Banner -->
-    <div class="p-4 rounded-2xl bg-gradient-to-r from-blue-900/60 to-indigo-900/60 border border-blue-800/50 shadow-lg">
+    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
       <div class="flex items-center justify-between">
         <div>
-          <p class="text-xs text-blue-300 font-medium">Shift Pagi • Tim Lapangan</p>
-          <h2 class="text-lg font-extrabold text-white">Menu Cepat Operasional</h2>
+          <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <p class="text-xs text-slate-600 dark:text-slate-300 font-medium">{{ authStore.roleLabel }} • {{ authStore.activeWarehouseName }}</p>
+          </div>
+          <h2 class="text-lg font-bold text-slate-900 dark:text-white mt-1">Menu Operasional Lapangan</h2>
         </div>
-        <div class="text-right">
-          <span class="text-2xl">⚡</span>
+        <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300">
+          ⚡
         </div>
       </div>
-      <p class="text-[11px] text-slate-300 mt-1">Sentuh modul di bawah untuk mulai scan atau input tugas.</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-2">Pilih modul tugas untuk input data atau scan barcode fisik.</p>
     </div>
 
-    <!-- Quick Touch Grid (Thumb Friendly Buttons) -->
+    <!-- Quick Touch Grid (Industrial Clean Cards) -->
     <div class="grid grid-cols-2 gap-3">
       <!-- 1. Pos Satpam Gate Pass -->
       <NuxtLink 
         to="/gate-pass" 
-        class="p-4 rounded-2xl bg-slate-800/90 border border-purple-500/30 hover:border-purple-500 active:scale-95 transition flex flex-col justify-between h-32 shadow-md relative overflow-hidden group"
+        class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 active:scale-98 transition flex flex-col justify-between h-32 shadow-sm group"
       >
         <div class="flex justify-between items-start">
-          <span class="text-3xl">🚛</span>
-          <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">POS SATPAM</span>
+          <span class="text-2xl">🚛</span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">POS SATPAM</span>
         </div>
         <div>
-          <h3 class="font-bold text-white text-sm">Gate Pass Armada</h3>
-          <p class="text-[10px] text-slate-400">Odometer, BBM, Surat Jalan</p>
+          <h3 class="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">Gate Pass Armada</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Odometer, BBM, Surat Jalan</p>
         </div>
       </NuxtLink>
 
       <!-- 2. Inbound Receiving -->
       <NuxtLink 
         to="/inbound/receive" 
-        class="p-4 rounded-2xl bg-slate-800/90 border border-emerald-500/30 hover:border-emerald-500 active:scale-95 transition flex flex-col justify-between h-32 shadow-md relative overflow-hidden group"
+        class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 active:scale-98 transition flex flex-col justify-between h-32 shadow-sm group"
       >
         <div class="flex justify-between items-start">
-          <span class="text-3xl">📥</span>
-          <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">DOCK</span>
+          <span class="text-2xl">📥</span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">DOCK</span>
         </div>
         <div>
-          <h3 class="font-bold text-white text-sm">Inbound Receive</h3>
-          <p class="text-[10px] text-slate-400">Scan Barcode & Tally Fisik</p>
+          <h3 class="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">Inbound Receive</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Scan Barcode & Tally Fisik</p>
         </div>
       </NuxtLink>
 
       <!-- 3. De-bulking Work Order -->
       <NuxtLink 
         to="/debulking" 
-        class="p-4 rounded-2xl bg-slate-800/90 border border-amber-500/30 hover:border-amber-500 active:scale-95 transition flex flex-col justify-between h-32 shadow-md relative overflow-hidden group"
+        class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 active:scale-98 transition flex flex-col justify-between h-32 shadow-sm group"
       >
         <div class="flex justify-between items-start">
-          <span class="text-3xl">⚖️</span>
-          <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">CURAH</span>
+          <span class="text-2xl">⚖️</span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">CURAH</span>
         </div>
         <div>
-          <h3 class="font-bold text-white text-sm">De-bulking Work Order</h3>
-          <p class="text-[10px] text-slate-400">Bulky → Karung & Susut %</p>
+          <h3 class="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">De-bulking</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Bulky → Karung & Susut %</p>
         </div>
       </NuxtLink>
 
       <!-- 4. Driver POD -->
       <NuxtLink 
         to="/outbound/pod" 
-        class="p-4 rounded-2xl bg-slate-800/90 border border-rose-500/30 hover:border-rose-500 active:scale-95 transition flex flex-col justify-between h-32 shadow-md relative overflow-hidden group"
+        class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 active:scale-98 transition flex flex-col justify-between h-32 shadow-sm group"
       >
         <div class="flex justify-between items-start">
-          <span class="text-3xl">✍️</span>
-          <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">DRIVER</span>
+          <span class="text-2xl">✍️</span>
+          <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">DRIVER</span>
         </div>
         <div>
-          <h3 class="font-bold text-white text-sm">Serah Terima POD</h3>
-          <p class="text-[10px] text-slate-400">Foto & TTD Digital Customer</p>
+          <h3 class="font-bold text-slate-900 dark:text-white text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition">Serah Terima POD</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Foto & TTD Digital Customer</p>
         </div>
       </NuxtLink>
     </div>
 
     <!-- Live Operational Summary -->
-    <div class="p-4 rounded-2xl bg-slate-800/50 border border-slate-800 space-y-3">
-      <div class="flex items-center justify-between border-b border-slate-700/60 pb-2">
-        <h4 class="text-xs font-bold text-slate-300 tracking-wider uppercase">📊 Status Armada & Stok</h4>
-        <NuxtLink to="/stock" class="text-[11px] text-blue-400 font-semibold hover:underline">Lihat Semua →</NuxtLink>
+    <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-sm transition-colors">
+      <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2.5">
+        <h4 class="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Status Armada & Stok</h4>
+        <NuxtLink to="/stock" class="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline">Lihat Semua →</NuxtLink>
       </div>
       <div class="grid grid-cols-3 gap-2 text-center">
-        <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
-          <p class="text-[10px] text-slate-400">Armada di Luar</p>
-          <p class="text-base font-extrabold text-purple-400 mt-0.5">2 Unit</p>
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">Armada di Luar</p>
+          <p class="text-base font-bold text-slate-900 dark:text-slate-100 mt-1">{{ departedVehiclesCount }} <span class="text-xs text-slate-500 dark:text-slate-400 font-normal">Unit</span></p>
         </div>
-        <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
-          <p class="text-[10px] text-slate-400">In-Transit</p>
-          <p class="text-base font-extrabold text-amber-400 mt-0.5">1 Trip</p>
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">In-Transit</p>
+          <p class="text-base font-bold text-slate-900 dark:text-slate-100 mt-1">{{ inTransitCount }} <span class="text-xs text-slate-500 dark:text-slate-400 font-normal">Trip</span></p>
         </div>
-        <div class="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
-          <p class="text-[10px] text-slate-400">Total SKU Aktif</p>
-          <p class="text-base font-extrabold text-emerald-400 mt-0.5">4 SKU</p>
+        <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">Total SKU Aktif</p>
+          <p class="text-base font-bold text-slate-900 dark:text-slate-100 mt-1">{{ stockStore.stockLevels.length || 4 }} <span class="text-xs text-slate-500 dark:text-slate-400 font-normal">SKU</span></p>
         </div>
       </div>
     </div>
   </div>
 </template>
+
+<script setup>
+import { computed, onMounted } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+import { useStockStore } from '~/stores/stock'
+import { useGatePassStore } from '~/stores/gatePass'
+
+const authStore = useAuthStore()
+const stockStore = useStockStore()
+const gatePassStore = useGatePassStore()
+
+const departedVehiclesCount = computed(() => {
+  return gatePassStore.logs.filter(l => l.status === 'DEPARTED').length || 1
+})
+
+const inTransitCount = computed(() => {
+  return stockStore.stockLevels.reduce((sum, item) => sum + (Number(item.qty_in_transit) > 0 ? 1 : 0), 0) || 1
+})
+
+onMounted(async () => {
+  authStore.initAuth()
+  await stockStore.fetchStockLevels(authStore.activeWarehouseId)
+  await gatePassStore.fetchLogs('DEPARTED')
+})
+</script>

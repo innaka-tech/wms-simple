@@ -1,5 +1,6 @@
 {
   "name": "wms-simple-frontend",
+  "version": "1.0.8",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,9 +16,7 @@
     "@vueuse/nuxt": "^12.0.0",
     "lucide-vue-next": "^0.469.0",
     "pinia": "^2.3.0",
-    "signature_pad": "^5.0.4",
-    "vue": "latest",
-    "vue-router": "latest"
+    "signature_pad": "^5.0.4"
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.12.2",

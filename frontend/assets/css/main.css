@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --wms-bg-body: #f8fafc;
+  --wms-bg-card: #ffffff;
+  --wms-bg-subtle: #f1f5f9;
+  --wms-bg-input: #ffffff;
+  --wms-text-primary: #0f172a;
+  --wms-text-secondary: #475569;
+  --wms-text-muted: #64748b;
+  --wms-border: #e2e8f0;
+  --wms-border-focus: #3b82f6;
+  --wms-accent: #2563eb;
+}
+
+html.dark, body.dark, [data-theme="dark"] {
+  --wms-bg-body: #020617;
+  --wms-bg-card: #0f172a;
+  --wms-bg-subtle: #1e293b;
+  --wms-bg-input: #020617;
+  --wms-text-primary: #f8fafc;
+  --wms-text-secondary: #cbd5e1;
+  --wms-text-muted: #94a3b8;
+  --wms-border: #1e293b;
+  --wms-border-focus: #3b82f6;
+  --wms-accent: #3b82f6;
+}
+
+body {
+  background-color: var(--wms-bg-body);
+  color: var(--wms-text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html, body {
+  overscroll-behavior-y: contain;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
