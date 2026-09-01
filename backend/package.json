@@ -1,13 +1,15 @@
 {
   "name": "wms-simple-backend",
-  "version": "1.0.0",
+  "version": "1.0.8",
   "description": "WMS Simple REST API built with Hono and PostgreSQL",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
@@ -19,7 +21,9 @@
   "devDependencies": {
     "@types/node": "^22.10.2",
     "@types/pg": "^8.11.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.11"
   }
 }

@@ -12,6 +12,8 @@ node_modules/
 .nuxt/
 dist/
 build/
+coverage/
+*.lcov
 
 # Environment files
 .env
