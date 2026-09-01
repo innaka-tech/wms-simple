@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # Nginx Gateway Reverse Proxy
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: wms-simple-gateway
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - wms_network
+
+  # Hono Backend Application (Node.js/TypeScript)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: wms-simple-backend-prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: host.docker.internal
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgrespassword
+      DB_NAME: wms_simple_db
+      JWT_SECRET: wms_simple_super_secret_jwt_key_enterprise_2026_production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - wms_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Nuxt 3 Frontend Mobile PWA Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: wms-simple-frontend-prod
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NUXT_PUBLIC_API_BASE: /api
+    networks:
+      - wms_network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  wms_network:
+    driver: bridge

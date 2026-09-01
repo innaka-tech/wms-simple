@@ -1,0 +1,39 @@
+stages:
+  - test
+  - build
+
+variables:
+  NODE_IMAGE: node:20-alpine
+
+backend-test:
+  stage: test
+  image: $NODE_IMAGE
+  script:
+    - cd backend
+    - npm ci
+    - npm run test:coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    reports:
+      junit: backend/junit.xml
+
+frontend-build:
+  stage: test
+  image: $NODE_IMAGE
+  script:
+    - cd frontend
+    - npm ci
+    - npm run build
+
+docker-build:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - docker build -t wms-simple-backend:latest ./backend
+    - docker build -t wms-simple-frontend:latest ./frontend
+  only:
+    - main
+    - master
