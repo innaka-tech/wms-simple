@@ -2,7 +2,7 @@
 
 **Dokumen:** Sasaran Strategis (Goals) & Indikator Keberhasilan (KPI) Operasional  
 **Sistem:** WMS Simple Enterprise (Platform Gudang & Logistik Menyeluruh)  
-**Versi:** 2.4.0 (Simplified Logistics Jargon)  
+**Versi:** 1.0.3 (Simplified Logistics Jargon)  
 **Status:** DOKUMEN ACUAN UTAMA  
 
 ---
