@@ -57,7 +57,7 @@ export async function optionalAuth(c: Context, next: Next) {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     try {
-      const payload = await verify(token, JWT_SECRET) as unknown as UserTokenPayload;
+      const payload = await verify(token, JWT_SECRET, 'HS256') as unknown as UserTokenPayload;
       c.set('user', payload);
     } catch {
       // ignore invalid optional token

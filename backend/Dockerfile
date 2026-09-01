@@ -7,8 +7,7 @@ COPY package*.json tsconfig.json ./
 RUN npm ci
 
 COPY src ./src
-# Compile or verify TypeScript
-RUN npx tsc --noEmit
+RUN npm run build
 
 # Stage 2: Production Runtime
 FROM node:20-alpine AS runner
@@ -18,15 +17,15 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Security: non-root user
-USER node
-
-COPY --chown=node:node package*.json ./
+COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --chown=node:node --from=builder /app/src ./src
-COPY --chown=node:node tsconfig.json ./
+COPY --from=builder /app/dist ./dist
+
+# Security: non-root user
+RUN chown -R node:node /app
+USER node
 
 EXPOSE 3000
 
-CMD ["node", "--loader", "ts-node/esm", "src/index.ts"]
+CMD ["node", "dist/index.js"]

@@ -18,10 +18,11 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOST=0.0.0.0
 
-# Security: non-root user
-USER node
+COPY --from=builder /app/.output ./.output
 
-COPY --chown=node:node --from=builder /app/.output ./.output
+# Security: non-root user
+RUN chown -R node:node /app
+USER node
 
 EXPOSE 3000
 

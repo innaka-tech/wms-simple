@@ -6,13 +6,16 @@ export interface RecordStockMovementParams {
   movement_type: 
     | 'INBOUND_RECEIVE'
     | 'INBOUND_PUTAWAY'
+    | 'DEBULKING_INPUT'
+    | 'DEBULKING_OUTPUT'
     | 'CROSS_DOCK_OUT'
     | 'CROSS_DOCK_IN'
     | 'OUTBOUND_PICK'
     | 'OUTBOUND_SHIP'
     | 'ADJUSTMENT'
-    | 'TRANSFER';
-  reference_type: 'INBOUND_ORDER' | 'CROSS_DOCK_MANIFEST' | 'OUTBOUND_ORDER' | 'STOCK_ADJUSTMENT';
+    | 'TRANSFER'
+    | string;
+  reference_type: 'INBOUND_ORDER' | 'CROSS_DOCK_MANIFEST' | 'OUTBOUND_ORDER' | 'STOCK_ADJUSTMENT' | 'STOCK_CONVERSION' | string;
   reference_id: string;
   qty_change: number; // positive or negative
   location_id?: string | null;

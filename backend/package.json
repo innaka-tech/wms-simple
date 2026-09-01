@@ -1,6 +1,6 @@
 {
   "name": "wms-simple-backend",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "WMS Simple REST API built with Hono and PostgreSQL",
   "main": "dist/index.js",
   "type": "module",

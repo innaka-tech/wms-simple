@@ -5,6 +5,12 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [1.0.9] - 2026-09-01
+### Fixed
+- **Perbaikan CI/CD Docker Build & Kompilasi TypeScript Backend:**
+  - Mengatasi kendala perizinan `EACCES` pada `backend/Dockerfile` dan `frontend/Dockerfile` dengan menjalankan instalasi dependensi sebelum beralih ke user non-root `node`.
+  - Memperbaiki pengetikan TypeScript strict mode pada `db.ts`, `middlewares/auth.ts`, `routes/auth.ts`, `services/checkpoint.ts`, dan `services/stock.ts` sehingga `tsc` lulus kompilasi tanpa error (0 errors).
+
 ## [1.0.8] - 2026-09-01
 ### Changed
 - **Pengaturan Mode Terang sebagai Tema Default (Default Light Mode):**

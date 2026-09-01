@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { query } from '../db.js';
-import { generateToken, authenticate } from '../middlewares/auth.js';
+import { generateToken, authenticate, UserTokenPayload } from '../middlewares/auth.js';
 import { formatProblemDetails } from '../utils/errors.js';
 
 export const authRoutes = new Hono();
@@ -79,7 +79,7 @@ authRoutes.post('/login', async (c) => {
 
 // 2. Get Current Authenticated User Profile
 authRoutes.get('/me', authenticate, async (c) => {
-  const tokenUser = c.get('user');
+  const tokenUser = (c.get('user' as any) || {}) as UserTokenPayload;
   const userRes = await query(
     `SELECT u.id, u.username, u.full_name, u.email, u.role, u.warehouse_id, u.customer_id,
             w.name AS warehouse_name, w.code AS warehouse_code

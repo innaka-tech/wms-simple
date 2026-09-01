@@ -1,7 +1,7 @@
 import { query } from '../db.js';
 
 export interface CreateCheckpointParams {
-  entity_type: 'INBOUND_ORDER' | 'CROSS_DOCK_MANIFEST' | 'OUTBOUND_ORDER' | 'FLEET_EXIT_LOG' | 'STOCK_ADJUSTMENT';
+  entity_type: 'INBOUND_ORDER' | 'CROSS_DOCK_MANIFEST' | 'CROSS_DOCUMENT' | 'OUTBOUND_ORDER' | 'FLEET_EXIT_LOG' | 'STOCK_ADJUSTMENT' | 'STOCK_CONVERSION' | string;
   entity_id: string;
   entity_number: string;
   step_code: string;
