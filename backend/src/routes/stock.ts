@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { query } from '../db.js';
 import { adjustStock } from '../services/stock.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
+import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
 
 export const stockRoutes = new Hono();
 
@@ -70,9 +71,14 @@ stockRoutes.get('/movements', async (c) => {
 });
 
 // 3. Perform Manual Stock Adjustment (Opname / Damage)
-stockRoutes.post('/adjust', async (c) => {
+stockRoutes.post('/adjust', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
   const body = await c.req.json();
-  const { warehouse_id, product_id, qty_change, notes, actor_name, actor_id } = body;
+  const { warehouse_id, product_id, qty_change, notes, actor_name: bodyActorName, actor_id: bodyActorId } = body;
+
+  const actor_name = user?.full_name || bodyActorName;
+  const actor_id = user?.id || bodyActorId;
+  const actor_role = user?.role || 'WH_MANAGER';
 
   if (!actor_name) {
     return c.json({ success: false, message: 'Nama petugas pelaksana opname wajib diisi' }, 400);
@@ -100,7 +106,7 @@ stockRoutes.post('/adjust', async (c) => {
       step_label: 'Penyesuaian Stok Opname / Rusak Disetujui',
       actor_id: actor_id || null,
       actor_name: actor_name,
-      actor_role: 'WH_MANAGER',
+      actor_role: actor_role,
       notes: `Perubahan stok: ${qty_change}. Alasan: ${notes || '-'}`
     });
 

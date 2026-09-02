@@ -12,6 +12,11 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
   - Auto-initialization 32 skema tabel relasional lengkap (Master Data, Warehouse Locations, Users, Products, Fleet, Stock Ledger, Work Orders, Cross-Doc, Checkpoint Chain, dll.).
   - Auto-seeding akun pengguna untuk seluruh 6 peran RBAC (`superadmin`, `admin_adm`, `mgr_jkt`, `staff_jkt`, `driver_budi`, `gate_officer`) dengan password standar `password123`.
   - Kompatibilitas kueri SQL penuh (`normalizeSql`) menangani parameterized query `$1, $2` $\rightarrow$ `?`, `RETURNING *`, dan transaksi ACID (`BEGIN`, `COMMIT`, `ROLLBACK`).
+- **Hardening Keamanan API & Audit OWASP Top 10 (`app.ts` & seluruh routes):**
+  - Penerapan HTTP Security Headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `X-XSS-Protection`, `Referrer-Policy`) pada instance Hono.
+  - Konfigurasi CORS adaptif berbasis environment (`CORS_ORIGIN`).
+  - Integrasi ekstraksi identitas petugas terotentikasi (`optionalAuth` / `UserTokenPayload`) pada rute mutasi (`stock/adjust`, `inbound/receive`, `inbound/putaway`, `debulking`, `outbound/pod`, `fleet/departure`, `fleet/return`).
+  - Penegasan pengetikan strict TypeScript pada seluruh endpoint checkpoint audit trail.
 - **Redesain Menyeluruh Antarmuka Profesional & Humanis (Semua Halaman):**
   - Menghilangkan seluruh gradasi warna mencolok (*neon gradients / bright artificial rainbow badges*) di seluruh kartu dashboard, form pos satpam, inbound dock, de-bulking, POD, dan kartu stok.
   - Mengganti seluruh emoji kartun di seluruh sistem dengan komponen vektor stroke presisi [`AppIcon.vue`](file:///C:/Users/ICT-12/Documents/LatifNitip/ANS/wms-simple/frontend/components/AppIcon.vue) (*Home, Truck, Inbound, Scale, Signature, Stock, Scan, Camera, Printer, Trash, Alert, Check*).

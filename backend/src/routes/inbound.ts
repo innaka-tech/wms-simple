@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { query, pool } from '../db.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
 import { adjustStock } from '../services/stock.js';
+import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
 
 export const inboundRoutes = new Hono();
 
@@ -74,9 +75,14 @@ inboundRoutes.get('/:id', async (c) => {
 });
 
 // 3. Create PO (Inbound Order Creation)
-inboundRoutes.post('/', async (c) => {
+inboundRoutes.post('/', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
   const body = await c.req.json();
-  const { customer_id, warehouse_id, eta, sender_info, notes, items, actor_name, actor_id } = body;
+  const { customer_id, warehouse_id, eta, sender_info, notes, items, actor_name: bodyActorName, actor_id: bodyActorId } = body;
+
+  const actor_name = user?.full_name || bodyActorName;
+  const actor_id = user?.id || bodyActorId;
+  const actor_role = user?.role || 'ADMIN_ADM';
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return c.json({ success: false, message: 'Minimal 1 item barang wajib diisi' }, 400);
@@ -116,7 +122,7 @@ inboundRoutes.post('/', async (c) => {
       step_label: 'PO Dibuat oleh Admin',
       actor_id: actor_id || null,
       actor_name: actor_name,
-      actor_role: 'ADMIN_ADM',
+      actor_role: actor_role,
       notes: notes || 'PO dibuat dalam sistem'
     });
 
@@ -130,10 +136,15 @@ inboundRoutes.post('/', async (c) => {
 });
 
 // 4. Physical Receive (Step 2: Checkpoint PO Received)
-inboundRoutes.post('/:id/receive', async (c) => {
+inboundRoutes.post('/:id/receive', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
   const id = c.req.param('id');
   const body = await c.req.json();
-  const { truck_plate, driver_name, items, photo_url, notes, actor_name, actor_id } = body;
+  const { truck_plate, driver_name, items, photo_url, notes, actor_name: bodyActorName, actor_id: bodyActorId } = body;
+
+  const actor_name = (user?.full_name || bodyActorName || '').trim();
+  const actor_id = user?.id || bodyActorId;
+  const actor_role = user?.role || 'WH_STAFF';
 
   if (!actor_name) {
     return c.json({ success: false, message: 'Nama petugas pemeriksa fisik wajib diisi' }, 400);
@@ -170,13 +181,13 @@ inboundRoutes.post('/:id/receive', async (c) => {
     // Record Checkpoint 2
     await recordCheckpoint({
       entity_type: 'INBOUND_ORDER',
-      entity_id: id,
+      entity_id: id as string,
       entity_number: orderRes.rows[0].po_number,
       step_code: 'PO_RECEIVED',
       step_label: 'Barang Diterima Fisik di Area Staging',
       actor_id: actor_id || null,
       actor_name: actor_name,
-      actor_role: 'WH_STAFF',
+      actor_role: actor_role,
       notes: notes || `Penerimaan fisik oleh ${actor_name}. Plat truk: ${truck_plate || '-'}`,
       photo_urls: photo_url ? [photo_url] : []
     });
@@ -191,10 +202,15 @@ inboundRoutes.post('/:id/receive', async (c) => {
 });
 
 // 5. Sorting Decision & Putaway Complete (Step 3 & 4: Sort -> Putaway -> Stock Update)
-inboundRoutes.post('/:id/putaway', async (c) => {
+inboundRoutes.post('/:id/putaway', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
   const id = c.req.param('id');
   const body = await c.req.json();
-  const { items, photo_url, notes, actor_name, actor_id } = body;
+  const { items, photo_url, notes, actor_name: bodyActorName, actor_id: bodyActorId } = body;
+
+  const actor_name = (user?.full_name || bodyActorName || '').trim();
+  const actor_id = user?.id || bodyActorId;
+  const actor_role = user?.role || 'WH_STAFF';
 
   if (!actor_name) {
     return c.json({ success: false, message: 'Nama petugas putaway wajib diisi' }, 400);
@@ -252,14 +268,14 @@ inboundRoutes.post('/:id/putaway', async (c) => {
     // Record Checkpoint 3 (Putaway Complete)
     await recordCheckpoint({
       entity_type: 'INBOUND_ORDER',
-      entity_id: id,
+      entity_id: id as string,
       entity_number: order.po_number,
       step_code: 'PUTAWAY_COMPLETED',
       step_label: 'Sortir Selesai & Putaway Masuk Rak / Staging Cross-Dock',
       actor_id: actor_id || null,
       actor_name: actor_name,
-      actor_role: 'WH_STAFF',
-      notes: notes || 'Sortir dan penempatan rak selesai',
+      actor_role: actor_role,
+      notes: notes || 'Barang selesai dialokasikan',
       photo_urls: photo_url ? [photo_url] : []
     });
 

@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { query, pool } from '../db.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
 import { adjustStock } from '../services/stock.js';
+import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
 
 export const debulkingRoutes = new Hono();
 
@@ -77,7 +78,8 @@ debulkingRoutes.get('/:id', async (c) => {
 });
 
 // 3. Create & Execute De-bulking Work Order (Bulky -> Curah / Bagging)
-debulkingRoutes.post('/', async (c) => {
+debulkingRoutes.post('/', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
   const body = await c.req.json();
   const {
     warehouse_id,
@@ -86,9 +88,13 @@ debulkingRoutes.post('/', async (c) => {
     outputs, // [{ product_id, qty_produced, uom_id, weight_kg, destination_location_id }]
     allowable_shrinkage_percentage,
     notes,
-    actor_name,
-    actor_id
+    actor_name: bodyActorName,
+    actor_id: bodyActorId
   } = body;
+
+  const actor_name = user?.full_name || bodyActorName;
+  const actor_id = user?.id || bodyActorId;
+  const actor_role = user?.role || 'WH_STAFF';
 
   if (!inputs || !outputs || inputs.length === 0 || outputs.length === 0) {
     return c.json({ success: false, message: 'Input bulky dan output curah wajib diisi' }, 400);

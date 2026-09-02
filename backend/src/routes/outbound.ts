@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { query, pool } from '../db.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
 import { adjustStock } from '../services/stock.js';
+import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
 
 export const outboundRoutes = new Hono();
 
@@ -71,7 +72,8 @@ outboundRoutes.get('/:id', async (c) => {
 });
 
 // 3. Create Outbound Order (Step 1: Order Created)
-outboundRoutes.post('/', async (c) => {
+outboundRoutes.post('/', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
   const body = await c.req.json();
   const {
     customer_id,
@@ -83,9 +85,13 @@ outboundRoutes.post('/', async (c) => {
     scheduled_ship_date,
     items,
     notes,
-    actor_name,
-    actor_id
+    actor_name: bodyActorName,
+    actor_id: bodyActorId
   } = body;
+
+  const actor_name = user?.full_name || bodyActorName;
+  const actor_id = user?.id || bodyActorId;
+  const actor_role = user?.role || 'ADMIN_ADM';
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return c.json({ success: false, message: 'Minimal 1 item barang pesanan wajib diisi' }, 400);
@@ -272,10 +278,15 @@ outboundRoutes.post('/:id/pack', async (c) => {
 });
 
 // 6. Submit POD (Step 5: Customer Delivery & POD Signature/Photo)
-outboundRoutes.post('/:id/pod', async (c) => {
+outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
   const id = c.req.param('id');
   const body = await c.req.json();
-  const { recipient_name, pod_photo_url, signature_photo_url, delivered_qty, notes, actor_name, actor_id } = body;
+  const { recipient_name, pod_photo_url, signature_photo_url, delivered_qty, notes, actor_name: bodyActorName, actor_id: bodyActorId } = body;
+
+  const actor_name = (user?.full_name || bodyActorName || 'Driver Ekspedisi').trim();
+  const actor_id = user?.id || bodyActorId;
+  const actor_role = user?.role || 'DRIVER';
 
   if (!pod_photo_url || !signature_photo_url) {
     return c.json({ success: false, message: 'Foto serah terima fisik dan TTD penerima wajib diunggah' }, 400);
@@ -311,13 +322,13 @@ outboundRoutes.post('/:id/pod', async (c) => {
     // Record Checkpoint 4 (Delivered)
     await recordCheckpoint({
       entity_type: 'OUTBOUND_ORDER',
-      entity_id: id,
+      entity_id: id as string,
       entity_number: order.order_number,
       step_code: 'DELIVERED',
       step_label: 'Barang Diterima & Ditandatangani oleh Pelanggan (POD)',
       actor_id: actor_id || null,
-      actor_name: actor_name || 'Driver Ekspedisi',
-      actor_role: 'DRIVER',
+      actor_name: actor_name,
+      actor_role: actor_role,
       notes: notes || `Diterima oleh ${recipient_name || order.recipient_name}`,
       photo_urls: [pod_photo_url, signature_photo_url]
     });
@@ -332,10 +343,15 @@ outboundRoutes.post('/:id/pod', async (c) => {
 });
 
 // 7. Verify POD (Step 6: Admin POD Verification)
-outboundRoutes.post('/:id/verify-pod', async (c) => {
+outboundRoutes.post('/:id/verify-pod', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
   const id = c.req.param('id');
   const body = await c.req.json();
-  const { status, rejection_reason, actor_name, actor_id } = body;
+  const { status, rejection_reason, actor_name: bodyActorName, actor_id: bodyActorId } = body;
+
+  const actor_name = (user?.full_name || bodyActorName || '').trim();
+  const actor_id = user?.id || bodyActorId;
+  const actor_role = user?.role || 'ADMIN_ADM';
 
   if (!actor_name) {
     return c.json({ success: false, message: 'Nama admin verifikator wajib diisi' }, 400);
@@ -359,7 +375,7 @@ outboundRoutes.post('/:id/verify-pod', async (c) => {
            verified_by_name = $5,
            verified_at = CURRENT_TIMESTAMP
        WHERE outbound_order_id = $1`,
-      [id, status || 'ACCEPTED', rejection_reason || null, actor_id || null, actor_name.trim()]
+      [id, status || 'ACCEPTED', rejection_reason || null, actor_id || null, actor_name]
     );
 
     const nextStatus = status === 'REJECTED' ? 'CANCELLED' : 'POD_VERIFIED';
@@ -370,13 +386,13 @@ outboundRoutes.post('/:id/verify-pod', async (c) => {
     // Record Checkpoint 5 (POD Verified)
     await recordCheckpoint({
       entity_type: 'OUTBOUND_ORDER',
-      entity_id: id,
+      entity_id: id as string,
       entity_number: order.order_number,
       step_code: 'POD_VERIFIED',
       step_label: status === 'REJECTED' ? 'POD Ditolak oleh Admin' : 'POD Terverifikasi Sah oleh Admin',
       actor_id: actor_id || null,
       actor_name: actor_name,
-      actor_role: 'ADMIN_ADM',
+      actor_role: actor_role,
       notes: rejection_reason || 'Dokumen POD lengkap dan terverifikasi'
     });
 

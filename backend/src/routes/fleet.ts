@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { query, pool } from '../db.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
+import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
 
 export const fleetRoutes = new Hono();
 
@@ -80,7 +81,8 @@ fleetRoutes.get('/logs/:id', async (c) => {
 });
 
 // 4. Record Fleet Departure (Pencatatan Armada Keluar Pos Satpam)
-fleetRoutes.post('/departure', async (c) => {
+fleetRoutes.post('/departure', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
   const body = await c.req.json();
   const {
     vehicle_id,
@@ -94,12 +96,17 @@ fleetRoutes.post('/departure', async (c) => {
     expected_return_time,
     odometer_out,
     fuel_level_out,
-    departure_security_officer,
+    departure_security_officer: bodySecurityOfficer,
     departure_photo_url,
     departure_notes,
-    actor_name,
-    actor_id
+    actor_name: bodyActorName,
+    actor_id: bodyActorId
   } = body;
+
+  const departure_security_officer = user?.full_name || bodySecurityOfficer || bodyActorName;
+  const actor_name = user?.full_name || bodyActorName || departure_security_officer;
+  const actor_id = user?.id || bodyActorId;
+  const actor_role = user?.role || 'GATE_OFFICER';
 
   if (!vehicle_id || !driver_name || !odometer_out || !departure_security_officer) {
     return c.json({ 
@@ -138,13 +145,20 @@ fleetRoutes.post('/departure', async (c) => {
         purpose || 'OUTBOUND_DELIVERY', reference_type || 'NONE', reference_id || null, reference_number || null,
         expected_return_time || null, odometer_out, fuel_level_out || 'FULL',
         departure_security_officer.trim(), departure_photo_url || null, departure_notes || null,
-        actor_id || null, actor_name || departure_security_officer.trim()
+        actor_id || null, actor_name.trim()
       ]
     );
     const exitLog = insertRes.rows[0];
 
-    // 3. Update vehicle status to IN_USE
-    await client.query(`UPDATE vehicles SET status = 'IN_USE' WHERE id = $1`, [vehicle_id]);
+    // 3. Update Vehicle Status to IN_USE and Last Odometer
+    await client.query(
+      `UPDATE vehicles 
+       SET status = 'IN_USE',
+           last_odometer_km = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [vehicle_id, odometer_out]
+    );
 
     // 4. If linked to manifest or outbound, update status
     if (reference_type === 'CROSS_DOCK_MANIFEST' && reference_id) {
@@ -165,17 +179,17 @@ fleetRoutes.post('/departure', async (c) => {
 
     await client.query('COMMIT');
 
-    // Record Checkpoint (Gate Departure)
+    // Record Checkpoint
     await recordCheckpoint({
       entity_type: 'FLEET_EXIT_LOG',
       entity_id: exitLog.id,
       entity_number: exitLog.log_number,
       step_code: 'FLEET_DEPARTED',
-      step_label: 'Pencatatan Armada Keluar Pos Satpam Gerbang',
+      step_label: 'Pemeriksaan Pos Satpam (Gate-Out Selesai)',
       actor_id: actor_id || null,
-      actor_name: departure_security_officer.trim(),
-      actor_role: 'WH_STAFF',
-      notes: `Armada berangkat dengan Odometer: ${odometer_out} km, BBM: ${fuel_level_out || 'FULL'}. Petugas: ${departure_security_officer}`,
+      actor_name: actor_name,
+      actor_role: actor_role,
+      notes: departure_notes || `Armada keluar dikendarai ${driver_name}. Odometer: ${odometer_out} km, BBM: ${fuel_level_out || 'FULL'}`,
       photo_urls: departure_photo_url ? [departure_photo_url] : []
     });
 
@@ -189,18 +203,24 @@ fleetRoutes.post('/departure', async (c) => {
 });
 
 // 5. Record Fleet Return (Pencatatan Armada Kembali / Gate-In Pos Satpam)
-fleetRoutes.post('/logs/:id/return', async (c) => {
+fleetRoutes.post('/logs/:id/return', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
   const id = c.req.param('id');
   const body = await c.req.json();
   const {
     odometer_in,
     fuel_level_in,
-    return_security_officer,
+    return_security_officer: bodySecurityOfficer,
     return_photo_url,
     return_notes,
-    actor_name,
-    actor_id
+    actor_name: bodyActorName,
+    actor_id: bodyActorId
   } = body;
+
+  const return_security_officer = (user?.full_name || bodySecurityOfficer || bodyActorName || '').trim();
+  const actor_name = user?.full_name || bodyActorName || return_security_officer || 'Petugas Satpam';
+  const actor_id = user?.id || bodyActorId;
+  const actor_role = user?.role || 'GATE_OFFICER';
 
   if (!odometer_in || !return_security_officer) {
     return c.json({ 
@@ -242,7 +262,7 @@ fleetRoutes.post('/logs/:id/return', async (c) => {
         id, 
         odometer_in, 
         fuel_level_in || 'FULL', 
-        return_security_officer.trim(), 
+        return_security_officer, 
         return_photo_url || null, 
         return_notes || null
       ]
@@ -259,13 +279,13 @@ fleetRoutes.post('/logs/:id/return', async (c) => {
     // Record Checkpoint (Gate Return)
     await recordCheckpoint({
       entity_type: 'FLEET_EXIT_LOG',
-      entity_id: id,
+      entity_id: id as string,
       entity_number: exitLog.log_number,
       step_code: 'FLEET_RETURNED',
-      step_label: 'Pencatatan Armada Masuk Kembali di Pos Satpam',
+      step_label: 'Pemeriksaan Pos Satpam (Gate-In Selesai)',
       actor_id: actor_id || null,
-      actor_name: return_security_officer.trim(),
-      actor_role: 'WH_STAFF',
+      actor_name: return_security_officer,
+      actor_role: actor_role,
       notes: `Armada kembali. Total Jarak: ${distance.toFixed(1)} km, BBM: ${fuel_level_in || 'FULL'}. Petugas: ${return_security_officer}`,
       photo_urls: return_photo_url ? [return_photo_url] : []
     });

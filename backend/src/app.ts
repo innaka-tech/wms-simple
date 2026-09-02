@@ -25,8 +25,19 @@ export function createApp() {
     app.use('*', logger());
   }
 
+  // HTTP Security Headers (OWASP Top 10 A05 Hardening)
+  app.use('*', async (c, next) => {
+    c.header('X-Content-Type-Options', 'nosniff');
+    c.header('X-Frame-Options', 'SAMEORIGIN');
+    c.header('X-XSS-Protection', '1; mode=block');
+    c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+    await next();
+  });
+
+  const corsOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map(s => s.trim()) : '*';
+
   app.use('*', cors({
-    origin: '*',
+    origin: corsOrigins,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization']
   }));
