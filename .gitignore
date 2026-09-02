@@ -42,3 +42,10 @@ pnpm-debug.log*
 # Temporary files
 .temp/
 tmp/
+
+# SQLite Databases
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+

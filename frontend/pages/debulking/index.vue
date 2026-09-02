@@ -1,96 +1,149 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-6">
     <!-- Feedback Alerts -->
-    <div v-if="debulkingStore.errorMessage" class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 flex justify-between items-center">
-      <span>⚠ {{ debulkingStore.errorMessage }}</span>
+    <div v-if="debulkingStore.errorMessage" class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs md:text-sm text-rose-600 dark:text-rose-400 flex justify-between items-center shadow-sm">
+      <div class="flex items-center space-x-2">
+        <AppIcon name="alert" custom-class="w-4 h-4 shrink-0" />
+        <span class="font-medium">{{ debulkingStore.errorMessage }}</span>
+      </div>
       <button type="button" @click="debulkingStore.errorMessage = ''" class="font-bold ml-2 text-rose-600 dark:text-rose-400 hover:opacity-80">✕</button>
     </div>
-    <div v-if="debulkingStore.successMessage" class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-600 dark:text-emerald-400 flex justify-between items-center">
-      <span>✓ {{ debulkingStore.successMessage }}</span>
+    <div v-if="debulkingStore.successMessage" class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs md:text-sm text-emerald-600 dark:text-emerald-400 flex justify-between items-center shadow-sm">
+      <div class="flex items-center space-x-2">
+        <AppIcon name="check" custom-class="w-4 h-4 shrink-0" />
+        <span class="font-medium">{{ debulkingStore.successMessage }}</span>
+      </div>
       <button type="button" @click="debulkingStore.successMessage = ''" class="font-bold ml-2 text-emerald-600 dark:text-emerald-400 hover:opacity-80">✕</button>
     </div>
 
-    <!-- Header -->
-    <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-1.5 shadow-sm transition-colors">
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-mono font-semibold text-blue-600 dark:text-blue-400">WO-DEBULK-20260901</span>
-        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">PENCURAHAN</span>
+    <!-- Header & WO Info -->
+    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-2 transition-colors">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div class="flex items-center space-x-2">
+          <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800">
+            WO-DEBULK-20260901
+          </span>
+          <span class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+            PENCURAHAN & REPACKING
+          </span>
+        </div>
+        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Toleransi Susut: &le; 1.00%</span>
       </div>
-      <h3 class="font-bold text-slate-900 dark:text-slate-100 text-sm">Konversi Bulky ke Karung Retail</h3>
-      <p class="text-xs text-slate-500 dark:text-slate-400">Jumbo Bag Gula 1 Ton → Karung 25 KG (Toleransi Susut &le; 1.00%)</p>
+      <div>
+        <h3 class="font-bold text-slate-900 dark:text-slate-100 text-base">Konversi Kargo Bulky Parent ke Kemasan Retail</h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Jumbo Bag Gula Pasir Rafinasi 1 Ton &rarr; Karung 25 KG (Double-Entry Stock Ledger Balancing)</p>
+      </div>
     </div>
 
-    <!-- Input Parent Bulky -->
-    <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 shadow-sm transition-colors">
-      <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">1. Input Barang Bulky (Parent)</label>
-      <div class="flex items-center space-x-3">
-        <input 
-          v-model.number="inputBags" 
-          type="number" 
-          min="1"
-          class="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-lg font-mono font-bold text-slate-900 dark:text-slate-100 text-center focus:border-blue-500 focus:outline-none"
-        />
-        <div class="flex-1 text-xs text-slate-700 dark:text-slate-300">
-          <p class="font-semibold text-slate-800 dark:text-slate-200">Jumbo Bag (1.000 KG/Bag)</p>
-          <p class="text-slate-500 dark:text-slate-400 font-mono mt-0.5">Total Berat Input: {{ totalInputWeight }} KG</p>
+    <!-- 2-Column Responsive Input & Output Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+      
+      <!-- Input Parent Bulky (Left Card) -->
+      <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Input Barang Bulky (Parent)</h4>
+            <span class="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">BULK-SUGAR-1T</span>
+          </div>
+
+          <div class="mt-4 flex items-center space-x-4">
+            <div class="space-y-1">
+              <label class="text-[11px] text-slate-400 font-semibold uppercase block">Jumlah Bag</label>
+              <input 
+                v-model.number="inputBags" 
+                type="number" 
+                min="1"
+                class="w-28 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-2xl font-mono font-bold text-slate-900 dark:text-slate-100 text-center focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+            <div class="flex-1 text-xs text-slate-700 dark:text-slate-300 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+              <p class="font-bold text-slate-900 dark:text-slate-100 text-sm">Jumbo Bag (@ 1.000 KG/Bag)</p>
+              <p class="text-slate-500 dark:text-slate-400 font-mono mt-1 font-semibold">Total Berat Input: <span class="text-blue-600 dark:text-blue-400 font-bold text-sm">{{ totalInputWeight.toLocaleString() }} KG</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono flex items-center space-x-1.5">
+          <span>Mutasi Stok Parent:</span>
+          <span class="text-rose-600 dark:text-rose-400 font-bold">-{{ inputBags }} Jumbo Bag</span>
+        </div>
+      </div>
+
+      <!-- Output Child Karung (Right Card) -->
+      <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4 shadow-sm flex flex-col justify-between">
+        <div>
+          <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Output Hasil Karung (Child)</h4>
+            <span class="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">SUGAR-SACK-25KG</span>
+          </div>
+
+          <div class="mt-4 flex items-center space-x-4">
+            <div class="space-y-1">
+              <label class="text-[11px] text-slate-400 font-semibold uppercase block">Jumlah Sak</label>
+              <input 
+                v-model.number="outputSacks" 
+                type="number" 
+                min="1"
+                step="0.1"
+                class="w-28 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2.5 text-2xl font-mono font-bold text-slate-900 dark:text-slate-100 text-center focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+            <div class="flex-1 text-xs text-slate-700 dark:text-slate-300 p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+              <p class="font-bold text-slate-900 dark:text-slate-100 text-sm">Karung Retail (@ 25 KG/Sak)</p>
+              <p class="text-slate-500 dark:text-slate-400 font-mono mt-1 font-semibold">Total Berat Output: <span class="text-emerald-600 dark:text-emerald-400 font-bold text-sm">{{ totalOutputWeight.toLocaleString() }} KG</span></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono flex items-center space-x-1.5">
+          <span>Mutasi Stok Child:</span>
+          <span class="text-emerald-600 dark:text-emerald-400 font-bold">+{{ outputSacks }} Karung (25 KG)</span>
         </div>
       </div>
     </div>
 
-    <!-- Output Child Karung -->
-    <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2 shadow-sm transition-colors">
-      <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">2. Output Hasil Karung (25 KG)</label>
-      <div class="flex items-center space-x-3">
-        <input 
-          v-model.number="outputSacks" 
-          type="number" 
-          min="1"
-          class="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2 text-lg font-mono font-bold text-slate-900 dark:text-slate-100 text-center focus:border-blue-500 focus:outline-none"
-        />
-        <div class="flex-1 text-xs text-slate-700 dark:text-slate-300">
-          <p class="font-semibold text-slate-800 dark:text-slate-200">Karung @ 25 KG</p>
-          <p class="text-slate-500 dark:text-slate-400 font-mono mt-0.5">Total Berat Output: {{ totalOutputWeight }} KG</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Shrinkage Live Calculation -->
-    <div class="p-4 rounded-xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 space-y-1.5 shadow-sm transition-colors">
-      <div class="flex justify-between items-center text-xs">
-        <span class="font-semibold text-slate-700 dark:text-slate-300">Kalkulasi Susut (Shrinkage Loss):</span>
-        <span class="font-mono font-bold text-sm" :class="isShrinkageHigh ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-slate-200'">
-          {{ shrinkageKg }} KG ({{ shrinkagePct }}%)
+    <!-- Shrinkage Live Calculation Card -->
+    <div class="p-5 md:p-6 rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 space-y-3 shadow-sm transition-colors">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          Kalkulasi Susut Otomatis (Shrinkage Loss Formula):
         </span>
+        <div class="flex items-center space-x-2 font-mono font-bold text-base md:text-lg" :class="isShrinkageHigh ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'">
+          <span>Susut: {{ shrinkageKg }} KG</span>
+          <span>({{ shrinkagePct }}%)</span>
+        </div>
       </div>
-      <p v-if="isShrinkageHigh" class="text-xs text-rose-600 dark:text-rose-400 font-medium">
-        ⚠ Perhatian: Susut melebihi batas toleransi wajar (&gt; 1.00%).
-      </p>
-      <p v-else class="text-xs text-emerald-600 dark:text-emerald-400">
-        ✓ Susut berada dalam batas toleransi wajar (&le; 1.00%).
-      </p>
+
+      <div class="p-3 rounded-xl flex items-center space-x-2.5 text-xs font-medium" :class="isShrinkageHigh ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'">
+        <AppIcon :name="isShrinkageHigh ? 'alert' : 'check'" custom-class="w-4 h-4 shrink-0" />
+        <span>{{ isShrinkageHigh ? 'Peringatan: Susut melebihi batas toleransi wajar (> 1.00%). Memerlukan persetujuan khusus Kepala Gudang.' : 'Susut berada dalam batas toleransi wajar (≤ 1.00%). Sesuai standar ISO pergudangan.' }}</span>
+      </div>
     </div>
 
-    <!-- Supervisor Name -->
-    <div class="space-y-1.5">
-      <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Petugas Pengawas De-bulking</label>
-      <input 
-        v-model="actorName" 
-        type="text" 
-        required 
-        placeholder="Mandor Joko / Supri"
-        class="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
-      />
-    </div>
+    <!-- Supervisor Name & Action -->
+    <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm space-y-4 transition-colors">
+      <div class="space-y-1.5">
+        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Petugas Pengawas De-bulking (Wajib Sesuai Audit)</label>
+        <input 
+          v-model="actorName" 
+          type="text" 
+          required 
+          placeholder="Contoh: Mandor Joko / Supri"
+          class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
+        />
+      </div>
 
-    <!-- Submit Button -->
-    <button 
-      type="button" 
-      @click="handleDebulkSubmit"
-      :disabled="debulkingStore.isLoading"
-      class="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center space-x-2 disabled:opacity-50"
-    >
-      <span>{{ debulkingStore.isLoading ? 'Memproses...' : 'Selesaikan De-bulking & Mutasi Stok' }}</span>
-    </button>
+      <!-- Submit Button -->
+      <button 
+        type="button" 
+        @click="handleDebulkSubmit"
+        :disabled="debulkingStore.isLoading"
+        class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold rounded-xl shadow-sm transition flex items-center justify-center space-x-2 disabled:opacity-50 text-sm cursor-pointer"
+      >
+        <AppIcon name="debulking" custom-class="w-4 h-4" />
+        <span>{{ debulkingStore.isLoading ? 'Memproses...' : 'Selesaikan De-bulking & Rekam Mutasi Stok' }}</span>
+      </button>
+    </div>
   </div>
 </template>
 

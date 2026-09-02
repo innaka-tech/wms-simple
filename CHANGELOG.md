@@ -5,6 +5,45 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [1.1.0] - 2026-09-02
+### Added
+- **Database Standalone SQLite Adapter (`sqlite-db.ts` & `db.ts`):**
+  - Implementasi engine database lokal mandiri berbasis `node:sqlite` (SQLite 3.35+ dengan WAL Mode dan `PRAGMA foreign_keys = ON`).
+  - Auto-initialization 32 skema tabel relasional lengkap (Master Data, Warehouse Locations, Users, Products, Fleet, Stock Ledger, Work Orders, Cross-Doc, Checkpoint Chain, dll.).
+  - Auto-seeding akun pengguna untuk seluruh 6 peran RBAC (`superadmin`, `admin_adm`, `mgr_jkt`, `staff_jkt`, `driver_budi`, `gate_officer`) dengan password standar `password123`.
+  - Kompatibilitas kueri SQL penuh (`normalizeSql`) menangani parameterized query `$1, $2` $\rightarrow$ `?`, `RETURNING *`, dan transaksi ACID (`BEGIN`, `COMMIT`, `ROLLBACK`).
+- **Redesain Menyeluruh Antarmuka Profesional & Humanis (Semua Halaman):**
+  - Menghilangkan seluruh gradasi warna mencolok (*neon gradients / bright artificial rainbow badges*) di seluruh kartu dashboard, form pos satpam, inbound dock, de-bulking, POD, dan kartu stok.
+  - Mengganti seluruh emoji kartun di seluruh sistem dengan komponen vektor stroke presisi [`AppIcon.vue`](file:///C:/Users/ICT-12/Documents/LatifNitip/ANS/wms-simple/frontend/components/AppIcon.vue) (*Home, Truck, Inbound, Scale, Signature, Stock, Scan, Camera, Printer, Trash, Alert, Check*).
+  - Menggunakan palet netral enterprise (*Industrial Slate & Crisp Zinc*) dengan copywriting operasional yang humanis, lugas, dan praktis bagi staf lapangan dan manajemen.
+- **Redesain Halaman Login Standar Enterprise B2B SaaS (`pages/login.vue`):**
+  - Menghilangkan dekorasi generik (*gradient blob, emoji berlebih*) dan menggantinya dengan estetika industri logistik presisi tinggi (*Industrial Slate & Cobalt Blue*).
+  - Integrasi panel telemetri sistem (status node gudang `WH-JKT-01`, sertifikasi ISO 27001, mode SQLite WAL, dan rantai audit).
+  - Vektor ikon SVG presisi (*User, Lock, Shield, Eye, Arrow*) untuk pengalaman form yang konsisten.
+  - Quick Profile Clearance Switcher minimalis dengan kartu identitas petugas rapi (Super Admin, Admin Adm, WH Manager, Checker, Driver, dan Gate Officer).
+  - Penanganan error standar RFC 7807 problem details dan pengalihan reaktif setelah login sukses.
+- **Pembaruan Antarmuka Responsif Menyeluruh (Seamless Desktop & Mobile Layout):**
+  - **Desktop Enterprise Console Layout (`layouts/default.vue`):**
+    - Sidebar persisten desktop (`hidden lg:flex w-64 xl:w-72`) dengan logo korporat, kartu profil petugas & gudang aktif, navigasi berjenjang terstruktur (*Dashboard, Pintu & Gerbang, Operasional Gudang, Distribusi*), dan footer status online.
+    - Top bar header desktop dengan breadcrumb, informasi gudang aktif, indikator kesiapan hardware barcode scanner, dan theme switcher.
+    - Menghilangkan pembatasan lebar `max-w-md` pada layar laptop/desktop sehingga memanfaatkan seluruh resolusi layar (`max-w-7xl` responsif).
+  - **Dashboard Operasional Responsif (`pages/index.vue`):**
+    - Grid kartu tugas 4-kolom pada desktop (`grid-cols-2 md:grid-cols-4`) dengan micro-interaction hover, status badge, dan deskripsi detail.
+    - Grid ringkasan live status armada & stok 3-kolom lebar dan kartu fitur operasional strategis (KDMP, SJ Swap, Checkpoint).
+  - **Penerimaan Inbound 2-Kolom (`pages/inbound/receive.vue`):**
+    - Split-view desktop: Kolom kiri (Detail PO, Scanner Barcode, Tally Counter fisik besar +/-), Kolom kanan (Plat Truk, Sopir, Petugas Checker wajib audit, dan tombol konfirmasi).
+  - **Pos Satpam Gate Pass Multi-Kolom (`pages/gate-pass/index.vue`):**
+    - Mode Gate-Out: Formulir multi-kolom desktop (Identitas armada & sopir, Inspeksi odometer, Selector BBM solar 4-level interaktif, dan nama satpam).
+    - Mode Gate-In: Grid responsif 3-kolom (`grid-cols-1 md:grid-cols-2 xl:grid-cols-3`) kartu armada di luar dengan input odometer kembali dan tombol cetak struk thermal instan.
+  - **De-bulking & Repacking Console (`pages/debulking/index.vue`):**
+    - 2-Kolom alur konversi (Input Parent Bulky 1T vs Output Child Karung 25kg) dengan visualisasi formula susut otomatis, alert toleransi susut > 1.00%, dan input mandor pengawas.
+  - **Driver POD & BAST Digital (`pages/outbound/pod.vue`):**
+    - 2-Kolom split: Bukti foto serah terima fisik & SOP KDMP Chiller di sisi kiri, Digital Signature Pad responsif & nama penerima di sisi kanan.
+  - **Tabel Buku Besar Stok & Live Search (`pages/stock/index.vue`):**
+    - Tampilan tabel enterprise desktop (`hidden md:block`) dengan filter pencarian real-time (SKU / Nama barang), kolom On-Hand, Reserved, In-Transit, dan status stok ketersediaan, serta mode kartu sentuh untuk mobile.
+  - **Komponen Navigasi Bawah (`BottomNav.vue`):**
+    - Dikonfigurasi `lg:hidden` agar otomatis tersembunyi di browser desktop/laptop dan tetap aktif untuk navigasi ergonomi jempol (*Thumb-Zone*) di smartphone.
+
 ## [1.0.9] - 2026-09-01
 ### Fixed
 - **Perbaikan CI/CD Docker Build & Kompilasi TypeScript Backend:**

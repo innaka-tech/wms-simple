@@ -40,6 +40,10 @@ export const useGatePassStore = defineStore('gatePass', {
     successMessage: ''
   }),
 
+  getters: {
+    gatePassList: (state) => state.logs || []
+  },
+
   actions: {
     async fetchVehicles() {
       const { apiFetch } = useWmsApi();
@@ -67,6 +71,10 @@ export const useGatePassStore = defineStore('gatePass', {
       } finally {
         this.isLoading = false;
       }
+    },
+
+    async fetchGatePassList(status?: string) {
+      return this.fetchLogs(status);
     },
 
     async submitDeparture(payload: {

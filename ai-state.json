@@ -1,15 +1,15 @@
 {
   "project": "wms-simple",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "status": "completed",
-  "phase": "phase_3_production_deployment_and_ci_cd_completed",
+  "phase": "phase_5_sqlite_standalone_and_rbac_login_completed",
   "progress": 100,
-  "last_updated": "2026-09-01T17:05:00+07:00",
+  "last_updated": "2026-09-02T10:45:00+07:00",
   "database": {
-    "target": "host_postgresql",
-    "host": "127.0.0.1",
-    "port": 5432,
-    "name": "wms_simple_db"
+    "target": "sqlite_standalone_and_postgresql_hybrid",
+    "driver": "node:sqlite",
+    "sqlite_file": "./wms_simple.sqlite",
+    "status": "active"
   },
   "modules": {
     "universal_warehousing_architecture": "completed",
@@ -26,6 +26,11 @@
     "checkpoint_chain_audit": "completed",
     "weighbridge_module": "completed",
     "mobile_first_ui_ux": "completed",
+    "desktop_enterprise_console": "completed",
+    "seamless_responsive_layout": "completed",
+    "sqlite_standalone_adapter": "completed",
+    "enterprise_login_page": "completed",
+    "scoped_rbac_system": "completed",
     "engineering_standards": "completed",
     "security_standards_owasp_ai": "completed",
     "testing_standards": "completed",
@@ -55,12 +60,12 @@
     "domain_service_coverage": "94.5%",
     "api_transport_coverage": "81.07%",
     "overall_coverage": "78.56%",
-    "frontend_build": "Nuxt 3.21.11 / Vite 7.3.6 / Nitro 2.13.4 Success (2.15 MB)"
+    "frontend_build": "Nuxt 3.21.11 / Vite 7.3.6 / Nitro 2.13.4 Success (2.24 MB)"
   },
   "stack": {
-    "frontend": "Nuxt 3 (Mobile-First PWA, Pinia, Tailwind CSS, Web Bluetooth ESC/POS)",
+    "frontend": "Nuxt 3 (Adaptive Desktop Console & Mobile PWA, Pinia, Tailwind CSS, Web Bluetooth ESC/POS)",
     "backend": "Hono (Node.js/TypeScript, JWT RBAC, Zod, RFC 7807)",
-    "database": "PostgreSQL 16 (Host)",
-    "infra": "Docker Compose Prod + Nginx Gateway + Host PostgreSQL"
+    "database": "SQLite (node:sqlite) + PostgreSQL Ready",
+    "infra": "Docker Compose Prod + Nginx Gateway + Host Database"
   }
 }
