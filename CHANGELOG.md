@@ -5,6 +5,26 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [1.2.0] - 2026-09-03
+### Changed
+- **Anti-AI Design Overhaul & B2B Logistics Enterprise Design System:**
+  - Menghilangkan secara menyeluruh estetika "AI Generated Look" (sudut `rounded-2xl/rounded-3xl`, gradasi latar belakang radial/linear, bayangan pendar lembut berlebihan `shadow-xl shadow-slate-200/40`, emoji kartun).
+  - Standardisasi sistem desain presisi industri: Kontainer menggunakan `rounded-lg` (8px), kontrol input dan tombol aksi menggunakan `rounded-md` (6px), dan tag status menggunakan `rounded` (4px).
+  - Mengganti seluruh dekorasi gradasi warna dengan palet *Industrial Slate, Zinc & Solid Neutral* yang tajam, humanis, dan berdensitas tinggi (*high information density*).
+  - Menyelaraskan seluruh angka metriks, kode SKU, nomor polisi armada, odometer, dan berat ke font monospace tabular figures (`font-mono tracking-tight`).
+- **Redesain Halaman Operasional Lapangan:**
+  - `layouts/default.vue`: Brand mark geometric vector SVG, sidebar links beraksen garis solid (`border-l-2 border-slate-900 dark:border-white`), breadcrumb gudang aktif yang ringkas.
+  - `pages/index.vue`: Redesain Control Tower Telemetry Bar, 4-kolom kartu modul operasional fungsional (`GATE-01`, `DOCK-IN`, `BULK-01`, `E-POD`), panel alokasi Hub Distribusi AUCMA KDKMP (Cikarang 7.000 m² & Surabaya 3.500 m²), dan sidebar standar kepatuhan rantai dingin (*Upright Only, Tail-Lift, Resting Time*).
+  - `pages/login.vue`: Halaman login enterprise dengan panel telemetri spesifikasi sistem monokromatik dan profil peran clearance RBAC yang rapi.
+  - `pages/gate-pass/index.vue`: Input odometer industrial, selector fuel level BBM solar neutral, dan struk thermal print.
+  - `pages/inbound/receive.vue`: Kotak scanner rugged handheld, stepper kuantitas fisik presisi, dan lencana kontinuitas rantai audit checkpoint.
+  - `pages/debulking/index.vue`: Kartu konversi parent-to-child yang kompak dan indikator susut otomatis terintegrasi.
+  - `pages/outbound/pod.vue`: Formulir BAST digital dengan kanvas tanda tangan presisi dan verifikasi foto serah terima.
+  - `pages/stock/index.vue`: Tabel buku besar stok berdensitas tinggi dengan filter pencarian instan dan kartu KPI ringkas.
+### Security
+- Penerapan HTTP Security Headers OWASP (`nosniff`, `SAMEORIGIN`, `1; mode=block`, `Referrer-Policy`) pada backend Hono.
+- Ekstraksi token actor context untuk penegakan audit trail kontinuitas tak terputus.
+
 ## [1.1.0] - 2026-09-02
 ### Added
 - **Database Standalone SQLite Adapter (`sqlite-db.ts` & `db.ts`):**

@@ -22,7 +22,7 @@
       <!-- Left Column: PO Information, Scanner & Quantity Counter (lg:col-span-7) -->
       <div class="lg:col-span-7 space-y-4">
         <!-- PO Header Info -->
-        <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2 shadow-sm transition-colors">
+        <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-2 shadow-sm transition-colors">
           <div class="flex justify-between items-center">
             <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800">PO-20260901-001</span>
             <span class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">DOCK RECEIVING</span>
@@ -34,7 +34,7 @@
         </div>
 
         <!-- Barcode Scanner Quick Box -->
-        <div class="p-4 md:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center justify-between shadow-sm transition-colors">
+        <div class="p-4 md:p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg flex items-center justify-between shadow-sm transition-colors">
           <div class="flex items-center space-x-3.5">
             <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400">
               <AppIcon name="scan" custom-class="w-5 h-5" />
@@ -55,7 +55,7 @@
         </div>
 
         <!-- Jumbo Tally Counter (+ / -) -->
-        <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4 shadow-sm transition-colors">
+        <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm transition-colors">
           <div class="flex justify-between items-center">
             <label class="text-xs md:text-sm font-semibold text-slate-700 dark:text-slate-300">Kuantitas Fisik Diterima</label>
             <span class="text-xs text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md">Pesanan PO: 10 Unit</span>
@@ -65,18 +65,18 @@
             <button 
               type="button" 
               @click="decrementQty"
-              class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 text-2xl font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center border border-slate-300 dark:border-slate-700 shadow-2xs transition cursor-pointer"
+              class="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 text-2xl font-bold text-slate-700 dark:text-slate-200 flex items-center justify-center border border-slate-300 dark:border-slate-700 shadow-2xs transition cursor-pointer"
             >
               -
             </button>
-            <div class="flex-1 text-center py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl">
+            <div class="flex-1 text-center py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg">
               <span class="text-3xl md:text-4xl font-bold font-mono text-slate-900 dark:text-slate-100">{{ qty }}</span>
               <span class="text-xs text-slate-500 dark:text-slate-400 block mt-0.5 font-medium">Jumbo Bag (Ton)</span>
             </div>
             <button 
               type="button" 
               @click="incrementQty"
-              class="w-14 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-2xl font-bold text-white flex items-center justify-center shadow-xs transition cursor-pointer"
+              class="w-14 h-14 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-2xl font-bold text-white flex items-center justify-center shadow-xs transition cursor-pointer"
             >
               +
             </button>
@@ -87,7 +87,7 @@
       <!-- Right Column: Truck, Driver, Officer & Submit (lg:col-span-5) -->
       <div class="lg:col-span-5 space-y-4">
         <!-- Truck & Driver Manifest Card -->
-        <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4 shadow-sm transition-colors">
+        <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm transition-colors">
           <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2">Manifest Pengirim</h4>
           
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
@@ -97,7 +97,7 @@
                 v-model="truckPlate" 
                 type="text" 
                 placeholder="B 9876 XYZ"
-                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 font-mono font-bold focus:border-blue-500 focus:outline-none"
+                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs sm:text-sm text-slate-900 dark:text-slate-100 font-mono font-bold focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none"
               />
             </div>
             <div class="space-y-1.5">
@@ -106,7 +106,7 @@
                 v-model="driverName" 
                 type="text" 
                 placeholder="Pak Supri"
-                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
+                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none"
               />
             </div>
           </div>
@@ -118,7 +118,7 @@
               type="text" 
               required 
               placeholder="Nama Petugas Gudang"
-              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
+              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none"
             />
           </div>
         </div>
@@ -128,14 +128,15 @@
           type="button" 
           @click="submitReceive"
           :disabled="inboundStore.isLoading"
-          class="w-full py-4 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-600/20 transition flex items-center justify-center space-x-2 disabled:opacity-50 text-sm md:text-base cursor-pointer"
+          class="w-full py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 font-semibold rounded-md shadow-xs transition flex items-center justify-center space-x-2 disabled:opacity-50 text-xs sm:text-sm cursor-pointer"
         >
-          <span>{{ inboundStore.isLoading ? 'Memproses...' : '✓ Konfirmasi Penerimaan Fisik' }}</span>
+          <AppIcon name="check" custom-class="w-4 h-4" />
+          <span>{{ inboundStore.isLoading ? 'Memproses...' : 'Konfirmasi Penerimaan Fisik' }}</span>
         </button>
 
         <!-- Audit Checkpoint Continuity Tag -->
-        <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-center space-x-2">
-          <span class="text-emerald-500 font-bold">🔒</span>
+        <div class="p-3 rounded-md bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-center space-x-2">
+          <AppIcon name="shield" custom-class="w-3.5 h-3.5 text-emerald-500 shrink-0" />
           <span>Setiap penerimaan mengunci mutasi stok ledger & menerbitkan Checkpoint PO_RECEIVED.</span>
         </div>
       </div>

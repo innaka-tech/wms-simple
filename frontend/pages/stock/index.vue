@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Header & Top Bar -->
-    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
+    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
       <div>
         <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
           <AppIcon name="stock" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -19,13 +19,13 @@
             v-model="searchQuery"
             type="text"
             placeholder="Cari SKU / Nama Barang..."
-            class="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
+            class="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md text-xs text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
           />
         </div>
         <button 
           type="button" 
           @click="refreshStock"
-          class="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer"
+          class="px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-semibold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer"
         >
           <AppIcon name="refresh" custom-class="w-3.5 h-3.5" />
           <span>Refresh</span>
@@ -34,26 +34,26 @@
     </div>
 
     <!-- Feedback Alerts -->
-    <div v-if="stockStore.errorMessage" class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 flex items-center space-x-2">
+    <div v-if="stockStore.errorMessage" class="p-4 rounded-md bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 flex items-center space-x-2">
       <AppIcon name="alert" custom-class="w-4 h-4 shrink-0" />
       <span>{{ stockStore.errorMessage }}</span>
     </div>
 
     <!-- Stock KPI Summary Bar -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
         <p class="text-[10px] uppercase font-semibold text-slate-400">Total SKU Terdaftar</p>
         <p class="text-xl md:text-2xl font-bold font-mono text-slate-900 dark:text-slate-100 mt-1">{{ filteredList.length }} <span class="text-xs font-normal text-slate-400">SKU</span></p>
       </div>
-      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
         <p class="text-[10px] uppercase font-semibold text-slate-400">Total Unit On-Hand</p>
         <p class="text-xl md:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{{ totalOnHand }} <span class="text-xs font-normal text-slate-400">Unit/Kg</span></p>
       </div>
-      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
         <p class="text-[10px] uppercase font-semibold text-slate-400">Total Alokasi Reserved</p>
         <p class="text-xl md:text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">{{ totalReserved }} <span class="text-xs font-normal text-slate-400">Unit</span></p>
       </div>
-      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
         <p class="text-[10px] uppercase font-semibold text-slate-400">Total In-Transit</p>
         <p class="text-xl md:text-2xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-1">{{ totalInTransit }} <span class="text-xs font-normal text-slate-400">Unit</span></p>
       </div>
@@ -66,7 +66,7 @@
     </div>
 
     <!-- DESKTOP TABLE VIEW (Visible on md: screens and up) -->
-    <div v-else class="hidden md:block bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm transition-colors">
+    <div v-else class="hidden md:block bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm transition-colors">
       <table class="w-full text-left border-collapse">
         <thead>
           <tr class="bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -124,7 +124,7 @@
       <div 
         v-for="item in filteredList" 
         :key="item.id || item.sku"
-        class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 shadow-sm transition-colors"
+        class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-3 shadow-sm transition-colors"
       >
         <div class="flex justify-between items-start">
           <div>
@@ -143,15 +143,15 @@
         </div>
 
         <div class="grid grid-cols-3 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-center font-mono">
-          <div class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <div class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md">
             <p class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">On-Hand</p>
             <p class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">{{ item.qty_on_hand !== undefined ? item.qty_on_hand : item.onHand }}</p>
           </div>
-          <div class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <div class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md">
             <p class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">Reserved</p>
             <p class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">{{ item.qty_reserved !== undefined ? item.qty_reserved : item.reserved }}</p>
           </div>
-          <div class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+          <div class="p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md">
             <p class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">In-Transit</p>
             <p class="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">{{ item.qty_in_transit !== undefined ? item.qty_in_transit : item.inTransit }}</p>
           </div>

@@ -22,67 +22,64 @@
     </header>
 
     <!-- MAIN AUTHENTICATION CONTAINER -->
-    <main class="flex-1 flex items-center justify-center px-4 sm:px-6 py-4">
-      <div class="w-full max-w-5xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xl shadow-slate-200/40 dark:shadow-none overflow-hidden grid grid-cols-1 lg:grid-cols-12 transition-colors">
+    <main class="flex-1 flex items-center justify-center px-4 sm:px-6 py-6">
+      <div class="w-full max-w-5xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden grid grid-cols-1 lg:grid-cols-12 transition-colors">
         
         <!-- LEFT PANEL: Enterprise Telemetry & Identity (Desktop Only) -->
-        <div class="hidden lg:flex lg:col-span-5 bg-slate-900 dark:bg-slate-900/90 text-slate-100 p-8 flex-col justify-between border-r border-slate-800 relative">
-          <!-- Subtle Grid Background -->
-          <div class="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
-
+        <div class="hidden lg:flex lg:col-span-5 bg-slate-950 text-slate-100 p-8 flex-col justify-between border-r border-slate-800">
+          
           <!-- Top Brand & Description -->
-          <div class="space-y-4 relative z-10">
-            <div class="inline-flex items-center space-x-2 px-2.5 py-1 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-mono font-medium">
-              <span>Platform v1.1.0-prod</span>
+          <div class="space-y-3">
+            <div class="inline-flex items-center space-x-2 px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-mono">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>Platform v1.1.0 • Node WH-JKT-01</span>
             </div>
-            <h1 class="text-2xl font-bold tracking-tight text-white leading-snug">
+            <h1 class="text-xl font-bold tracking-tight text-white leading-snug">
               Sistem Manajemen Pergudangan & Distribusi Logistik
             </h1>
             <p class="text-xs text-slate-400 leading-relaxed">
-              Arsitektur terintegrasi untuk kargo umum, curah kering & cair (*de-bulking*), gate pass armada, dan rantai dingin KDMP.
+              Arsitektur operasional terintegrasi untuk kargo curah (*de-bulking*), flow-through cross-docking, pos pemeriksaan armada, dan rantai dingin KDKMP.
             </p>
           </div>
 
           <!-- Middle: System Telemetry Specifications -->
-          <div class="space-y-2.5 my-6 relative z-10">
-            <div class="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/60 space-y-2">
-              <div class="flex items-center justify-between text-[11px] text-slate-400">
-                <span class="font-medium">Active Warehouse Node</span>
-                <span class="font-mono text-emerald-400 font-bold">WH-JKT-01</span>
+          <div class="space-y-2 my-5">
+            <div class="p-3 rounded-md bg-slate-900 border border-slate-800 space-y-1.5">
+              <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <span>Active Warehouse</span>
+                <span class="text-emerald-400 font-bold">WH-JKT-01</span>
               </div>
-              <p class="text-xs font-semibold text-slate-200">Main Consolidation & Bulky Terminal</p>
-              <div class="pt-2 border-t border-slate-700/40 flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                <span>Security: Scoped JWT RBAC</span>
-                <span>Audit: Linked Chain</span>
+              <p class="text-xs font-semibold text-slate-200">Terminal Konsolidasi & Kargo Curah</p>
+              <div class="pt-1.5 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                <span>Security: Scoped JWT</span>
+                <span>Ledger: Double-Entry</span>
               </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2 text-center text-xs">
-              <div class="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/40">
-                <p class="text-[10px] text-slate-400 uppercase font-mono">DB Mode</p>
-                <p class="font-bold text-slate-200 mt-0.5 font-mono">SQLite (WAL)</p>
+              <div class="p-2.5 rounded-md bg-slate-900 border border-slate-800">
+                <p class="text-[10px] text-slate-500 uppercase font-mono">Database</p>
+                <p class="font-semibold text-slate-200 mt-0.5 font-mono text-xs">SQLite (WAL)</p>
               </div>
-              <div class="p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/40">
-                <p class="text-[10px] text-slate-400 uppercase font-mono">Ledger State</p>
-                <p class="font-bold text-emerald-400 mt-0.5 font-mono">Double-Entry</p>
+              <div class="p-2.5 rounded-md bg-slate-900 border border-slate-800">
+                <p class="text-[10px] text-slate-500 uppercase font-mono">Audit Chain</p>
+                <p class="font-semibold text-emerald-400 mt-0.5 font-mono text-xs">Immutable</p>
               </div>
             </div>
           </div>
 
           <!-- Bottom: Certification & Compliance -->
-          <div class="pt-4 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between relative z-10">
+          <div class="pt-3 border-t border-slate-800 text-[10px] font-mono text-slate-400 flex items-center justify-between">
             <div class="flex items-center space-x-1.5">
-              <svg class="w-3.5 h-3.5 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              <span>Audit Chain Integrity</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>OWASP Top 10 Verified</span>
             </div>
-            <span class="font-mono text-[10px] text-slate-400">Zero Raw SQL</span>
+            <span class="text-slate-500">ISO/IEC 27001</span>
           </div>
         </div>
 
         <!-- RIGHT PANEL: Authentication Form & Role Clearance -->
-        <div class="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-between">
+        <div class="lg:col-span-7 p-6 sm:p-8 flex flex-col justify-between">
           
           <!-- Mobile Header (Visible on < lg) -->
           <div class="lg:hidden pb-4 mb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -136,13 +133,13 @@
                   type="text" 
                   required
                   placeholder="Contoh: superadmin / gate_officer"
-                  class="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition"
+                  class="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none transition shadow-2xs"
                 />
               </div>
             </div>
 
             <!-- Password Input -->
-            <div class="space-y-1.5">
+            <div class="space-y-1">
               <div class="flex justify-between items-center">
                 <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   Kata Sandi
@@ -150,13 +147,13 @@
                 <button 
                   type="button" 
                   @click="showPassword = !showPassword"
-                  class="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer"
+                  class="text-[11px] text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 font-medium cursor-pointer"
                 >
                   {{ showPassword ? 'Sembunyikan' : 'Tampilkan Sandi' }}
                 </button>
               </div>
               <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                   <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0110 0v4"></path>
@@ -167,12 +164,12 @@
                   :type="showPassword ? 'text' : 'password'" 
                   required
                   placeholder="Masukkan kata sandi..."
-                  class="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 focus:outline-none transition"
+                  class="w-full pl-9 pr-9 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none transition shadow-2xs"
                 />
                 <button 
                   type="button"
                   @click="showPassword = !showPassword"
-                  class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 >
                   <svg v-if="!showPassword" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
@@ -190,9 +187,9 @@
             <button 
               type="submit" 
               :disabled="authStore.isLoading"
-              class="w-full py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold rounded-xl shadow-md shadow-blue-600/10 transition flex items-center justify-center space-x-2 disabled:opacity-50 text-xs sm:text-sm cursor-pointer"
+              class="w-full py-2.5 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 font-semibold rounded-md shadow-xs transition flex items-center justify-center space-x-2 disabled:opacity-50 text-xs sm:text-sm cursor-pointer"
             >
-              <span v-if="authStore.isLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+              <span v-if="authStore.isLoading" class="w-3.5 h-3.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
               <span>{{ authStore.isLoading ? 'Memverifikasi Kredensial...' : 'Masuk ke Konsol Operasional' }}</span>
               <svg v-if="!authStore.isLoading" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -201,13 +198,13 @@
             </button>
           </form>
 
-          <!-- ROLE CLEARANCE SELECTOR (Sleek Accordion / Enterprise Profile Switcher) -->
-          <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
-            <div class="flex items-center justify-between mb-2.5">
-              <span class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                Pilih Profil Simulasi Peran (RBAC Clearance)
+          <!-- ROLE CLEARANCE SELECTOR (Sleek Enterprise Profile Switcher) -->
+          <div class="pt-3.5 border-t border-slate-100 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-400 font-mono">
+                Profil Simulasi Peran (RBAC Clearance)
               </span>
-              <span class="text-[10px] text-slate-400 font-mono">Default: password123</span>
+              <span class="text-[10px] text-slate-400 font-mono">Sandi: password123</span>
             </div>
 
             <!-- 6 Enterprise Role Cards (Clean, Subtle, Minimalist) -->
@@ -217,13 +214,13 @@
                 :key="role.username"
                 type="button"
                 @click="quickLogin(role.username)"
-                class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 bg-white dark:bg-slate-950/60 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition text-left group cursor-pointer"
+                class="p-2 rounded-md border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition text-left group cursor-pointer shadow-2xs"
               >
                 <div class="flex items-center justify-between">
-                  <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate">
+                  <span class="text-[11px] font-semibold text-slate-900 dark:text-slate-100 truncate">
                     {{ role.title }}
                   </span>
-                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border" :class="role.badgeClass">
+                  <span class="text-[9px] font-mono font-medium px-1.5 py-0.2 rounded border" :class="role.badgeClass">
                     {{ role.code }}
                   </span>
                 </div>

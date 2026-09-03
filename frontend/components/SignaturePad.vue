@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col space-y-2">
-    <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-2xl overflow-hidden touch-none h-52 md:h-64 flex items-center justify-center transition-colors">
+    <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg overflow-hidden touch-none h-52 md:h-64 flex items-center justify-center transition-colors">
       <canvas 
         ref="canvasRef" 
         class="w-full h-full cursor-crosshair block"
@@ -15,7 +15,7 @@
       <button 
         type="button" 
         @click="clear"
-        class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition flex items-center space-x-1.5 cursor-pointer shadow-2xs"
+        class="px-3 py-1.5 rounded-md text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition flex items-center space-x-1.5 cursor-pointer shadow-2xs"
       >
         <AppIcon name="trash" custom-class="w-3.5 h-3.5" />
         <span>Hapus Ulang</span>
