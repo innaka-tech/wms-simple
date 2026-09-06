@@ -258,6 +258,50 @@ try {
   const svgMap = svgs.result.value || {};
   if (!svgMap['d-flow'] || !svgMap['d-seq']) throw new Error('SVG diagram tidak terekstrak');
 
+  // Mode --png: export tiap diagram sebagai SATU gambar utuh (untuk share ke client)
+  if (process.argv.includes('--png')) {
+    const outDir = join(ROOT, 'docs', 'diagrams');
+    execFileSync('mkdir', ['-p', outDir]);
+    const PNG_TITLE = { 'd-flow': 'Diagram Alir Operasional Gudang Menyeluruh — WMS Simple Enterprise', 'd-seq': 'Urutan Interaksi & Riwayat Lacak Status (Audit Trail) — WMS Simple Enterprise' };
+    const PNG_FILE = { 'd-flow': 'wms-flowchart.png', 'd-seq': 'wms-sequence.png' };
+    for (const id of ['d-flow', 'd-seq']) {
+      const d = diag[id];
+      if (!d) throw new Error('Ukuran diagram tidak tersedia: ' + id);
+      const W = d.w, HIMG = d.h;
+      const headH = 70, pad = 24;
+      const full = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+        html,body { margin:0; padding:0; background:#fff; }
+        .head { padding: ${pad}px ${pad}px 12px; font:700 20px -apple-system,Helvetica,Arial,sans-serif; color:#0d47a1; }
+        .sub { padding: 0 ${pad}px ${pad - 6}px; font:400 12px -apple-system,Helvetica,Arial,sans-serif; color:#78909c; }
+        .body { padding: 0 ${pad}px ${pad}px; width: ${W}px; }
+        .body svg { width: ${W}px !important; height: ${HIMG}px !important; display: block; }
+      </style></head><body>
+        <div class="head">${PNG_TITLE[id]}</div>
+        <div class="sub">v${VERSION} • ${new Date().toISOString().slice(0, 10)} • BER5 Logistics</div>
+        <div class="body">${svgMap[id]}</div>
+      </body></html>`;
+      const pngHtml = join(workDir, `png-${id}.html`);
+      writeFileSync(pngHtml, full);
+      await new Promise((res) => {
+        const h = (msg) => { if (msg.method === 'Page.loadEventFired') res(); };
+        cdp.on(h);
+        cdp.send('Page.navigate', { url: 'file://' + pngHtml }).then(() => setTimeout(res, 500));
+      });
+      const totalW = W + 2 * pad, totalH = headH + HIMG + 2 * pad + 10;
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width: totalW, height: totalH, deviceScaleFactor: 2, mobile: false });
+      const shot = await cdp.send('Page.captureScreenshot', {
+        format: 'png', captureBeyondViewport: true,
+        clip: { x: 0, y: 0, width: totalW, height: totalH, scale: 2 },
+      });
+      const outPath = join(outDir, PNG_FILE[id]);
+      writeFileSync(outPath, Buffer.from(shot.data, 'base64'));
+      console.log('OK PNG:', outPath, `(${totalW * 2}x${totalH * 2}px, diagram utuh tanpa potongan)`);
+    }
+    cdp.close();
+    chrome.kill();
+    process.exit(0);
+  }
+
   // Cetak tiap diagram: pilih orientasi & skala terbaca, tile vertikal bila tidak muat
   const pdfParts = [];
   const TITLE = { 'd-flow': 'Lampiran A — Diagram Alir Operasional Gudang Menyeluruh', 'd-seq': 'Lampiran B — Urutan Interaksi & Riwayat Lacak Status (Audit Trail)' };

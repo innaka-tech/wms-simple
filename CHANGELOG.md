@@ -179,6 +179,7 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 - **Master PDF: Diagram Kepotong Halaman:** Diagram alir panjang kini dipecah otomatis menjadi tile per halaman A4 (portrait/landscape dipilih otomatis agar skala terbaca). Titik potong di-snap ke celah kosong antar node (deteksi okupansi solid SVG) sehingga tidak ada kotak/pesan yang terbelah dua halaman, pembagian tile seimbang tanpa halaman ekstra kosong, dengan label "lanjutan (n/N)" antar tile.
 ### Added
 - **Skrip Generator PDF:** `scripts/build-master-pdf.mjs` — merender kedua diagram mermaid via headless Chrome (DevTools Protocol) lalu mencetak PDF A4 terverifikasi (gagal build bila diagram error). Regenerasi: `node scripts/build-master-pdf.mjs`.
+- **Export PNG Diagram Utuh:** `node scripts/build-master-pdf.mjs --png` — menghasilkan `docs/diagrams/wms-flowchart.png` & `docs/diagrams/wms-sequence.png` (resolusi tinggi, satu gambar tanpa potongan halaman, berjudul & bertanggal, siap dibagikan ke klien).
 
 ---
 
