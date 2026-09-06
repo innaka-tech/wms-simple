@@ -176,7 +176,7 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 ### Fixed
 - **Master PDF: Syntax Error Diagram:** Mermaid flowchart di Master PDF gagal render ("Syntax error in text, mermaid version 10.9.8") karena label edge mengandung tanda kurung. Label `|Transit Cepat (Cross-Dock)|` di [`docs/09_Master_End_to_End_Flow_and_Sequence.md`](docs/09_Master_End_to_End_Flow_and_Sequence.md) dibungkus kutip agar aman diparsing.
 - **Master PDF: Ruang Kosong Berlebih:** Sequence diagram melebar ekstrem sehingga halaman 3 hampir kosong. Kini dirender dengan konfigurasi mermaid rapat (`actorMargin` & `width` dibatasi) dan layout A4 margin kecil.
-- **Master PDF: Diagram Kepotong Halaman:** Diagram alir panjang kini dipecah otomatis menjadi tile per halaman A4 (portrait/landscape dipilih otomatis agar skala terbaca), tanpa konten terpotong atau hilang, dengan label "lanjutan (n/N)" antar tile.
+- **Master PDF: Diagram Kepotong Halaman:** Diagram alir panjang kini dipecah otomatis menjadi tile per halaman A4 (portrait/landscape dipilih otomatis agar skala terbaca). Titik potong di-snap ke celah kosong antar node (deteksi okupansi solid SVG) sehingga tidak ada kotak/pesan yang terbelah dua halaman, pembagian tile seimbang tanpa halaman ekstra kosong, dengan label "lanjutan (n/N)" antar tile.
 ### Added
 - **Skrip Generator PDF:** `scripts/build-master-pdf.mjs` — merender kedua diagram mermaid via headless Chrome (DevTools Protocol) lalu mencetak PDF A4 terverifikasi (gagal build bila diagram error). Regenerasi: `node scripts/build-master-pdf.mjs`.
 

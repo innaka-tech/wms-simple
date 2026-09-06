@@ -27,28 +27,29 @@ const html = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <style id="pagestyle">
-  @page { size: A4; margin: 14mm 12mm; }
+  @page { size: A4; margin: 9mm 12mm; }
   * { box-sizing: border-box; }
   body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #1a2332; margin: 0; font-size: 10.5pt; line-height: 1.45; }
   h1 { font-size: 20pt; margin: 0 0 2mm; color: #0d47a1; }
-  h2 { font-size: 13.5pt; margin: 6mm 0 2mm; color: #0d47a1; border-bottom: 1.5pt solid #0d47a1; padding-bottom: 1mm; break-after: avoid; }
-  h3 { font-size: 11pt; margin: 4mm 0 1.5mm; break-after: avoid; }
-  p, li { margin: 1mm 0; }
+  h2 { font-size: 13.5pt; margin: 4.5mm 0 2mm; color: #0d47a1; border-bottom: 1.5pt solid #0d47a1; padding-bottom: 1mm; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 3mm 0 1.2mm; break-after: avoid; }
+  p, li { margin: 0.7mm 0; }
   .kicker { letter-spacing: 2px; font-size: 8.5pt; color: #546e7a; text-transform: uppercase; margin-bottom: 1mm; }
-  .subtitle { font-size: 10pt; color: #37474f; margin-bottom: 4mm; }
-  .meta { width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9pt; }
+  .subtitle { font-size: 10pt; color: #37474f; margin-bottom: 3mm; }
+  .meta { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 9pt; }
   .meta td { border: 0.75pt solid #b0bec5; padding: 2mm 2.5mm; vertical-align: top; }
   .meta .lbl { color: #546e7a; text-transform: uppercase; font-size: 7.5pt; letter-spacing: 1px; }
-  .footer-note { margin-top: 3mm; font-size: 8pt; color: #78909c; border-top: 0.75pt solid #cfd8dc; padding-top: 1.5mm; }
+  .footer-note { margin-top: 2mm; font-size: 8pt; color: #78909c; border-top: 0.75pt solid #cfd8dc; padding-top: 1mm; }
   .diagram { break-inside: avoid; }
   .diagram svg { max-width: 100% !important; height: auto !important; }
   table.data { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 2mm 0; }
-  table.data th, table.data td { border: 0.75pt solid #b0bec5; padding: 1.8mm 2.2mm; text-align: left; vertical-align: top; }
+  table.data tr { break-inside: avoid; }
+  table.data th, table.data td { border: 0.75pt solid #b0bec5; padding: 1.5mm 2mm; text-align: left; vertical-align: top; }
   table.data th { background: #e8eef7; color: #0d47a1; }
   ol.rules { padding-left: 5mm; }
-  ol.rules li { margin: 1.4mm 0; }
-  .conclusion { background: #e8f5e9; border-left: 3pt solid #2e7d32; padding: 2.5mm 3.5mm; margin-top: 4mm; font-size: 9.5pt; }
-  .placeholder { display: none; }
+  ol.rules li { margin: 1mm 0; }
+  .conclusion { background: #e8f5e9; border-left: 3pt solid #2e7d32; padding: 2mm 3mm; margin-top: 2.5mm; font-size: 9.5pt; }
+  .placeholder { position: absolute; left: -10000px; top: 0; }
 </style>
 </head>
 <body>
@@ -116,6 +117,11 @@ const html = `<!DOCTYPE html>
 
 <script type="module">
   import mermaid from '__MERMAID_URL__';
+  // tampilkan placeholder offscreen sementara (perlu ter-layout utk getBoundingClientRect)
+  for (const id of ['d-flow', 'd-seq']) {
+    const el = document.getElementById(id);
+    if (el) el.style.cssText = 'position:absolute;left:-10000px;top:0;display:block';
+  }
   const ERROR = [];
   mermaid.initialize({ startOnLoad: false, theme: 'base', securityLevel: 'loose',
     themeVariables: { fontSize: '13px', primaryColor: '#e8eef7', primaryBorderColor: '#0d47a1', lineColor: '#455a64' },
@@ -130,13 +136,34 @@ const html = `<!DOCTYPE html>
   }
   window.__ERROR_TEXT = ERROR.length ? 'MERMAID_ERROR: ' + ERROR.join(' | ') : 'MERMAID_OK';
   window.__DIAGRAM_SIZES = {};
+  window.__DIAGRAM_GAPS = {};
   window.__DIAGRAM_SVGS = {};
   for (const id of ['d-flow', 'd-seq']) {
     const svg = document.querySelector('#' + id + ' svg');
-    if (svg) {
-      window.__DIAGRAM_SIZES[id] = { w: Math.ceil(svg.viewBox.baseVal.width), h: Math.ceil(svg.viewBox.baseVal.height) };
-      window.__DIAGRAM_SVGS[id] = svg.outerHTML;
+    if (!svg) continue;
+    const vb = svg.viewBox.baseVal;
+    window.__DIAGRAM_SIZES[id] = { w: Math.ceil(vb.width), h: Math.ceil(vb.height) };      window.__DIAGRAM_SVGS[id] = svg.outerHTML;
+      document.getElementById(id).style.cssText = 'display:none'; // sembunyikan lagi: abs-pos memuai tinggi dokumen saat print
+    // Peta okupansi vertikal dari elemen solid (kotak/label) — EDGES (path/line) DIKECUALIKAN
+    // supaya cut bisa jatuh di celah antar baris node (garis edge boleh tersambung antar tile).
+    const svgTop = svg.getBoundingClientRect().top;
+    const Hpx = vb.height;
+    const occ = new Uint8Array(Math.ceil(Hpx) + 2);
+    for (const el of svg.querySelectorAll('rect,polygon,circle,ellipse,foreignObject,text')) {
+      const r = el.getBoundingClientRect();
+      if (r.height <= 0 || r.width <= 0) continue;
+      const y0 = Math.max(0, Math.floor(r.top - svgTop));
+      const y1 = Math.min(Math.ceil(Hpx), Math.ceil(r.bottom - svgTop));
+      for (let y = y0; y <= y1; y++) occ[y] = 1;
     }
+    const gaps = [];
+    let runStart = -1;
+    for (let y = 0; y < occ.length; y++) {
+      if (!occ[y]) { if (runStart < 0) runStart = y; }
+      else { if (runStart >= 0 && y - runStart >= 10) gaps.push(Math.round((runStart + y) / 2)); runStart = -1; }
+    }
+    if (runStart >= 0 && occ.length - runStart >= 10) gaps.push(Math.round((runStart + occ.length) / 2));
+    window.__DIAGRAM_GAPS[id] = gaps;
   }
 </script>
 </body>
@@ -219,9 +246,10 @@ try {
   if (!status) throw new Error('Timeout menunggu render mermaid');
   if (status.includes('MERMAID_ERROR')) throw new Error('Mermaid gagal render: ' + status);
 
-  // Ukuran diagram natif (px viewBox) untuk keputusan tile/landscape
-  const sizes = await cdp.send('Runtime.evaluate', { expression: 'window.__DIAGRAM_SIZES', returnByValue: true });
-  const diag = sizes.result.value || {};
+  // Ukuran & gap-map diagram natif (px viewBox) untuk keputusan skala & potongan
+  const sizes = await cdp.send('Runtime.evaluate', { expression: '({sizes: window.__DIAGRAM_SIZES, gaps: window.__DIAGRAM_GAPS})', returnByValue: true });
+  const diag = (sizes.result.value && sizes.result.value.sizes) || {};
+  const gapsMap = (sizes.result.value && sizes.result.value.gaps) || {};
   const PAGE_W_MM = 186, PAGE_H_MM = 269, PX_PER_MM = 96 / 25.4; // A4 konten @96dpi
   const PAD = 30; // padding putih sekitar diagram (~8mm)
 
@@ -248,35 +276,57 @@ try {
     opts.sort((a, b) => (Math.abs(a.scale - b.scale) < 0.05 ? a.pages - b.pages : b.scale - a.scale));
     const best = opts[0];
     const drawW = d.w * best.scale, drawH = d.h * best.scale;
-    const pw = best.pw;
 
-    const H = d.h * best.scale; // tinggi konten ter-scale
+    const H = drawH; // tinggi konten ter-scale (px)
     const paperWmm = best.land ? PAGE_H_MM : PAGE_W_MM;
     const paperHmm = best.land ? PAGE_W_MM : PAGE_H_MM;
     const ph = paperHmm * PX_PER_MM;
     const CB_MAX = ph - 2 * PAD;
     const TB = 40, LB = 24; // tinggi blok judul tile-0 / label lanjutan
-    // pecah konten jadi tile: tiap tile = 1 halaman, tak ada konten hilang/ganda
-    const cuts = [];
-    let pos = 0, first = true;
-    while (pos < H) {
-      const cap = CB_MAX - (first ? TB : LB);
-      cuts.push({ start: pos, h: Math.min(cap, H - pos), first });
-      pos += Math.min(cap, H - pos);
-      first = false;
+    const gapsNat = (gapsMap[id] || []).map(g => Math.round(g * best.scale)).filter(g => g >= 0 && g <= H);
+
+    // Bagi seimbang jadi N tile, snap tiap cut ke gap solid terdekat dari ideal
+    // supaya tidak ada kotak/pesan yang terbelah dua halaman (garis edge boleh menyambung).
+    const capN = CB_MAX - TB, capC = CB_MAX - LB;
+    const segsOf = (cs) => { let prev = 0; const s = []; for (const c of cs) { s.push(c - prev); prev = c; } s.push(H - prev); return s; };
+    const build = (n) => {
+      const cuts = [];
+      for (let k = 1; k < n; k++) {
+        const ideal = Math.round(H * k / n);
+        const prev = k === 1 ? 0 : cuts[k - 2];
+        const maxPos = prev + (k === 1 ? capN : capC);
+        const win = gapsNat.filter(g => g > prev + 50 && g <= maxPos);
+        let cut = win.length
+          ? win.reduce((b, g) => (Math.abs(g - ideal) < Math.abs(b - ideal) ? g : b), win[0])
+          : Math.min(ideal, maxPos - 2);
+        cut = Math.max(60, Math.min(cut, maxPos));
+        cuts.push(cut);
+      }
+      return cuts;
+    };
+    let nT = Math.max(1, Math.ceil((H - capN) / capC) + 1);
+    let cuts = build(nT);
+    for (let tries = 0; tries < 12; tries++) {
+      const segs = segsOf(cuts);
+      if (segs.every((s, i) => s > 0 && s <= (i === 0 ? capN : capC))) break;
+      nT++;
+      cuts = build(nT);
     }
-    for (let i = 0; i < cuts.length; i++) {
-      const c = cuts[i];
-      const labelHtml = c.first
+
+    const bounds = [0, ...cuts, H];
+    for (let i = 0; i < bounds.length - 1; i++) {
+      const start = bounds[i], end = bounds[i + 1];
+      const cH = end - start;
+      const labelHtml = i === 0
         ? `<div style="font:700 15px -apple-system,Helvetica,Arial,sans-serif;color:#0d47a1;margin:0 0 ${PAD - 8}px;height:${TB - (PAD - 8)}px">${TITLE[id]}</div>`
-        : `<div style="font:400 9px -apple-system,Helvetica,Arial,sans-serif;color:#90a4ae;margin:0 0 ${PAD - 8}px;height:${LB - (PAD - 8)}px">${TITLE[id].split('—')[0].trim()} — lanjutan (${i + 1}/${cuts.length})</div>`;
+        : `<div style="font:400 9px -apple-system,Helvetica,Arial,sans-serif;color:#90a4ae;margin:0 0 ${PAD - 8}px;height:${LB - (PAD - 8)}px">${TITLE[id].split('—')[0].trim()} — lanjutan (${i + 1}/${bounds.length - 1})</div>`;
       const tile = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
         @page { size: ${paperWmm}mm ${paperHmm}mm; margin: 0; }
         html,body { margin:0; padding:0; background:#fff; }
         .wrap { padding: ${PAD}px; }
-        .clipbox { width:${Math.min(d.w * best.scale + 2 * PAD, paperWmm * PX_PER_MM)}px; height:${c.h}px; overflow:hidden; position:relative; }
-        .inner { position:absolute; top:${-c.start}px; left:0; width:${d.w * best.scale}px; }
-        .inner svg { width:${d.w * best.scale}px !important; height:${d.h * best.scale}px !important; }
+        .clipbox { width:${Math.min(drawW + 2 * PAD, paperWmm * PX_PER_MM)}px; height:${cH}px; overflow:hidden; position:relative; }
+        .inner { position:absolute; top:${-start}px; left:0; width:${drawW}px; }
+        .inner svg { width:${drawW}px !important; height:${drawH}px !important; }
       </style></head><body><div class="wrap">${labelHtml}<div class="clipbox"><div class="inner">${svgMap[id]}</div></div></div></body></html>`;
       const tilePath = join(workDir, `tile-${id}-${i}.html`);
       writeFileSync(tilePath, tile);
@@ -300,6 +350,19 @@ try {
     cdp.on(h);
     cdp.send('Page.navigate', { url: 'file://' + htmlPath }).then(() => setTimeout(res, 600));
   });
+  // pastikan render & hide selesai: tunggu placeholder tersembunyi ATAU svg belum ada
+  for (let i = 0; i < 100; i++) {
+    const st = await cdp.send('Runtime.evaluate', { expression: `(() => {
+      const a = document.getElementById('d-flow'), b = document.getElementById('d-seq');
+      if (!a || !b) return 'noel';
+      const sa = a.querySelector('svg'), sb = b.querySelector('svg');
+      if (!sa || !sb) return 'rendering';
+      return (a.style.display === 'none' && b.style.display === 'none') ? 'hidden' : 'visible';
+    })()`, returnByValue: true }).catch(() => null);
+    if (st && st.result && (st.result.value === 'hidden')) break;
+    if (st && st.result && st.result.value === 'noel') break; // halaman lain (tak terduga)
+    await sleep(200);
+  }
 
   // Dokumen teks utama (diagram tersembunyi, tidak ada ruang kosong raksasa)
   const { data: docData } = await cdp.send('Page.printToPDF', {
