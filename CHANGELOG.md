@@ -172,6 +172,15 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
     - `tests/unit/stock.service.test.ts`: Pengujian buku besar stok anti-saldo negatif (STK-01), perpindahan stok antar-hub `CROSS_DOCK_OUT`/`CROSS_DOCK_IN` (STK-02), dan mutasi putaway/picking.
   - **Integration Test Rute API:**
     - Pengujian menyeluruh seluruh endpoint REST API: `/api/health`, `/api/master/*`, `/api/warehouses`, `/api/products`, `/api/inbound`, `/api/debulking`, `/api/crossdock`, `/api/crossdoc`, `/api/outbound`, `/api/fleet`, `/api/stock`, `/api/weighbridge`, `/api/checkpoints`, dan `/api/alerts`.
+## [2.4.1] - 2026-09-06
+### Fixed
+- **Master PDF: Syntax Error Diagram:** Mermaid flowchart di Master PDF gagal render ("Syntax error in text, mermaid version 10.9.8") karena label edge mengandung tanda kurung. Label `|Transit Cepat (Cross-Dock)|` di [`docs/09_Master_End_to_End_Flow_and_Sequence.md`](docs/09_Master_End_to_End_Flow_and_Sequence.md) dibungkus kutip agar aman diparsing.
+- **Master PDF: Ruang Kosong Berlebih:** Sequence diagram melebar ekstrem sehingga halaman 3 hampir kosong. Kini dirender dengan konfigurasi mermaid rapat (`actorMargin` & `width` dibatasi) dan layout A4 margin kecil.
+- **Master PDF: Diagram Kepotong Halaman:** Diagram alir panjang kini dipecah otomatis menjadi tile per halaman A4 (portrait/landscape dipilih otomatis agar skala terbaca), tanpa konten terpotong atau hilang, dengan label "lanjutan (n/N)" antar tile.
+### Added
+- **Skrip Generator PDF:** `scripts/build-master-pdf.mjs` — merender kedua diagram mermaid via headless Chrome (DevTools Protocol) lalu mencetak PDF A4 terverifikasi (gagal build bila diagram error). Regenerasi: `node scripts/build-master-pdf.mjs`.
+
+---
 
 ## [2.2.0] - 2026-08-31
 ### Added

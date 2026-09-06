@@ -42,4 +42,4 @@ Seluruh arsitektur, standar, diagram alur terpadu, dan spesifikasi sistem terdok
 - [`AGENTS.md`](../AGENTS.md) — Protokol Wajib Agen AI: Urutan pembacaan dokumen sebelum tindakan dan guardrails kepatuhan.
 - [`CHANGELOG.md`](../CHANGELOG.md) — Riwayat lengkap rilis versi dan catatan perubahan sistem.
 - [`ai-state.json`](../ai-state.json) — Status mesin dan kemajuan persentase proyek terstruktur.
-- [**WMS_Simple_Enterprise_Master_Documentation.pdf**](WMS_Simple_Enterprise_Master_Documentation.pdf) — Dokumen Master PDF Terpadu Publikasi Resmi (v2.3.0).
+- [**WMS_Simple_Enterprise_Master_Documentation.pdf**](WMS_Simple_Enterprise_Master_Documentation.pdf) — Dokumen Master PDF Terpadu Publikasi Resmi (v2.4.1, diregenerasi via `scripts/build-master-pdf.mjs`).

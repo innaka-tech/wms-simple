@@ -44,4 +44,4 @@ Sistem mencakup penanganan:
 - [`docs/standards/03_Testing_and_Quality_Assurance_Standard.md`](../standards/03_Testing_and_Quality_Assurance_Standard.md) — Standar Pengujian & Quality Gates
 - [`docs/standards/04_Audit_and_Compliance_Standard.md`](../standards/04_Audit_and_Compliance_Standard.md) — Standar Audit & Bukti Digital
 - [`docs/standards/05_Versioning_and_Release_Standard.md`](../standards/05_Versioning_and_Release_Standard.md) — SemVer 2.0.0 & Database Migration
-- [`docs/WMS_Simple_Enterprise_Master_Documentation.pdf`](../WMS_Simple_Enterprise_Master_Documentation.pdf) — Dokumen Master PDF Publikasi Resmi v2.4.0
+- [`docs/WMS_Simple_Enterprise_Master_Documentation.pdf`](../WMS_Simple_Enterprise_Master_Documentation.pdf) — Dokumen Master PDF Publikasi Resmi v2.4.1

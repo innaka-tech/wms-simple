@@ -22,7 +22,8 @@
 - [x] **Spesifikasi Logistik Khusus Rantai Dingin KDMP:** Showcase & Chiller handling, Upright Only, BAST Desa (`docs/10_KDMP_Showcase_and_Chiller_Logistics.md`).
 - [x] **5 Standar Baku Rekayasa & Kepatuhan:** Coding, OWASP & OWASP AI Security, Testing, Audit, SemVer 2.0.0 (`docs/standards/*`).
 - [x] **Host Database Active:** PostgreSQL 16 `wms_simple_db` dimigrasi dan di-seed dengan data master & KDMP.
-- [x] **Master PDF Terpadu Publikasi Resmi:** `docs/WMS_Simple_Enterprise_Master_Documentation.pdf` (v2.3.0).
+- [x] **Master PDF Terpadu Publikasi Resmi:** `docs/WMS_Simple_Enterprise_Master_Documentation.pdf` (v2.4.1, diregenerasi via `scripts/build-master-pdf.mjs`, diagram flowchart & sequence render penuh tanpa syntax error dan tanpa ruang kosong berlebih).
+- [x] **Protokol Tata Kelola AI:** `AGENTS.md` dan `ai-state.json`.
 
 ---
 

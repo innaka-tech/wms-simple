@@ -1,0 +1,321 @@
+// Generator PDF Master Dokumentasi WMS Simple Enterprise
+// Render mermaid via headless Chrome (DevTools Protocol), print ke PDF A4 rapat.
+// Usage: node scripts/build-master-pdf.mjs [output.pdf]
+import { writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
+import { execFile, execFileSync } from 'node:child_process';
+import { join, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+import net from 'node:net';
+import { setTimeout as sleep } from 'node:timers/promises';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(__dirname, '..');
+const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const VERSION = '2.4.1';
+
+// --- 1. Baca diagram dari dokumen sumber ---
+const seqDoc = readFileSync(join(ROOT, 'docs/09_Master_End_to_End_Flow_and_Sequence.md'), 'utf8');
+const diagrams = [...seqDoc.matchAll(/```mermaid\n([\s\S]*?)```/g)].map(m => m[1].trim());
+if (diagrams.length < 2) throw new Error('Diagram mermaid tidak ditemukan di 09_Master');
+const [flowchartSrc, sequenceSrc] = diagrams;
+
+// --- 2. HTML template ---
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<style id="pagestyle">
+  @page { size: A4; margin: 14mm 12mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #1a2332; margin: 0; font-size: 10.5pt; line-height: 1.45; }
+  h1 { font-size: 20pt; margin: 0 0 2mm; color: #0d47a1; }
+  h2 { font-size: 13.5pt; margin: 6mm 0 2mm; color: #0d47a1; border-bottom: 1.5pt solid #0d47a1; padding-bottom: 1mm; break-after: avoid; }
+  h3 { font-size: 11pt; margin: 4mm 0 1.5mm; break-after: avoid; }
+  p, li { margin: 1mm 0; }
+  .kicker { letter-spacing: 2px; font-size: 8.5pt; color: #546e7a; text-transform: uppercase; margin-bottom: 1mm; }
+  .subtitle { font-size: 10pt; color: #37474f; margin-bottom: 4mm; }
+  .meta { width: 100%; border-collapse: collapse; margin: 3mm 0 4mm; font-size: 9pt; }
+  .meta td { border: 0.75pt solid #b0bec5; padding: 2mm 2.5mm; vertical-align: top; }
+  .meta .lbl { color: #546e7a; text-transform: uppercase; font-size: 7.5pt; letter-spacing: 1px; }
+  .footer-note { margin-top: 3mm; font-size: 8pt; color: #78909c; border-top: 0.75pt solid #cfd8dc; padding-top: 1.5mm; }
+  .diagram { break-inside: avoid; }
+  .diagram svg { max-width: 100% !important; height: auto !important; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 2mm 0; }
+  table.data th, table.data td { border: 0.75pt solid #b0bec5; padding: 1.8mm 2.2mm; text-align: left; vertical-align: top; }
+  table.data th { background: #e8eef7; color: #0d47a1; }
+  ol.rules { padding-left: 5mm; }
+  ol.rules li { margin: 1.4mm 0; }
+  .conclusion { background: #e8f5e9; border-left: 3pt solid #2e7d32; padding: 2.5mm 3.5mm; margin-top: 4mm; font-size: 9.5pt; }
+  .placeholder { display: none; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="kicker">Dokumentasi &amp; Blueprint Operasional Logistik</div>
+  <h1>WMS Simple Enterprise</h1>
+  <p class="subtitle">Spesifikasi Bahasa Gudang Sederhana &amp; Sistem Manajemen Logistik Terpadu. Mencakup: Multi-Gudang Cabang, Kargo Besar &amp; Curah (Repacking), Tukar Surat Jalan (Cross-Dock), Log Pos Satpam Armada Truk, Pengiriman Showcase Pendingin (Program Desa KDMP), Anti Kebocoran Stok, &amp; Bukti Kirim Digital (e-POD).</p>
+  <table class="meta">
+    <tr>
+      <td style="width:50%"><div class="lbl">Versi Sistem</div><b>v${VERSION}</b> (Bahasa Gudang Simplified)</td>
+      <td><div class="lbl">Target Industri</div>Gudang Distribusi 3PL, Trucking, Cold Chain KDMP</td>
+    </tr>
+    <tr>
+      <td><div class="lbl">Penyimpanan Database</div>Host Server Lokal Terpusat (PostgreSQL 16)</td>
+      <td><div class="lbl">Mesin Aplikasi (IT)</div>Hono Backend + Aplikasi HP Android (Nuxt 3 PWA)</td>
+    </tr>
+  </table>
+</section>
+
+<h2>1. Target Operasional Bisnis &amp; Pencapaian Indikator (KPI)</h2>
+<table class="data">
+  <tr><th style="width:14%">ID Sasaran</th><th style="width:24%">Target Penyakit Gudang yang Diobati</th><th style="width:28%">Indikator Keberhasilan Mutlak (KPI)</th><th>Solusi Fitur di Sistem WMS Simple</th></tr>
+  <tr><td><b>GOAL-01</b></td><td>Cegah Barang Hilang Misterius &amp; Kartu Stok Harus Akurat</td><td>Akurasi Stok Nyata &ge; 99,8%</td><td>Sistem Buku Besar (Double-Entry Ledger): Stok tidak bisa dikurangi sepihak, setiap keluar masuk harus seimbang dan wajib sebut nama petugas pemindah.</td></tr>
+  <tr><td><b>GOAL-02</b></td><td>Barang Transit Kelamaan Ngendap di Gudang Penghubung</td><td>Truk Bongkar &amp; Muat Ulang &lt; 24 Jam</td><td>Jalur Cepat (Cross-Docking): Fitur ini memotong alur barang turun agar langsung di-tally ke truk tujuan kota berikutnya tanpa dimasukkan ke rak simpan.</td></tr>
+  <tr><td><b>GOAL-03</b></td><td>Supir Nakal (Kencing Solar) &amp; Pemakaian Truk Gelap</td><td>100% Truk Lapor Satpam</td><td>Pencatatan Gerbang (Gate Pass): Mesin melacak Odometer Keluar wajib lebih kecil dari Odometer Masuk, menghitung total Jarak KM, dan memantau sisa liter BBM harian.</td></tr>
+  <tr><td><b>GOAL-04</b></td><td>Susut Curah Berlebihan (Tumpah atau Dicuri Karyawan)</td><td>Susut Pengepakan (Shrinkage) &le; 1,0%</td><td>Modul Repacking &amp; Timbangan Truk: Otomatis menghitung selisih timbangan awal truk utuh dengan total karungan akhir. Bila selisih lebih dari 1%, Alarm Manajer berbunyi.</td></tr>
+  <tr><td><b>GOAL-05</b></td><td>Pembeli Tahu Nama Pabrik Asli (Membahayakan Bisnis Ekspedisi Titipan 3PL)</td><td>0% Kebocoran Dokumen Asal Pabrik</td><td>Tukar Dokumen Asli (Blind Shipping / Cross-Document Swap): Secara otomatis menerbitkan form Surat Jalan baru berlogo WMS Ekspedisi untuk menutupi nama produsen.</td></tr>
+</table>
+
+<h2>2. Penanganan Khusus Barang Sensitif &amp; Alat Pendingin (Kasus Showcase KDMP)</h2>
+<p>Sistem WMS Simple dikonfigurasi untuk memahami instruksi penanganan barang yang butuh perlakuan khusus (Barang Rewel). Contoh nyatanya adalah pengiriman Kulkas Showcase dan Chest Freezer Koperasi Desa Merah Putih (KDMP) se-Indonesia.</p>
+<h3>Aturan Kaku (Baku) Penanganan Showcase Pendingin di Gudang &amp; Truk:</h3>
+<ol class="rules">
+  <li><b>Pantang Dimiringkan (Wajib Tegak / Upright Only):</b> Barang ini dilarang keras diangkut dengan posisi miring atau ditidurkan rebah. Jika rebah, oli pelumas dari kompresor bawah akan tumpah masuk ke pipa evaporator dan bikin kulkas langsung rusak (buntu) saat dinyalakan.</li>
+  <li><b>Dilarang Ditumpuk (No Double Stacking):</b> Barang rentan pecah kacanya. Sistem melarang keras penumpukan 2 tingkat kecuali pakai sangkar palet kayu pelindung dari pabrik.</li>
+  <li><b>Wajib Dicatat Nomor Seri Mesinnya (Barcode Serial Number Tracking):</b> Saat masuk ke gudang, wajib di-scan barcode bodi kulkasnya untuk pendaftaran Garansi Resmi &amp; Inventaris Aset Milik Negara (BMN).</li>
+  <li><b>Wajib Menunggu Tenang (Resting Time 4 Jam):</b> Sopir dan Kades diwajibkan SOP untuk membiarkan unit berdiri diam minimal 2 hingga 4 jam setelah truk sampai. Ini fungsinya agar oli mesin kembali mengendap stabil ke bawah sebelum kabel listrik boleh dicolokkan.</li>
+  <li><b>Wajib Dikirim Pakai Truk Berekor Hidrolik (Tail-Lift):</b> Karena Balai Desa di pelosok tidak punya garasi loading dock maupun kendaraan Forklift, maka sistem WMS mengunci (mengawinkan) pesanan ini HANYA BOLEH diangkut oleh Truk Kecil Box yang punya pintu Lift Hidrolik (CDE Box Tail-Lift) agar kulkas berat 75 kg bisa turun perlahan aman ke tanah.</li>
+</ol>
+
+<h2>3. Standar Teknologi Aplikasi, Kemudahan Orang Lapangan, &amp; Keamanan (IT)</h2>
+<p>Aplikasi WMS Simple Enterprise tidak hanya kuat secara pencatatan stok, namun juga aman dari peretasan siber dan gampang digunakan oleh buruh angkut di lapangan tanpa perlu manual book tebal.</p>
+
+<h3>3.1 Navigasi Layar Hibrida (App Drawer + Bottom Nav)</h3>
+<p>Agar petugas lapangan bisa beroperasi menggunakan satu tangan (satu jempol), aplikasi memadukan dua lapis navigasi yang responsif baik di HP maupun Scanner Alat Berat:</p>
+<ul>
+  <li><b>Jalur Cepat Bawah (Bottom Navigation):</b> Berisi 5 tombol fitur harian yang paling sering dipencet (Home, Gate Pass, Inbound, Stok, POD). Posisinya menempel di bawah agar selalu masuk zona nyaman jempol (<i>Thumb-Zone</i>).</li>
+  <li><b>Menu Lengkap Samping (App Drawer / Hamburger Menu):</b> Berisi laci menu lengkap dari ujung ke ujung untuk fitur yang jarang dipakai tapi penting (Ganti Profil, Repacking, Laporan, Logout). Menu ini akan meluncur (<i>slide</i>) dari kiri atas layar.</li>
+</ul>
+
+<h3>3.2 Keamanan Anti-Maling Data &amp; Lolos Audit Keuangan Siber</h3>
+<ul>
+  <li><b>Standar Tembok Besi OWASP Top 10:</b> Aplikasi ini didesain patuh pada standar lembaga siber global OWASP. Semua celah teks pencarian di-filter ketat. Mustahil hacker memasukkan "kode SQL jahat" (SQL Injection) untuk mengutak-atik saldo angka gudang.</li>
+  <li><b>Satu Server Data Tak Terbagi (Single Host PostgreSQL):</b> Sistem menggunakan satu gudang otak database yang ditaruh di komputer utama. Tidak ada cerita "Data Cabang Bali dan Cabang Balikpapan Beda/Bentrok", karena semuanya menyedot dan menyuap data ke satu muara induk yang sama secara real-time.</li>
+  <li><b>Sistem Pengujian Otomatis Ketat (Vitest Coverage):</b> Sebelum aplikasi ini dirilis ke supir atau petugas gudang, kode-kodenya telah disimulasikan oleh mesin komputer otomatis ribuan kali. Terutama untuk rumus pengurangan Saldo Stok, Rumus Susut Kiloan Barang, dan Rumus Odometer Bensin, semuanya dijamin lulus tes akurasi 90%.</li>
+</ul>
+
+<div class="conclusion"><b>Status Kesimpulan Sistem:</b> Dokumen arsitektur dan spesifikasi operasional WMS Simple Enterprise (Versi ${VERSION}) telah sepenuhnya difinalisasi. Semua alur kerja sudah memakai bahasa pergudangan Indonesia yang membumi, masalah operasional sehari-hari teratasi secara sistem, dan siap memasuki tahap koding pemrograman (Development Phase).</div>
+
+<div class="footer-note">&copy; 2026 BER5 Logistics Technology Ecosystem &bull; Workspace: /Users/anasfikri/Documents/Projects/ber5/wms-simple &bull; v${VERSION}</div>
+
+<div class="diagram placeholder" id="d-flow">${esc(flowchartSrc)}</div>
+<div class="diagram placeholder" id="d-seq">${esc(sequenceSrc)}</div>
+
+<script type="module">
+  import mermaid from '__MERMAID_URL__';
+  const ERROR = [];
+  mermaid.initialize({ startOnLoad: false, theme: 'base', securityLevel: 'loose',
+    themeVariables: { fontSize: '13px', primaryColor: '#e8eef7', primaryBorderColor: '#0d47a1', lineColor: '#455a64' },
+    flowchart: { htmlLabels: true, curve: 'basis', nodeSpacing: 24, rankSpacing: 30, useMaxWidth: false, diagramPadding: 6 },
+    sequence: { actorMargin: 70, width: 130, wrap: true, messageFontSize: 12, noteFontSize: 12, useMaxWidth: false, mirrorActors: false } });
+  for (const id of ['d-flow', 'd-seq']) {
+    const el = document.getElementById(id);
+    try {
+      const { svg } = await mermaid.render('svg-' + id, el.textContent);
+      el.innerHTML = svg;
+    } catch (e) { ERROR.push(id + ': ' + ((e && (e.message || e.str)) || String(e))); }
+  }
+  window.__ERROR_TEXT = ERROR.length ? 'MERMAID_ERROR: ' + ERROR.join(' | ') : 'MERMAID_OK';
+  window.__DIAGRAM_SIZES = {};
+  window.__DIAGRAM_SVGS = {};
+  for (const id of ['d-flow', 'd-seq']) {
+    const svg = document.querySelector('#' + id + ' svg');
+    if (svg) {
+      window.__DIAGRAM_SIZES[id] = { w: Math.ceil(svg.viewBox.baseVal.width), h: Math.ceil(svg.viewBox.baseVal.height) };
+      window.__DIAGRAM_SVGS[id] = svg.outerHTML;
+    }
+  }
+</script>
+</body>
+</html>`;
+
+// --- 3. Siapkan workdir & HTML ---
+const workDir = mkdtempSync(join(tmpdir(), 'wms-pdf-'));
+const htmlPath = join(workDir, 'doc.html');
+const mermaidUrl = 'file://' + join(ROOT, 'node_modules/mermaid/dist/mermaid.esm.min.mjs');
+writeFileSync(htmlPath, html.replace('__MERMAID_URL__', mermaidUrl));
+
+// --- 4. Minimal CDP client (Node builtin WebSocket) ---
+function getFreePort() {
+  return new Promise((resolve, reject) => {
+    const srv = net.createServer();
+    srv.listen(0, '127.0.0.1', () => { const p = srv.address().port; srv.close(() => resolve(p)); });
+    srv.on('error', reject);
+  });
+}
+
+class CDP {
+  constructor(ws) { this.ws = ws; this.id = 0; this.pending = new Map(); this.handlers = new Set();
+    ws.addEventListener('message', (ev) => {
+      const msg = JSON.parse(ev.data);
+      if (msg.id && this.pending.has(msg.id)) {
+        const { resolve, reject } = this.pending.get(msg.id);
+        this.pending.delete(msg.id);
+        msg.error ? reject(new Error(msg.error.message)) : resolve(msg.result);
+      } else if (msg.method) { this.handlers.forEach(h => h(msg)); }
+    });
+  }
+  static async connect(port) {
+    const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+    const page = list.find(t => t.type === 'page');
+    if (!page) throw new Error('Tidak ada target page Chrome');
+    const ws = new WebSocket(page.webSocketDebuggerUrl);
+    await new Promise((res, rej) => { ws.addEventListener('open', res); ws.addEventListener('error', rej); });
+    return new CDP(ws);
+  }
+  send(method, params = {}) {
+    const id = ++this.id;
+    return new Promise((resolve, reject) => {
+      this.pending.set(id, { resolve, reject });
+      this.ws.send(JSON.stringify({ id, method, params }));
+    });
+  }
+  on(fn) { this.handlers.add(fn); }
+  close() { this.ws.close(); }
+}
+
+// --- 5. Launch Chrome & render ---
+const port = await getFreePort();
+const chrome = execFile(CHROME, [
+  '--headless=new', '--disable-gpu', '--no-sandbox', '--allow-file-access-from-files',
+  `--remote-debugging-port=${port}`, '--user-data-dir=' + join(workDir, 'profile'),
+  'about:blank',
+], { maxBuffer: 16 * 1024 * 1024 });
+
+try {
+  // tunggu devtools siap
+  let targets = null;
+  for (let i = 0; i < 50; i++) {
+    try { targets = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); break; }
+    catch { await sleep(200); }
+  }
+  if (!targets) throw new Error('Chrome devtools tidak merespons');
+
+  const cdp = await CDP.connect(port);
+  await cdp.send('Page.enable');
+  await cdp.send('Page.navigate', { url: 'file://' + htmlPath });
+  await new Promise((resolve) => cdp.on(msg => { if (msg.method === 'Page.loadEventFired') resolve(); }));
+
+  // poll status render mermaid (max 60 dtk)
+  let status = null;
+  for (let i = 0; i < 200; i++) {
+    const r = await cdp.send('Runtime.evaluate', { expression: 'window.__ERROR_TEXT', returnByValue: true }).catch(() => null);
+    if (r && r.result && r.result.value) { status = r.result.value; break; }
+    await sleep(300);
+  }
+  if (!status) throw new Error('Timeout menunggu render mermaid');
+  if (status.includes('MERMAID_ERROR')) throw new Error('Mermaid gagal render: ' + status);
+
+  // Ukuran diagram natif (px viewBox) untuk keputusan tile/landscape
+  const sizes = await cdp.send('Runtime.evaluate', { expression: 'window.__DIAGRAM_SIZES', returnByValue: true });
+  const diag = sizes.result.value || {};
+  const PAGE_W_MM = 186, PAGE_H_MM = 269, PX_PER_MM = 96 / 25.4; // A4 konten @96dpi
+  const PAD = 30; // padding putih sekitar diagram (~8mm)
+
+  // Ekstrak string SVG dari halaman render
+  const svgs = await cdp.send('Runtime.evaluate', { expression: 'window.__DIAGRAM_SVGS', returnByValue: true });
+  const svgMap = svgs.result.value || {};
+  if (!svgMap['d-flow'] || !svgMap['d-seq']) throw new Error('SVG diagram tidak terekstrak');
+
+  // Cetak tiap diagram: pilih orientasi & skala terbaca, tile vertikal bila tidak muat
+  const pdfParts = [];
+  const TITLE = { 'd-flow': 'Lampiran A — Diagram Alir Operasional Gudang Menyeluruh', 'd-seq': 'Lampiran B — Urutan Interaksi & Riwayat Lacak Status (Audit Trail)' };
+  for (const id of ['d-flow', 'd-seq']) {
+    const d = diag[id];
+    if (!d) throw new Error('Ukuran diagram tidak tersedia: ' + id);
+
+    const opts = [
+      { land: false, pw: PAGE_W_MM * PX_PER_MM, ph: PAGE_H_MM * PX_PER_MM },
+      { land: true, pw: PAGE_H_MM * PX_PER_MM, ph: PAGE_W_MM * PX_PER_MM },
+    ].map(o => {
+      const scale = Math.min((o.pw - 2 * PAD) / d.w, 1);
+      return { ...o, scale, pages: Math.ceil((d.h * scale + 3 * PAD + 22) / o.ph) };
+    });
+    // pilih skala terbesar; bila selisih marginal (<5%) pilih yang halamannya lebih sedikit
+    opts.sort((a, b) => (Math.abs(a.scale - b.scale) < 0.05 ? a.pages - b.pages : b.scale - a.scale));
+    const best = opts[0];
+    const drawW = d.w * best.scale, drawH = d.h * best.scale;
+    const pw = best.pw;
+
+    const H = d.h * best.scale; // tinggi konten ter-scale
+    const paperWmm = best.land ? PAGE_H_MM : PAGE_W_MM;
+    const paperHmm = best.land ? PAGE_W_MM : PAGE_H_MM;
+    const ph = paperHmm * PX_PER_MM;
+    const CB_MAX = ph - 2 * PAD;
+    const TB = 40, LB = 24; // tinggi blok judul tile-0 / label lanjutan
+    // pecah konten jadi tile: tiap tile = 1 halaman, tak ada konten hilang/ganda
+    const cuts = [];
+    let pos = 0, first = true;
+    while (pos < H) {
+      const cap = CB_MAX - (first ? TB : LB);
+      cuts.push({ start: pos, h: Math.min(cap, H - pos), first });
+      pos += Math.min(cap, H - pos);
+      first = false;
+    }
+    for (let i = 0; i < cuts.length; i++) {
+      const c = cuts[i];
+      const labelHtml = c.first
+        ? `<div style="font:700 15px -apple-system,Helvetica,Arial,sans-serif;color:#0d47a1;margin:0 0 ${PAD - 8}px;height:${TB - (PAD - 8)}px">${TITLE[id]}</div>`
+        : `<div style="font:400 9px -apple-system,Helvetica,Arial,sans-serif;color:#90a4ae;margin:0 0 ${PAD - 8}px;height:${LB - (PAD - 8)}px">${TITLE[id].split('—')[0].trim()} — lanjutan (${i + 1}/${cuts.length})</div>`;
+      const tile = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+        @page { size: ${paperWmm}mm ${paperHmm}mm; margin: 0; }
+        html,body { margin:0; padding:0; background:#fff; }
+        .wrap { padding: ${PAD}px; }
+        .clipbox { width:${Math.min(d.w * best.scale + 2 * PAD, paperWmm * PX_PER_MM)}px; height:${c.h}px; overflow:hidden; position:relative; }
+        .inner { position:absolute; top:${-c.start}px; left:0; width:${d.w * best.scale}px; }
+        .inner svg { width:${d.w * best.scale}px !important; height:${d.h * best.scale}px !important; }
+      </style></head><body><div class="wrap">${labelHtml}<div class="clipbox"><div class="inner">${svgMap[id]}</div></div></div></body></html>`;
+      const tilePath = join(workDir, `tile-${id}-${i}.html`);
+      writeFileSync(tilePath, tile);
+      await new Promise((res) => {
+        const h = (msg) => { if (msg.method === 'Page.loadEventFired') res(); };
+        cdp.on(h);
+        cdp.send('Page.navigate', { url: 'file://' + tilePath }).then(() => setTimeout(res, 400));
+      });
+      const { data } = await cdp.send('Page.printToPDF', {
+        printBackground: true, preferCSSPageSize: true,
+        paperWidth: paperWmm / 25.4, paperHeight: paperHmm / 25.4,
+        marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
+      });
+      pdfParts.push(Buffer.from(data, 'base64'));
+    }
+  }
+
+  // Kembali ke dokumen utama untuk cetak bagian teks (diagram tersembunyi)
+  await new Promise((res) => {
+    const h = (msg) => { if (msg.method === 'Page.loadEventFired') res(); };
+    cdp.on(h);
+    cdp.send('Page.navigate', { url: 'file://' + htmlPath }).then(() => setTimeout(res, 600));
+  });
+
+  // Dokumen teks utama (diagram tersembunyi, tidak ada ruang kosong raksasa)
+  const { data: docData } = await cdp.send('Page.printToPDF', {
+    printBackground: true, preferCSSPageSize: true,
+    marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
+  });
+
+  // Gabung: teks dulu, lalu halaman lampiran diagram
+  const pdfPath = process.argv[2] || join(ROOT, 'docs', 'WMS_Simple_Enterprise_Master_Documentation.pdf');
+  const tmpDoc = join(workDir, 'doc-text.pdf');
+  writeFileSync(tmpDoc, Buffer.from(docData, 'base64'));
+  const tmpParts = [];
+  pdfParts.forEach((b, i) => { const p = join(workDir, 'part-' + i + '.pdf'); writeFileSync(p, b); tmpParts.push(p); });
+  execFileSync('pdfunite', [tmpDoc, ...tmpParts, pdfPath]);
+  cdp.close();
+  console.log('OK PDF:', pdfPath, '| diagram sizes:', JSON.stringify(diag), '| halaman diagram:', tmpParts.length);
+} finally {
+  chrome.kill();
+}

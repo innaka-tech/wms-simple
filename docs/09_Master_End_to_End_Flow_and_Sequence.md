@@ -22,43 +22,43 @@ flowchart TD
     classDef outbound fill:#e0f2f1,stroke:#00796b,stroke-width:1.5px;
     classDef alert fill:#ffebee,stroke:#c62828,stroke-width:1.5px;
 
-    VENDOR(["1. Truk Supplier Tiba (Bawa Barang Packaged, Karungan, Curah, atau Showcase)"]):::vendor --> WB_CHECK{"Bawa Barang Curah / Berat?"}
+    VENDOR(["1. Truk Supplier Tiba<br/>(Bawa Barang Packaged, Karungan,<br/>Curah, atau Showcase)"]):::vendor --> WB_CHECK{"Bawa Barang Curah / Berat?"}
     
     WB_CHECK -->|Ya| WB_IN["Timbang Truk (Weighbridge)"]:::mainHub
-    WB_CHECK -->|Tidak| DOCK_RCV["Penerimaan di Dock (Tally Fisik, Scan Barcode, Foto Barang)"]:::mainHub
+    WB_CHECK -->|Tidak| DOCK_RCV["Penerimaan di Dock<br/>(Tally Fisik, Scan Barcode,<br/>Foto Barang)"]:::mainHub
     WB_IN --> DOCK_RCV
 
     DOCK_RCV --> SORT_DECISION{"2. Mau Dikemanakan Barangnya?"}
 
-    SORT_DECISION -->|Perlu Dipecah / Dikemas Ulang| DEBULK_WO["3A. Proses Repacking / Pencurahan (Dari Jumbo Bag ke Karung)"]:::debulk
-    DEBULK_WO --> DEBULK_CALC["Timbang Hasil Repacking dan Hitung Susut (Shrinkage)"]:::debulk
+    SORT_DECISION -->|Perlu Dipecah / Dikemas Ulang| DEBULK_WO["3A. Proses Repacking / Pencurahan<br/>(Dari Jumbo Bag ke Karung)"]:::debulk
+    DEBULK_WO --> DEBULK_CALC["Timbang Hasil Repacking<br/>dan Hitung Susut (Shrinkage)"]:::debulk
     DEBULK_CALC --> LOSS_CHECK{"Susut > 1.0%?"}:::debulk
     LOSS_CHECK -->|Ya| ALERT_LOSS["Peringatan: Susut Barang Terlalu Tinggi!"]:::alert
     LOSS_CHECK -->|Tidak| PUTAWAY_STORAGE
     ALERT_LOSS --> PUTAWAY_STORAGE
 
-    SORT_DECISION -->|Simpan ke Rak| PUTAWAY_STORAGE["3B. Simpan Barang (Putaway) ke Lokasi Rak / Area Simpan"]:::mainHub
+    SORT_DECISION -->|Simpan ke Rak| PUTAWAY_STORAGE["3B. Simpan Barang (Putaway)<br/>ke Lokasi Rak / Area Simpan"]:::mainHub
 
-    SORT_DECISION -->|Transit Cepat (Cross-Dock)| XDOC_CHECK{"Perlu Tukar Surat Jalan?"}
-    XDOC_CHECK -->|Ya| XDOC_SWAP["3C. Cetak Surat Jalan Baru / Surat Jalan Titipan (Blind DO)"]:::xdoc
+    SORT_DECISION -->|"Transit Cepat (Cross-Dock)"| XDOC_CHECK{"Perlu Tukar Surat Jalan?"}
+    XDOC_CHECK -->|Ya| XDOC_SWAP["3C. Cetak Surat Jalan Baru /<br/>Surat Jalan Titipan (Blind DO)"]:::xdoc
     XDOC_CHECK -->|Tidak| CD_MANIFEST
-    XDOC_SWAP --> CD_MANIFEST["4. Buat Surat Muat (Manifest) dan Loading ke Truk Antar-Kota"]:::mainHub
+    XDOC_SWAP --> CD_MANIFEST["4. Buat Surat Muat (Manifest)<br/>dan Loading ke Truk Antar-Kota"]:::mainHub
 
-    CD_MANIFEST --> GATE_OUT["5. Pos Satpam Keluar (Cek Surat Jalan, KM Odometer, Sisa BBM)"]:::gate
+    CD_MANIFEST --> GATE_OUT["5. Pos Satpam Keluar<br/>(Cek Surat Jalan, KM Odometer, Sisa BBM)"]:::gate
     GATE_OUT --> TRANSIT_TRIP["6. Truk Berangkat Antar-Kota (In-Transit)"]:::gate
     TRANSIT_TRIP --> ARRIVE_TRANSIT["7. Tiba di Gudang Cabang (Bongkar Muat dan Cek Fisik)"]:::transit
 
     PUTAWAY_STORAGE --> OUT_ORDER["8. Terima Permintaan Kirim (Sales Order / DO)"]:::outbound
     ARRIVE_TRANSIT --> OUT_ORDER
 
-    OUT_ORDER --> PICK_PACK["9. Ambil Barang dari Rak (Picking) dan Muat (Loading)"]:::outbound
+    OUT_ORDER --> PICK_PACK["9. Ambil Barang dari Rak<br/>(Picking) dan Muat (Loading)"]:::outbound
     PICK_PACK --> GATE_OUT_DELIV["10. Pos Satpam Keluar (Gate Pass Pengiriman)"]:::gate
     GATE_OUT_DELIV --> SHIPPING["11. Truk Berangkat Kirim ke Toko / Balai Desa"]:::outbound
 
-    SHIPPING --> POD_SUBMIT["12. Serah Terima Barang (Bukti Kirim Elektronik / e-POD / BAST)"]:::outbound
-    POD_SUBMIT --> ADMIN_VERIFY["13. Admin Memeriksa Bukti Kirim (Siap Penagihan/Billing)"]:::mainHub
-    SHIPPING --> GATE_IN["14. Truk Kembali ke Pool (Satpam Cek Odometer Akhir)"]:::gate
-    GATE_IN --> MASTER_END(["15. Transaksi Selesai dan Kartu Stok Terkunci Mutlak"]):::mainHub
+    SHIPPING --> POD_SUBMIT["12. Serah Terima Barang<br/>(Bukti Kirim Elektronik / e-POD / BAST)"]:::outbound
+    POD_SUBMIT --> ADMIN_VERIFY["13. Admin Memeriksa Bukti Kirim<br/>(Siap Penagihan/Billing)"]:::mainHub
+    SHIPPING --> GATE_IN["14. Truk Kembali ke Pool<br/>(Satpam Cek Odometer Akhir)"]:::gate
+    GATE_IN --> MASTER_END(["15. Transaksi Selesai<br/>dan Kartu Stok Terkunci Mutlak"]):::mainHub
 ```
 
 ---
