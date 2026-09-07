@@ -7,19 +7,22 @@
 
 ---
 
-## 0. Tugas Aktif: Penyesuaian Alur v3.0.0 → v3.1.0 (ADR-11)
+## 0. Tugas Aktif: Penyesuaian Alur v3.0.0 → v3.2.0 (ADR-11)
 
-Permintaan owner: (1) ada timbang truk masuk & keluar; (2) penerbitan SJ baru + nomor resi untuk SEMUA jenis pengiriman keluar (bukan cuma cross-dock); (3) truk keluar dicatat vendornya, nopolnya, dan resi/SJ yang dibawa; (4) truk vendor tidak wajib kembali; (5) akhir transaksi tunggal: POD untuk penagihan.
+Permintaan owner: (1) penerbitan SJ baru + nomor resi untuk SEMUA jenis pengiriman keluar (bukan cuma cross-dock); (2) truk keluar dicatat vendornya, nopolnya, dan resi/SJ yang dibawa; (3) truk vendor tidak wajib kembali.
 
-Revisi v3.1.0 (feedback owner): (a) timbang truk masuk DIHAPUS — timbang hanya saat keluar; (b) repacking tidak di dock — semua barang masuk disimpan ke rak dulu; (c) repacking ON-DEMAND, hanya setelah ada permintaan kirim/alokasi (barang induk dipick dari rak); (d) hasil repacking langsung masuk penerbitan SJ + resi (cross-document).
+Revisi v3.1.0 (feedback owner): (a) timbang truk masuk DIHAPUS; (b) repacking tidak di dock — semua barang masuk disimpan ke rak dulu; (c) repacking ON-DEMAND, hanya setelah ada permintaan kirim/alokasi (barang induk dipick dari rak); (d) hasil repacking langsung masuk penerbitan SJ + resi (cross-document).
 
-Status: **docs-first SELESAI (v3.1.0)** — flowchart & sequence di `docs/09`, spesifikasi jalur vendor di `docs/05`, spesifikasi waybill universal + repacking on-demand di `docs/06`, ADR-11 direvisi, master PDF + PNG diregenerasi & terverifikasi (12 halaman, 0 syntax error, nol kontak tepi).
+Revisi v3.2.0 (feedback owner): (a) timbang truk keluar juga DIHAPUS — tidak ada jembatan timbang sama sekali di alur; (b) rantai transaksi diperpanjang sampai PENERIMAAN PEMBAYARAN: POD terverifikasi → faktur (INV-XXXX) → pembayaran diterima → LUNAS (satu-satunya akhir transaksi).
+
+Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, spesifikasi outbound + billing di `docs/06`, spesifikasi jalur vendor di `docs/05`, ADR-11 direvisi, master PDF + PNG diregenerasi & terverifikasi.
 
 **Backlog implementasi (menyusul, docs → code):**
 1. Tabel `waybills` (SJ/RESI auto-generate) + endpoint `POST /api/outbound/:id/issue-waybill` + kolom `billing_ready` di `outbound_orders`.
 2. Tabel `vendor_vehicle_exit_logs` + endpoint `POST /api/fleet/vendor-exit` (+ enrich `fleet_exit_logs.waybill_number`).
-3. Frontend: tombol Terbitkan SJ+Resi (thermal), form log keluar truk vendor, tampil nomor resi di POD.
-4. Test: unit generate nomor waybill/resi unik, integrasi issue-waybill & vendor-exit, e2e rantai checkpoint baru (`WAYBILL_ISSUED`, `VENDOR_EXIT`).
+3. Tabel `invoices` + `payments` + endpoint `POST /api/billing/:orderId/invoice`, `POST /api/billing/:invoiceId/payments` (checkpoint `INVOICE_ISSUED`, `PAYMENT_RECEIVED`).
+4. Frontend: tombol Terbitkan SJ+Resi (thermal), form log keluar truk vendor, tampil nomor resi di POD, halaman billing (faktur, catat pembayaran, piutang).
+5. Test: unit generate nomor waybill/resi unik, integrasi issue-waybill, vendor-exit & rantai billing, e2e rantai checkpoint baru (`WAYBILL_ISSUED`, `VENDOR_EXIT`, `INVOICE_ISSUED`, `PAYMENT_RECEIVED`).
 
 ---
 

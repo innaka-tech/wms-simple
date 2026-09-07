@@ -5,6 +5,13 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.2.0] - 2026-09-07
+### Changed
+- **Tanpa Timbang Truk & Siklus Penagihan Penuh (Revisi Alur ADR-11, docs-first):**
+  - `docs/09_Master_End_to_End_Flow_and_Sequence.md`: (1) Timbang truk keluar DIHAPUS — tidak ada jembatan timbang sama sekali di alur gudang (masuk maupun keluar); (2) Rantai transaksi diperpanjang sampai PENERIMAAN PEMBAYARAN: POD terverifikasi menjadi dasar penerbitan faktur (node 13 "Terbitkan Faktur/Tagihan"), pembayaran diterima menutup transaksi (node 14 "AKHIR TUNGGAL: Penerimaan Pembayaran Diterima — LUNAS"); sequence ditambah langkah terbit faktur + catat pembayaran (status `PAID`).
+  - `docs/06_Outbound_and_POD_Flows.md`: Blok weighbridge dihapus dari flowchart & sequence; ditambah langkah `POST /api/billing/:orderId/invoice` (tabel `invoices` INV-XXXX) dan `POST /api/billing/:invoiceId/payments` (tabel `payments`); checkpoint audit baru `INVOICE_ISSUED` & `PAYMENT_RECEIVED`; status order `payment_status: UNPAID | PAID`.
+  - `docs/ai/decisions.md`: ADR-11 direvisi v3.2.0 (tanpa timbangan; akhir transaksi = pembayaran diterima).
+
 ## [3.1.0] - 2026-09-07
 ### Changed
 - **Repacking On-Demand & Tanpa Timbang Masuk (Revisi Alur ADR-11, docs-first):**
