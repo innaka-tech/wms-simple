@@ -5,6 +5,14 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.1.0] - 2026-09-07
+### Changed
+- **Repacking On-Demand & Tanpa Timbang Masuk (Revisi Alur ADR-11, docs-first):**
+  - `docs/09_Master_End_to_End_Flow_and_Sequence.md`: (1) Timbang truk masuk DIHAPUS dari alur — jembatan timbang hanya saat keluar (gross − tare = muatan bersih); (2) Semua barang masuk wajib disimpan ke rak (putaway) dulu, satu-satunya pengecualian cross-dock langsung staging; (3) Repacking / pecah ulang kini ON-DEMAND — hanya dilakukan SETELAH ada permintaan kirim/alokasi, barang induk diambil dari rak, hasil langsung masuk penerbitan SJ (tidak ada stok repacking menganggur); (4) Hasil repacking (cross-document) masuk titik penerbitan SJ universal `SJ-XXXXXXXX / RESI-XXXXXXXX`.
+  - `docs/06_Outbound_and_POD_Flows.md`: Flowchart & sequence outbound ditambah cabang repacking on-demand (`POST /api/stock/convert`) sebelum packing; timbang masuk dihilangkan dari spesifikasi.
+  - `docs/02_Bulky_Curah_and_Debulking.md`: Work Order de-bulking diklarifikasi on-demand dari rak (bukan di dock penerimaan).
+  - Master PDF & PNG diagram diregenerasi (12 halaman, 0 syntax error, nol kontak tepi; flowchart 1974x6008px, sequence 3798x7268px).
+
 ## [3.0.1] - 2026-09-07
 ### Fixed
 - **Tile diagram PDF tidak lagi membelah node:** Peta celah (occupancy map) untuk menentukan titik potong tile sebelumnya dihitung SETELAH placeholder diagram disembunyikan (`display:none`), sehingga semua `getBoundingClientRect()` bernilai 0, peta celah kosong, dan cut jatuh di tengah kotak/pesan (kepotong parah). Kini occupancy dihitung selagi elemen masih ter-layout, lalu disembunyikan setelah selesai; ditambah guard keras: build GAGAL bila peta celah kosong.

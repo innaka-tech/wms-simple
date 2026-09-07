@@ -7,11 +7,13 @@
 
 ---
 
-## 0. Tugas Aktif: Penyesuaian Alur v3.0.0 (ADR-11)
+## 0. Tugas Aktif: Penyesuaian Alur v3.0.0 → v3.1.0 (ADR-11)
 
 Permintaan owner: (1) ada timbang truk masuk & keluar; (2) penerbitan SJ baru + nomor resi untuk SEMUA jenis pengiriman keluar (bukan cuma cross-dock); (3) truk keluar dicatat vendornya, nopolnya, dan resi/SJ yang dibawa; (4) truk vendor tidak wajib kembali; (5) akhir transaksi tunggal: POD untuk penagihan.
 
-Status: **docs-first SELESAI** — flowchart & sequence baru di `docs/09`, spesifikasi jalur vendor di `docs/05`, spesifikasi waybill universal di `docs/06`, ADR-11 tercatat, master PDF + PNG diagram diregenerasi & terverifikasi (0 syntax error, tanpa halaman kosong).
+Revisi v3.1.0 (feedback owner): (a) timbang truk masuk DIHAPUS — timbang hanya saat keluar; (b) repacking tidak di dock — semua barang masuk disimpan ke rak dulu; (c) repacking ON-DEMAND, hanya setelah ada permintaan kirim/alokasi (barang induk dipick dari rak); (d) hasil repacking langsung masuk penerbitan SJ + resi (cross-document).
+
+Status: **docs-first SELESAI (v3.1.0)** — flowchart & sequence di `docs/09`, spesifikasi jalur vendor di `docs/05`, spesifikasi waybill universal + repacking on-demand di `docs/06`, ADR-11 direvisi, master PDF + PNG diregenerasi & terverifikasi (12 halaman, 0 syntax error, nol kontak tepi).
 
 **Backlog implementasi (menyusul, docs → code):**
 1. Tabel `waybills` (SJ/RESI auto-generate) + endpoint `POST /api/outbound/:id/issue-waybill` + kolom `billing_ready` di `outbound_orders`.

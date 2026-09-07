@@ -50,7 +50,7 @@ flowchart TD
     classDef curah fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
     classDef alert fill:#ffebee,stroke:#d32f2f,stroke-width:2px;
 
-    IN_BULK(["Stok Barang Bulky di Gudang (Contoh: Jumbo Bag 1 Ton)"]):::bulky --> WO["Buat Work Order De-bulking (Actor: WH_MANAGER)"]:::process
+    IN_BULK(["Stok Barang Bulky di Rak / Silo Gudang (Contoh: Jumbo Bag 1 Ton)"]):::bulky --> WO["Buat Work Order De-bulking (Actor: WH_MANAGER)\nDibuat ON-DEMAND: setelah ada Permintaan Kirim / Alokasi,\nbarang induk diambil dari rak — bukan saat barang masuk dock"]:::process
 
     WO --> WEIGH_IN["1. Timbang dan Verifikasi Input Bulky (Stock Movement: DEBULKING_INPUT)"]:::process
 

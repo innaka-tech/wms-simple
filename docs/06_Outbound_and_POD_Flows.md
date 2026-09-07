@@ -2,16 +2,16 @@
 
 **Document:** Outbound Fulfillment & Digital POD Flow Specification  
 **Operations Area:** Order Processing, Waybill & Resi Issuance, Bin Picking, Packing/Boxing, Shipping, Delivery POD, Billing Handoff  
-**Version:** 3.0.0  
+**Version:** 3.1.0  
 **Status:** LOCKED & ACTIVE  
 
 ---
 
-## 1. Prinsip Dasar (v3.0.0)
+## 1. Prinsip Dasar (v3.1.0)
 
 1. **Satu titik penerbitan dokumen untuk SEMUA pengiriman keluar.** Baik barang dari stok gudang, hasil repacking (de-bulking), cross-dock antar-hub, maupun KDMP — sistem **otomatis menerbitkan Surat Jalan Baru + Nomor Resi** saat barang mau keluar. Cross-Doc Swap (blind shipping) menjadi salah satu varian penerbitan, bukan satu-satunya jalur.
 2. **Nomor resi auto-generate sistem** dengan format `RESI-XXXXXXXX` dan SJ `SJ-XXXXXXXX`, tertaut ke order dan tercatat di checkpoint audit. Pencetakan struk thermal tersedia via modul ESC/POS.
-3. **Timbang truk keluar** untuk muatan curah/berat: gross − tare = berat muatan bersih, tercatat sebagai tiket weighbridge kedua (masuk vs keluar).
+3. **Timbang truk keluar** untuk muatan curah/berat: gross − tare = berat muatan bersih, tercatat sebagai tiket jembatan timbang saat barang keluar. Tidak ada timbang truk masuk di alur ini.
 4. **Akhir transaksi tunggal: POD terverifikasi admin → SIAP DITAGIH.** Kembalinya truk ke pool adalah catatan armada (lihat `05_Fleet_Exit_and_Security_Gate_Flows.md`), bukan penutup transaksi barang.
 5. **Truk pengangkut bisa pool atau vendor.** Untuk vendor: nama vendor + nopol + resi wajib tercatat di pos satpam (Jalur B, doc 05).
 
@@ -31,7 +31,13 @@ flowchart TD
 
     REQ(["Order Pelanggan / Permintaan Kirim (Semua Jenis: Stok, Repacking, Cross-Dock, KDMP)"]) --> STEP1["1. Order Dibuat di Sistem (Validasi: Stok Tersedia on_hand dikurangi reserved)"]:::action
 
-    STEP1 --> STEP2["2. Picking dari Lokasi Rak / Bin (Stock: on_hand berkurang, reserved bertambah)"]:::staff
+    STEP1 --> DEBULK_Q{"Barang perlu Pecah Ulang / Kemas Ulang? (Repacking On-Demand dari Rak)"}:::action
+
+    DEBULK_Q -->|Ya| REPICK["2A. Ambil Barang Induk dari Rak lalu Repacking (Potong stok Jumbo Bag, Tambah stok Karung siap kirim, Hitung Susut)"]:::staff
+    DEBULK_Q -->|Tidak| STEP2["2B. Picking Langsung dari Lokasi Rak / Bin (Stock: on_hand berkurang, reserved bertambah)"]:::staff
+
+    REPICK --> STEP3
+    STEP2 --> STEP3["3. Packing, Box Sealing, Labeling (Input: box_code, weight_kg, dimensions)"]:::staff
 
     STEP2 --> STEP3["3. Packing, Box Sealing, Labeling (Input: box_code, weight_kg, dimensions)"]:::staff
 
@@ -74,10 +80,16 @@ sequenceDiagram
     API->>DB: INSERT INTO outbound_orders & outbound_items (Status: CREATED)
     API->>DB: INSERT INTO checkpoint_logs (ORDER_CREATED)
 
-    Picker->>API: POST /api/outbound/:id/pick (Ambil dari Bin)
-    API->>DB: UPDATE stock_levels (on_hand -, reserved +)
-    API->>DB: INSERT stock_movements (OUTBOUND_PICK)
-    API->>DB: INSERT INTO checkpoint_logs (PICKING_COMPLETED)
+    alt Barang perlu Pecah Ulang / Kemas Ulang (Repacking On-Demand)
+        Picker->>API: POST /api/stock/convert (Ambil Barang Induk dari Rak, Input Hasil: 1.000 KG Jadi 995 KG)
+        API->>DB: INSERT INTO stock_conversions (Potong stok Jumbo Bag, Tambah stok Karung siap kirim)
+        API->>DB: INSERT INTO checkpoint_logs (REPACKING_COMPLETED, hitung susut 5 KG)
+    else Barang siap kirim langsung (Stok Utuh / Cross-Dock)
+        Picker->>API: POST /api/outbound/:id/pick (Ambil dari Bin)
+        API->>DB: UPDATE stock_levels (on_hand -, reserved +)
+        API->>DB: INSERT stock_movements (OUTBOUND_PICK)
+        API->>DB: INSERT INTO checkpoint_logs (PICKING_COMPLETED)
+    end
 
     Packer->>API: POST /api/outbound/:id/pack (Kemas & Segel)
     API->>DB: INSERT INTO packages (box_code, weight_kg)
