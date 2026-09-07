@@ -127,7 +127,7 @@ const html = `<!DOCTYPE html>
   mermaid.initialize({ startOnLoad: false, theme: 'base', securityLevel: 'loose',
     themeVariables: { fontSize: '13px', primaryColor: '#e8eef7', primaryBorderColor: '#0d47a1', lineColor: '#455a64' },
     flowchart: { htmlLabels: true, curve: 'basis', nodeSpacing: 24, rankSpacing: 30, useMaxWidth: false, diagramPadding: 6 },
-    sequence: { actorMargin: 70, width: 130, wrap: true, messageFontSize: 12, noteFontSize: 12, useMaxWidth: false, mirrorActors: false } });
+    sequence: { actorMargin: 55, width: 200, wrap: true, messageMargin: 30, noteMargin: 8, boxMargin: 8, messageFontSize: 12, noteFontSize: 12, useMaxWidth: false, mirrorActors: false } });
   for (const id of ['d-flow', 'd-seq']) {
     const el = document.getElementById(id);
     try {

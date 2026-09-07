@@ -5,6 +5,12 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.2.2] - 2026-09-07
+
+### Fixed
+
+- **Sequence diagram dirapikan:** urutan partisipan disusun ulang berdasarkan kedekatan interaksi (Vendor, Driver, Satpam, Recipient, Admin, Staff, API, DB, Audit) — garis pesan tidak lagi menyilang banyak lifeline; label pesan dipadatkan (tanpa staircase wrap); kolom wrap dilebarkan (130→200px) + margin antar-elemen dirapatkan. Dimensi: 1851×3551 → 2344×2951 (rasio lebih seimbang).
+
 ## [3.2.1] - 2026-09-07
 
 ### Fixed

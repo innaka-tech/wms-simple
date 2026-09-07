@@ -87,82 +87,82 @@ Diagram ini menunjukkan interaksi antara tim lapangan, sistem (Hono API), Databa
 sequenceDiagram
     autonumber
     actor Vendor as Supplier / Driver Vendor
-    actor Staff as Admin Gudang / Checker
+    actor Driver as Sopir (Pool / Vendor)
     actor Satpam as Satpam Pos Gerbang
-    actor Driver as Sopir (Pool atau Vendor)
     actor Recipient as Penerima (Toko/Desa)
     actor Admin as Admin Pusat
+    actor Staff as Admin Gudang / Checker
     participant API as Aplikasi WMS (Backend)
     participant DB as Database
     participant Audit as Log Riwayat Status (Audit Trail)
 
-    Note over Vendor,Audit: FASE 1: PENERIMAAN DAN PENYIMPANAN BARANG (INBOUND)
-    Vendor->>Satpam: Truk Supplier tiba di Gudang Utama Jakarta
-    Staff->>API: Tally Penerimaan Fisik (Update status Penerimaan, Petugas: Budi)
-    API->>DB: Update Status PO menjadi "DITERIMA"
-    API->>Audit: Simpan Log: "Barang Diterima oleh Budi"
-    Staff->>API: Simpan Barang ke Rak (Putaway, kecuali Cross-Dock langsung Staging)
-    API->>DB: Update Lokasi Stok ke Rak / Area Simpan
-    API->>Audit: Simpan Log: "Barang Disimpan ke Rak oleh Budi"
+    Note over Vendor,Audit: FASE 1 — PENERIMAAN & PENYIMPANAN (INBOUND)
+    Vendor->>Satpam: Truk supplier tiba di gudang
+    Staff->>API: Tally penerimaan fisik (petugas: Budi)
+    API->>DB: Status PO jadi DITERIMA
+    API->>Audit: Log: "Barang diterima oleh Budi"
+    Staff->>API: Putaway ke rak (cross-dock: langsung staging)
+    API->>DB: Stok masuk lokasi rak
+    API->>Audit: Log: "Barang disimpan oleh Budi"
 
-    Note over Admin,Audit: FASE 2: PERMINTAAN KIRIM, REPACKING ON-DEMAND, TERBIT SJ + RESI
-    Admin->>API: Buat Order Pengiriman (Stok Gudang / Cross-Dock / KDMP)
-    alt Barang perlu Pecah Ulang / Kemas Ulang (diambil dari rak)
-        Staff->>API: Ambil Barang Induk dari Rak (Pick Jumbo Bag / Drum)
-        Staff->>API: Catat hasil repacking (Input 1.000 KG -> Jadi 995 KG)
-        API->>DB: Potong stok Jumbo Bag, Tambah stok Karung siap kirim
-        API->>API: Sistem menghitung susut: 5 KG (Aman, di bawah 1%)
-        API->>Audit: Simpan Log: "Proses Repacking Selesai (On-Demand untuk Order)"
-    else Barang siap kirim langsung (stok utuh / cross-dock)
-        API->>DB: Alokasi stok dari Rak / Staging ke Order
+    Note over Vendor,Audit: FASE 2 — PERMINTAAN KIRIM, REPACKING ON-DEMAND, TERBIT SJ + RESI
+    Admin->>API: Buat order kirim (stok / cross-dock / KDMP)
+    alt Perlu pecah ulang (diambil dari rak)
+        Staff->>API: Ambil barang induk dari rak
+        Staff->>API: Input hasil repacking (1.000 KG jadi 995 KG)
+        API->>DB: Potong jumbo bag, tambah karung siap kirim
+        API->>API: Hitung susut 5 KG (aman < 1%)
+        API->>Audit: Log: "Repacking selesai (on-demand order)"
+    else Stok utuh / cross-dock: kirim langsung
+        API->>DB: Alokasi stok dari rak / staging
     end
-    API->>API: Generate Surat Jalan Baru + Nomor Resi Otomatis (SJ-XXXX / RESI-XXXX)
-    API->>DB: Simpan Dokumen Surat Jalan dan Resi (tertaut ke order)
-    API->>Audit: Simpan Log: "Surat Jalan dan Resi Diterbitkan"
-    opt Jika perlu menyembunyikan nama Supplier asli (Blind Shipping)
-        API->>DB: Cetak Dokumen Titipan Tanpa Identitas Pabrik (cross_documents)
-        API->>Audit: Simpan Log: "Surat Jalan Titipan Dicetak"
+    API->>API: Generate SJ + No. Resi otomatis (SJ-XXXX / RESI-XXXX)
+    API->>DB: Simpan SJ + resi (tertaut order)
+    API->>Audit: Log: "SJ & resi diterbitkan"
+    opt Blind shipping
+        API->>DB: Cetak SJ titipan tanpa identitas pabrik
+        API->>Audit: Log: "SJ titipan dicetak"
     end
 
-    Note over Driver,Audit: FASE 3: LOADING BARANG KE TRUK
-    Staff->>API: Konfirmasi Loading barang ke Truk (Serahkan SJ + Resi ke Sopir)
-    API->>DB: Update Kartu Stok (Barang statusnya "Dalam Perjalanan")
-    API->>Audit: Simpan Log: "Loading Selesai, Dokumen Diserahterimakan"
+    Note over Vendor,Audit: FASE 3 — LOADING
+    Staff->>API: Loading selesai, SJ + resi diserahkan ke sopir
+    API->>DB: Kartu stok: DALAM PERJALANAN
+    API->>Audit: Log: "Dokumen diserahterimakan"
 
-    Note over Satpam,Audit: FASE 4: POS SATPAM KELUAR (DUA JALUR: ARMADA POOL ATAU TRUK VENDOR)
-    alt Truk Milik Pool Sendiri (Gate Pass)
-        Driver->>Satpam: Truk Pool tiba di Pos Keluar
-        Satpam->>API: Cek Surat Jalan Sah, Catat Odometer dan Sisa BBM
-        API->>DB: Simpan Gate Pass (fleet_exit_logs, Truk status IN_USE)
-        API->>Audit: Simpan Log: "Truk Pool Keluar Bawa Resi XXXX"
-    else Truk Vendor Sewa / Ekspedisi
-        Driver->>Satpam: Truk Vendor tiba di Pos Keluar
-        Satpam->>API: Catat Nama Vendor, Nomor Polisi, dan Nomor Resi/SJ yang Dibawa
-        API->>DB: Simpan Log Keluar Truk Vendor (tanpa mengubah status armada pool)
-        API->>Audit: Simpan Log: "Truk Vendor Keluar Bawa Resi XXXX"
+    Note over Vendor,Audit: FASE 4 — POS SATPAM KELUAR (DUAL JALUR)
+    alt Truk pool sendiri (gate pass)
+        Driver->>Satpam: Truk pool di pos keluar
+        Satpam->>API: Cek SJ sah, catat odometer + BBM
+        API->>DB: Simpan gate pass (fleet_exit_logs, truk IN_USE)
+        API->>Audit: Log: "Truk pool keluar bawa resi"
+    else Truk vendor sewa / ekspedisi
+        Driver->>Satpam: Truk vendor di pos keluar
+        Satpam->>API: Catat vendor, nopol, resi/SJ dibawa
+        API->>DB: Simpan log keluar truk vendor
+        API->>Audit: Log: "Truk vendor keluar bawa resi"
     end
-    API-->>Satpam: Dokumen Sah. Palang Dibuka, Truk Berangkat
+    API-->>Satpam: Dokumen sah, palang dibuka
 
-    Note over Driver,Audit: FASE 5: PENGIRIMAN, SERAH TERIMA, DAN PENAGIHAN — AKHIR TUNGGAL TRANSAKSI
-    Driver->>Recipient: Bongkar barang di lokasi Penerima (Toko / Balai Desa)
-    Recipient->>Driver: Tanda tangan di layar HP Sopir dan Foto Barang di Lokasi
-    Driver->>API: Submit Bukti Kirim (e-POD / BAST Digital)
-    API->>DB: Simpan Dokumen Tanda Terima
-    API->>Audit: Simpan Log: "Barang Sukses Dikirim"
-    Admin->>API: Admin Pusat Validasi Bukti Kirim Asli
-    API->>DB: Terbitkan Faktur / Tagihan ke Pelanggan (Dasar: POD Terverifikasi)
-    API->>Audit: Simpan Log: "Faktur Diterbitkan, Menunggu Pembayaran"
-    Recipient->>API: Pelanggan Melakukan Pembayaran
-    API->>DB: Catat Penerimaan Pembayaran (payment_received, Status: PAID)
-    API->>Audit: Simpan Log: "Pembayaran Diterima, Transaksi LUNAS (Akhir Transaksi)"
+    Note over Vendor,Audit: FASE 5 — KIRIM, POD, TAGIH, LUNAS (AKHIR TUNGGAL)
+    Driver->>Recipient: Bongkar barang di lokasi
+    Recipient->>Driver: TTD layar HP sopir + foto barang
+    Driver->>API: Submit e-POD / BAST digital
+    API->>DB: Simpan dokumen tanda terima
+    API->>Audit: Log: "Barang sukses dikirim"
+    Admin->>API: Validasi bukti kirim
+    API->>DB: Terbitkan faktur (dasar: POD terverifikasi)
+    API->>Audit: Log: "Faktur diterbitkan, menunggu bayar"
+    Recipient->>API: Pelanggan bayar
+    API->>DB: Catat pembayaran (status PAID)
+    API->>Audit: Log: "Pembayaran diterima — LUNAS"
 
-    Note over Driver,Audit: FASE 6 (OPSIONAL): CATATAN ARMADA — BUKAN AKHIR TRANSAKSI
-    alt Jika Truk Milik Pool
-        Driver->>Satpam: Truk Pool kembali ke Pool
-        Satpam->>API: Catat Odometer kembali (Sistem hitung total KM otomatis)
-        API->>DB: Update Status Truk menjadi "Tersedia"
-        API->>Audit: Simpan Log: "Truk Pool Kembali ke Pool"
-    else Jika Truk Vendor
-        Note over Satpam,Audit: Truk Vendor tidak wajib kembali. Log keluar vendor ditutup apa adanya.
+    Note over Vendor,Audit: FASE 6 — OPSIONAL: CATATAN ARMADA (BUKAN AKHIR TRANSAKSI)
+    alt Truk pool
+        Driver->>Satpam: Truk pool kembali
+        Satpam->>API: Catat odometer masuk (total KM otomatis)
+        API->>DB: Status truk: TERSEDIA
+        API->>Audit: Log: "Truk pool kembali"
+    else Truk vendor
+        Note over Satpam,Audit: Truk vendor tidak wajib kembali — log ditutup apa adanya.
     end
 ```
