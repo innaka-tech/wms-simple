@@ -5,6 +5,11 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.0.1] - 2026-09-07
+### Fixed
+- **Tile diagram PDF tidak lagi membelah node:** Peta celah (occupancy map) untuk menentukan titik potong tile sebelumnya dihitung SETELAH placeholder diagram disembunyikan (`display:none`), sehingga semua `getBoundingClientRect()` bernilai 0, peta celah kosong, dan cut jatuh di tengah kotak/pesan (kepotong parah). Kini occupancy dihitung selagi elemen masih ter-layout, lalu disembunyikan setelah selesai; ditambah guard keras: build GAGAL bila peta celah kosong.
+- Verifikasi piksel 12 halaman: nol kontak tepi (T/B/L/R = 0), nol "syntax error", semua tile berisi. Master PDF + PNG diagram diregenerasi.
+
 ## [3.0.0] - 2026-09-07
 ### Changed
 - **Universal Waybill & Dual Gate-Out (Penyesuaian Alur Operasional v3.0.0, docs-first):**

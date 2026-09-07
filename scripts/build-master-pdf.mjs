@@ -12,7 +12,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const VERSION = '2.4.1';
+const VERSION = '3.0.1';
 
 // --- 1. Baca diagram dari dokumen sumber ---
 const seqDoc = readFileSync(join(ROOT, 'docs/09_Master_End_to_End_Flow_and_Sequence.md'), 'utf8');
@@ -142,10 +142,12 @@ const html = `<!DOCTYPE html>
     const svg = document.querySelector('#' + id + ' svg');
     if (!svg) continue;
     const vb = svg.viewBox.baseVal;
-    window.__DIAGRAM_SIZES[id] = { w: Math.ceil(vb.width), h: Math.ceil(vb.height) };      window.__DIAGRAM_SVGS[id] = svg.outerHTML;
-      document.getElementById(id).style.cssText = 'display:none'; // sembunyikan lagi: abs-pos memuai tinggi dokumen saat print
+    window.__DIAGRAM_SIZES[id] = { w: Math.ceil(vb.width), h: Math.ceil(vb.height) };
+    window.__DIAGRAM_SVGS[id] = svg.outerHTML;
     // Peta okupansi vertikal dari elemen solid (kotak/label) — EDGES (path/line) DIKECUALIKAN
     // supaya cut bisa jatuh di celah antar baris node (garis edge boleh tersambung antar tile).
+    // PENTING: hitung occupancy SELAG placeholder masih ter-layout (belum display:none),
+    // kalau tidak semua getBoundingClientRect() = 0 dan peta celah kosong → cut sembarangan.
     const svgTop = svg.getBoundingClientRect().top;
     const Hpx = vb.height;
     const occ = new Uint8Array(Math.ceil(Hpx) + 2);
@@ -156,6 +158,8 @@ const html = `<!DOCTYPE html>
       const y1 = Math.min(Math.ceil(Hpx), Math.ceil(r.bottom - svgTop));
       for (let y = y0; y <= y1; y++) occ[y] = 1;
     }
+    // Setelah ukur selesai baru sembunyikan: abs-pos memuai tinggi dokumen saat print teks
+    document.getElementById(id).style.cssText = 'display:none';
     const gaps = [];
     let runStart = -1;
     for (let y = 0; y < occ.length; y++) {
@@ -163,6 +167,7 @@ const html = `<!DOCTYPE html>
       else { if (runStart >= 0 && y - runStart >= 10) gaps.push(Math.round((runStart + y) / 2)); runStart = -1; }
     }
     if (runStart >= 0 && occ.length - runStart >= 10) gaps.push(Math.round((runStart + occ.length) / 2));
+    if (!gaps.length) throw new Error('Peta celah kosong untuk ' + id + ' — occupancy dihitung saat elemen tidak ter-layout (display:none). Periksa urutan ukur vs hide.');
     window.__DIAGRAM_GAPS[id] = gaps;
   }
 </script>
