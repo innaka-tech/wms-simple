@@ -168,3 +168,14 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
    - [x] `pages/outbound/pod.vue`: BAST Desa digital signature canvas and photo capture review.
    - [x] `pages/stock/index.vue`: High-density tabular ledger with monospace quantities, reserved allocations, and in-transit figures.
 
+
+---
+
+## Sesi 2026-09-07 (Lanjutan) — Audit Mendalam + E2E 3 Backlog (v3.6.0)
+
+1. [x] **Audit mendalam backlog #1-#3 (waybill, vendor-exit, billing):** temuan P0 sistemik — 26 INSERT tanpa `id` (PK NULL di SQLite, rantai `prev_checkpoint_id` mati), parameter binding salah urutan (`$2...$1` ter-bind salah di SQLite, `billing_ready` tak pernah tersimpan), `uom_id` NOT NULL tak diisi (create order/PO/manifest selalu 500 di DB nyata), nested transaction `adjustStock`, kolom hantu `p.unit`/`p.weight_kg`.
+2. [x] **Semua P0/P1/P2 diperbaiki** — `uuid_generate_v4()` di semua INSERT, numbered placeholder `?N` di `db.ts`, resolusi UOM default produk, `txClient` untuk adjustStock, race LUNAS (SUM dalam tx + FOR UPDATE), validasi resi/SJ vendor-exit & departure (docs/05), nomor dokumen collision-proof, partial unique index, Zod verify-pod.
+3. [x] **Mata uang dikunci Rupiah:** `invoices.currency DEFAULT 'IDR'` + faktur terbit dengan `currency='IDR'`.
+4. [x] **E2E suite baru** (`backend/tests/e2e/transaction-chain.e2e.test.ts`): rantai penuh Jalur A (pool) & B (vendor) sampai LUNAS lawan SQLite nyata tanpa mock, 7 guard, integritas rantai checkpoint. 117/117 test lulus, TSC bersih.
+
+**Next:** frontend backlog #4 (tombol SJ+resi thermal, form vendor exit, resi di POD, halaman billing) atau push `ans` bila diminta.

@@ -4,7 +4,7 @@ import { query, pool } from '../db.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
 import { adjustStock } from '../services/stock.js';
 import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
-import { generateWaybillNumber } from '../utils/waybill.js';
+import { generateWaybillNumber, generateDocumentNumber } from '../utils/waybill.js';
 
 export const outboundRoutes = new Hono();
 
@@ -45,7 +45,7 @@ outboundRoutes.get('/:id', async (c) => {
   }
 
   const itemsRes = await query(
-    `SELECT oi.*, p.sku_code, p.name AS product_name, p.unit, p.weight_kg
+    `SELECT oi.*, p.sku_code, p.name AS product_name, p.default_uom_id AS unit, p.weight_kg_per_unit AS weight_kg
      FROM outbound_items oi
      JOIN products p ON oi.product_id = p.id
      WHERE oi.outbound_order_id = $1`,
@@ -105,14 +105,25 @@ outboundRoutes.post('/', optionalAuth, async (c) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const orderNumber = `ORD-${Date.now().toString().slice(-8)}`;
+
+    // Nomor order unik (acak + cek database) — bukan timestamp yang collision-prone
+    let orderNumber = '';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = generateDocumentNumber('ORD');
+      const dup = await client.query(`SELECT 1 FROM outbound_orders WHERE order_number = $1`, [candidate]);
+      if (dup.rows.length === 0) {
+        orderNumber = candidate;
+        break;
+      }
+    }
+    if (!orderNumber) throw new Error('Gagal generate nomor order unik');
 
     const orderRes = await client.query(
       `INSERT INTO outbound_orders (
-        order_number, customer_id, warehouse_id, recipient_name, recipient_phone,
+        id, order_number, customer_id, warehouse_id, recipient_name, recipient_phone,
         destination_address, destination_city, scheduled_ship_date, notes, status,
         created_by_id, created_by_name
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'CREATED', $10, $11)
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, 'CREATED', $10, $11)
       RETURNING *`,
       [
         orderNumber, customer_id, warehouse_id, recipient_name, recipient_phone || null,
@@ -123,10 +134,14 @@ outboundRoutes.post('/', optionalAuth, async (c) => {
     const order = orderRes.rows[0];
 
     for (const item of items) {
+      // uom_id wajib (schema): pakai payload atau UOM default produk
+      const uomRes = await client.query(`SELECT default_uom_id FROM products WHERE id = $1`, [item.product_id]);
+      const uomId = item.uom_id || uomRes.rows[0]?.default_uom_id;
+      if (!uomId) throw new Error(`Produk ${item.product_id} tidak memiliki UOM default`);
       await client.query(
-        `INSERT INTO outbound_items (outbound_order_id, product_id, ordered_qty, picked_qty, packed_qty, delivered_qty)
-         VALUES ($1, $2, $3, 0, 0, 0)`,
-        [order.id, item.product_id, item.ordered_qty]
+        `INSERT INTO outbound_items (id, outbound_order_id, product_id, ordered_qty, picked_qty, packed_qty, delivered_qty, uom_id)
+         VALUES (uuid_generate_v4(), $1, $2, $3, 0, 0, 0, $4)`,
+        [order.id, item.product_id, item.ordered_qty, uomId]
       );
     }
 
@@ -187,6 +202,7 @@ outboundRoutes.post('/:id/pick', async (c) => {
         warehouse_id: order.warehouse_id,
         product_id: item.product_id,
         movement_type: 'OUTBOUND_PICK',
+        txClient: client,
         reference_type: 'OUTBOUND_ORDER',
         reference_id: order.id,
         qty_change: -item.picked_qty,
@@ -246,8 +262,8 @@ outboundRoutes.post('/:id/pack', async (c) => {
     if (packages && Array.isArray(packages)) {
       for (const pkg of packages) {
         await client.query(
-          `INSERT INTO packages (outbound_order_id, box_code, weight_kg, dimensions, packed_by_id, packed_by_name)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
+          `INSERT INTO packages (id, outbound_order_id, box_code, weight_kg, dimensions, packed_by_id, packed_by_name)
+           VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6)`,
           [id, pkg.box_code, pkg.weight_kg || 0, pkg.dimensions || null, actor_id || null, actor_name.trim()]
         );
       }
@@ -304,13 +320,23 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
   try {
     await client.query('BEGIN');
 
-    const podNumber = `POD-${Date.now().toString().slice(-8)}`;
+    // Nomor POD unik (acak + cek database) — bukan timestamp yang collision-prone
+    let podNumber = '';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = generateDocumentNumber('POD');
+      const dup = await client.query(`SELECT 1 FROM pod_documents WHERE pod_number = $1`, [candidate]);
+      if (dup.rows.length === 0) {
+        podNumber = candidate;
+        break;
+      }
+    }
+    if (!podNumber) throw new Error('Gagal generate nomor POD unik');
 
     await client.query(
       `INSERT INTO pod_documents (
-        outbound_order_id, pod_number, recipient_name, pod_photo_url,
+        id, outbound_order_id, pod_number, recipient_name, pod_photo_url,
         signature_photo_url, delivered_qty, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, 'ACCEPTED')`,
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, 'ACCEPTED')`,
       [id, podNumber, recipient_name || order.recipient_name, pod_photo_url, signature_photo_url, delivered_qty || 1]
     );
 
@@ -348,7 +374,18 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
 outboundRoutes.post('/:id/verify-pod', optionalAuth, async (c) => {
   const user = c.get('user' as any) as UserTokenPayload | undefined;
   const id = c.req.param('id');
-  const body = await c.req.json();
+  // Zod (OWASP LLM05): validasi ketat payload verifikasi POD
+  const verifyPodSchema = z.object({
+    status: z.enum(['ACCEPTED', 'REJECTED']).optional(),
+    rejection_reason: z.string().max(500).optional(),
+    actor_name: z.string().trim().min(2, 'Nama admin verifikator wajib diisi (min 2 karakter)').optional(),
+    actor_id: z.string().optional()
+  });
+  const parsedBody = verifyPodSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsedBody.success) {
+    return c.json({ success: false, message: parsedBody.error.issues[0]?.message || 'Payload tidak valid' }, 400);
+  }
+  const body = parsedBody.data;
   const { status, rejection_reason, actor_name: bodyActorName, actor_id: bodyActorId } = body;
 
   const actor_name = (user?.full_name || bodyActorName || '').trim();
@@ -490,9 +527,9 @@ outboundRoutes.post('/:id/issue-waybill', optionalAuth, async (c) => {
     await client.query('BEGIN');
     const waybillRes = await client.query(
       `INSERT INTO waybills (
-        sj_number, resi_number, reference_type, reference_id,
+        id, sj_number, resi_number, reference_type, reference_id,
         issued_by_id, issued_by_name, status, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, 'ISSUED', $7)
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, 'ISSUED', $7)
       RETURNING *`,
       [sjNumber, resiNumber, body.reference_type, id, actor_id || null, actor_name, body.notes || null]
     );

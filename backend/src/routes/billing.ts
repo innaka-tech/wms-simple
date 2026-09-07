@@ -14,7 +14,8 @@ billingRoutes.post('/:orderId/invoice', optionalAuth, async (c) => {
   const orderId = c.req.param('orderId');
 
   const schema = z.object({
-    amount: z.number().positive('Nilai faktur harus lebih dari 0').optional(),
+    // Nilai faktur dalam Rupiah (IDR) — mata uang tunggal sistem
+    amount: z.number().positive('Nilai faktur harus lebih dari 0').max(1_000_000_000_000, 'Nilai faktur di luar batas wajar').optional(),
     notes: z.string().max(500).optional(),
     actor_name: z.string().trim().min(2, 'Nama petugas penerbit faktur wajib diisi (min 2 karakter)').optional(),
     actor_id: z.string().optional()
@@ -78,8 +79,8 @@ billingRoutes.post('/:orderId/invoice', optionalAuth, async (c) => {
     await client.query('BEGIN');
     const invoiceRes = await client.query(
       `INSERT INTO invoices (
-        invoice_number, outbound_order_id, amount, issued_by_id, issued_by_name, status, notes
-      ) VALUES ($1, $2, $3, $4, $5, 'ISSUED', $6)
+        id, invoice_number, outbound_order_id, amount, issued_by_id, issued_by_name, status, currency, notes
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, 'ISSUED', 'IDR', $6)
       RETURNING *`,
       [invoiceNumber, orderId, body.amount ?? null, actor_id || null, actor_name, body.notes || null]
     );
@@ -116,7 +117,8 @@ billingRoutes.post('/invoices/:invoiceId/payments', optionalAuth, async (c) => {
   const invoiceId = c.req.param('invoiceId');
 
   const schema = z.object({
-    amount_paid: z.number().positive('Jumlah pembayaran harus lebih dari 0'),
+    // Jumlah pembayaran dalam Rupiah (IDR) — mata uang tunggal sistem
+    amount_paid: z.number().positive('Jumlah pembayaran harus lebih dari 0').max(1_000_000_000_000, 'Jumlah pembayaran di luar batas wajar'),
     method: z.string().trim().min(2).max(50).optional(),
     notes: z.string().max(500).optional(),
     actor_name: z.string().trim().min(2, 'Nama petugas pencatat pembayaran wajib diisi (min 2 karakter)').optional(),
@@ -158,25 +160,27 @@ billingRoutes.post('/invoices/:invoiceId/payments', optionalAuth, async (c) => {
     );
   }
 
-  const paidRes = await query(
-    `SELECT COALESCE(SUM(amount_paid), 0) AS total_paid FROM payments WHERE invoice_id = $1`,
-    [invoiceId]
-  );
-  const totalPaidBefore = Number(paidRes.rows[0]?.total_paid || 0);
-
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // Kunci baris faktur: mencegah dua pembayaran bersamaan salah menghitung LUNAS (PostgreSQL).
+    // Di SQLite transaksi terserialisasi sehingga baris ini menjadi no-op yang aman.
+    await client.query(`SELECT id FROM invoices WHERE id = $1 FOR UPDATE`, [invoiceId]);
     const paymentRes = await client.query(
       `INSERT INTO payments (
-        invoice_id, amount_paid, method, recorded_by_id, recorded_by_name, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6)
+        id, invoice_id, amount_paid, method, recorded_by_id, recorded_by_name, notes
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6)
       RETURNING *`,
       [invoiceId, body.amount_paid, body.method || null, actor_id || null, actor_name, body.notes || null]
     );
     const payment = paymentRes.rows[0];
 
-    const totalPaid = totalPaidBefore + body.amount_paid;
+    // Total dibayar dihitung DI DALAM transaksi (bukan sebelumnya) agar keputusan LUNAS race-free
+    const sumRes = await client.query(
+      `SELECT COALESCE(SUM(amount_paid), 0) AS total_paid FROM payments WHERE invoice_id = $1`,
+      [invoiceId]
+    );
+    const totalPaid = Number(sumRes.rows[0]?.total_paid || 0);
     // Faktur tanpa nilai (amount NULL): pembayaran pertama menutup faktur
     const lunas = invoice.amount == null ? true : totalPaid >= Number(invoice.amount);
 

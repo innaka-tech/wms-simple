@@ -504,6 +504,7 @@ export function initSqliteSchema() {
       invoice_number TEXT UNIQUE NOT NULL,
       outbound_order_id TEXT NOT NULL REFERENCES outbound_orders(id),
       amount REAL,
+      currency TEXT NOT NULL DEFAULT 'IDR',
       status TEXT NOT NULL DEFAULT 'ISSUED',
       issued_by_id TEXT REFERENCES users(id),
       issued_by_name TEXT NOT NULL,
@@ -608,6 +609,16 @@ export function initSqliteSchema() {
   } catch {
     // kolom sudah ada pada database baru
   }
+  try {
+    sqliteDb.exec("ALTER TABLE invoices ADD COLUMN currency TEXT NOT NULL DEFAULT 'IDR'");
+  } catch {
+    // kolom sudah ada pada database baru
+  }
+
+  // Partial unique index (SQLite & PG compatible): satu waybill aktif & satu faktur aktif per referensi.
+  // Menutup race condition duplicate-check-then-insert pada endpoint issue-waybill & invoice.
+  sqliteDb.exec(`CREATE UNIQUE INDEX IF NOT EXISTS ux_waybills_active_reference ON waybills(reference_type, reference_id) WHERE status <> 'VOID';`);
+  sqliteDb.exec(`CREATE UNIQUE INDEX IF NOT EXISTS ux_invoices_active_order ON invoices(outbound_order_id) WHERE status <> 'VOID';`);
 
   seedSqliteData();
 }

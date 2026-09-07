@@ -105,11 +105,11 @@ crossDocRoutes.post('/', async (c) => {
 
     const insertRes = await client.query(
       `INSERT INTO cross_documents (
-        cross_doc_number, warehouse_id, customer_id, cross_doc_type, reason,
+        id, cross_doc_number, warehouse_id, customer_id, cross_doc_type, reason,
         source_document_type_id, source_document_number, source_sender_name,
         target_document_type_id, target_document_number, target_recipient_name,
         target_destination_address, status, issued_by_id, issued_by_name, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'ISSUED', $13, $14, $15)
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'ISSUED', $13, $14, $15)
       RETURNING *`,
       [
         crossDocNumber, warehouse_id, customer_id, cross_doc_type || 'SURAT_JALAN_SWAP',
@@ -123,8 +123,8 @@ crossDocRoutes.post('/', async (c) => {
 
     for (const item of items) {
       await client.query(
-        `INSERT INTO cross_document_items (cross_doc_id, product_id, original_qty, reissued_qty, uom_id, remarks)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO cross_document_items (id, cross_doc_id, product_id, original_qty, reissued_qty, uom_id, remarks)
+         VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6)`,
         [crossDoc.id, item.product_id, item.original_qty, item.reissued_qty, item.uom_id, item.remarks || null]
       );
     }

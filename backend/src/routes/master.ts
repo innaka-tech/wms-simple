@@ -13,8 +13,8 @@ masterRoutes.post('/cargo-types', async (c) => {
   const body = await c.req.json();
   const { code, name, category, handling_instructions, requires_weighbridge, requires_temperature_control } = body;
   const result = await query(
-    `INSERT INTO master_cargo_types (code, name, category, handling_instructions, requires_weighbridge, requires_temperature_control)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    `INSERT INTO master_cargo_types (id, code, name, category, handling_instructions, requires_weighbridge, requires_temperature_control)
+     VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6) RETURNING *`,
     [code, name, category || 'GENERAL', handling_instructions || null, requires_weighbridge || false, requires_temperature_control || false]
   );
   return c.json({ success: true, data: result.rows[0] }, 201);

@@ -56,6 +56,8 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
   });
 
   it('POST /api/fleet/departure should reject if vehicle is already IN_USE', async () => {
+    vi.mocked(db.query).mockResolvedValueOnce({ rows: [{ ok: 1 }] } as any); // resi/SJ valid
+
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({   // SELECT vehicle FOR UPDATE -> status IN_USE
@@ -71,6 +73,7 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
         driver_name: 'Pak Bambang',
         warehouse_id: 'wh-jakarta',
         odometer_out: 45000,
+        waybill_number: 'SJ-VALID001',
         departure_security_officer: 'Satpam Slamet'
       })
     });
@@ -81,11 +84,14 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
   });
 
   it('POST /api/fleet/departure should record departure, set vehicle IN_USE, and record checkpoint FLEET_DEPARTED', async () => {
+    vi.mocked(db.query).mockResolvedValueOnce({ rows: [{ ok: 1 }] } as any); // resi/SJ valid
+
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({   // SELECT vehicle FOR UPDATE -> status AVAILABLE
         rows: [{ id: 'v-1', plate_number: 'B 1234 WMS', status: 'AVAILABLE' }]
       })
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik log_number gate pass
       .mockResolvedValueOnce({   // INSERT fleet_exit_logs
         rows: [{ id: 'log-1', log_number: 'GATE-OUT-001', status: 'DEPARTED' }]
       })
@@ -101,6 +107,7 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
         warehouse_id: 'wh-jakarta',
         odometer_out: 45000,
         fuel_level_out: 'FULL',
+        waybill_number: 'SJ-VALID001',
         departure_security_officer: 'Satpam Slamet'
       })
     });
@@ -170,8 +177,13 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
 
   describe('POST /api/fleet/vendor-exit (Jalur B — Truk Vendor)', () => {
     it('should record vendor exit log with VEND-OUT number and checkpoint VENDOR_EXIT', async () => {
+      vi.mocked(db.query)
+        .mockResolvedValueOnce({ rows: [{ ok: 1 }] } as any) // resi/SJ valid (terdaftar)
+        .mockResolvedValueOnce({ rows: [{ id: 'out-9' }] } as any); // order referensi ada
+
       mockClient.query
         .mockResolvedValueOnce({}) // BEGIN
+        .mockResolvedValueOnce({ rows: [] } as any) // cek unik log_number vendor
         .mockResolvedValueOnce({   // INSERT vendor_vehicle_exit_logs
           rows: [{
             id: 'vlog-1',
@@ -257,6 +269,25 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
       });
 
       expect(res.status).toBe(400);
+    });
+
+    it('should return 409 when waybill_number is not registered (resi tidak valid — docs/05)', async () => {
+      vi.mocked(db.query).mockResolvedValueOnce({ rows: [] } as any); // resi tidak ditemukan
+
+      const res = await app.request('/api/fleet/vendor-exit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_name: 'PT Ekspedisi Jaya',
+          plate_number: 'B 8765 XYZ',
+          waybill_number: 'RESI-FANTOM-404',
+          actor_name: 'Sersan Hendro'
+        })
+      });
+
+      expect(res.status).toBe(409);
+      const bodyRes = await res.json();
+      expect(bodyRes.message).toContain('tidak ditemukan');
     });
   });
 

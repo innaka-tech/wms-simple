@@ -89,6 +89,7 @@ describe('Inbound Flow API Routes Integration Tests', () => {
       .mockResolvedValueOnce({   // INSERT inbound_orders
         rows: [{ id: 'in-created-1', po_number: 'PO-20260901', status: 'CREATED' }]
       })
+      .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
       .mockResolvedValueOnce({}) // INSERT inbound_items
       .mockResolvedValueOnce({}); // COMMIT
 

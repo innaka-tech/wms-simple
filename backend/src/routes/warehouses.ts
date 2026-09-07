@@ -25,8 +25,8 @@ warehouseRoutes.post('/', async (c) => {
   const body = await c.req.json();
   const { code, name, type, address, city, contact_name, contact_phone } = body;
   const result = await query(
-    `INSERT INTO warehouses (code, name, type, address, city, contact_name, contact_phone)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    `INSERT INTO warehouses (id, code, name, type, address, city, contact_name, contact_phone)
+     VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7) RETURNING *`,
     [code, name, type || 'TRANSIT', address, city, contact_name, contact_phone]
   );
   return c.json({ success: true, data: result.rows[0] }, 201);

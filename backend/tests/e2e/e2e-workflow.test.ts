@@ -40,6 +40,7 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
       .mockResolvedValueOnce({   // INSERT inbound_orders
         rows: [{ id: 'po-e2e-001', po_number: 'PO-20260901-E2E', status: 'CREATED', warehouse_id: 'wh-jkt' }]
       })
+      .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
       .mockResolvedValueOnce({}) // INSERT inbound_items
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -168,8 +169,8 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({   // INSERT cross_dock_manifests
         rows: [{ id: 'mnf-e2e-001', manifest_number: 'MNF-E2E-001', status: 'CREATED' }]
-      })
-      .mockResolvedValueOnce({}) // INSERT cross_dock_items
+      })        .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
+        .mockResolvedValueOnce({}) // INSERT cross_dock_items
       .mockResolvedValueOnce({}); // COMMIT
 
     const createMnfRes = await app.request('/api/crossdock', {
@@ -256,6 +257,7 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
       .mockResolvedValueOnce({   // SELECT vehicle FOR UPDATE -> status AVAILABLE
         rows: [{ id: 'veh-tronton-01', plate_number: 'B 9188 WMS', status: 'AVAILABLE' }]
       })
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik log_number gate pass
       .mockResolvedValueOnce({   // INSERT fleet_exit_logs
         rows: [{ id: 'gate-log-e2e-001', log_number: 'GATE-OUT-E2E', status: 'DEPARTED' }]
       })
@@ -353,9 +355,11 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
     // 7.1 Create Outbound Order for KDMP Showcase Chiller
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik order_number
       .mockResolvedValueOnce({   // INSERT outbound_orders
         rows: [{ id: 'ord-kdmp-001', order_number: 'ORD-KDMP-001', status: 'CREATED', warehouse_id: 'wh-jkt' }]
       })
+      .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
       .mockResolvedValueOnce({}) // INSERT outbound_items
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -428,6 +432,7 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik pod_number
       .mockResolvedValueOnce({}) // INSERT pod_documents
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status DELIVERED
       .mockResolvedValueOnce({}); // COMMIT

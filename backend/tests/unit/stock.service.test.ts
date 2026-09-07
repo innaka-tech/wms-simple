@@ -122,6 +122,7 @@ describe('Stock Ledger Service Unit Tests (Skenario STK)', () => {
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({ rows: [] }) // SELECT -> empty
+      .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
       .mockResolvedValueOnce({ rows: [{ qty_on_hand: 0 }] }) // INSERT initial row
       .mockResolvedValueOnce({}) // UPDATE stock_levels
       .mockResolvedValueOnce({   // INSERT stock_movements

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { query, pool } from '../db.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
 import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
+import { generateDocumentNumber } from '../utils/waybill.js';
 
 export const fleetRoutes = new Hono();
 
@@ -117,6 +118,28 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
     }, 400);
   }
 
+  // docs/05: tidak ada truk keluar tanpa dokumen — resi/SJ wajib untuk keberangkatan pengiriman barang
+  const deliveryPurpose = (purpose || 'OUTBOUND_DELIVERY') === 'OUTBOUND_DELIVERY';
+  if (deliveryPurpose && (!waybill_number || String(waybill_number).trim().length < 4)) {
+    return c.json({
+      success: false,
+      message: 'Nomor resi/Surat Jalan yang dibawa wajib dicatat untuk keberangkatan pengiriman barang'
+    }, 400);
+  }
+  if (deliveryPurpose) {
+    const docRes = await query(
+      `SELECT 1 FROM waybills WHERE sj_number = $1 OR resi_number = $1
+       UNION ALL SELECT 1 FROM cross_documents WHERE target_document_number = $1`,
+      [String(waybill_number).trim()]
+    );
+    if (docRes.rows.length === 0) {
+      return c.json({
+        success: false,
+        message: `Resi/SJ "${waybill_number}" tidak ditemukan — keberangkatan tanpa dokumen sah ditolak (docs/05)`
+      }, 409);
+    }
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -130,17 +153,27 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
       throw new Error(`Kendaraan plat ${vehRes.rows[0].plate_number} sedang berstatus IN_USE (belum tercatat kembali)`);
     }
 
-    const logNumber = `GATE-OUT-${Date.now().toString().slice(-8)}`;
+    // Nomor gate pass unik (acak + cek database) — bukan timestamp yang collision-prone
+    let logNumber = '';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = generateDocumentNumber('GATE-OUT');
+      const dup = await client.query(`SELECT 1 FROM fleet_exit_logs WHERE log_number = $1`, [candidate]);
+      if (dup.rows.length === 0) {
+        logNumber = candidate;
+        break;
+      }
+    }
+    if (!logNumber) throw new Error('Gagal generate nomor gate pass unik');
 
     // 2. Insert Fleet Exit Log
     const insertRes = await client.query(
       `INSERT INTO fleet_exit_logs (
-        log_number, vehicle_id, driver_id, driver_name, warehouse_id,
+        id, log_number, vehicle_id, driver_id, driver_name, warehouse_id,
         purpose, reference_type, reference_id, reference_number, waybill_number,
         expected_return_time, odometer_out, fuel_level_out,
         departure_security_officer, departure_photo_url, departure_notes,
         status, approved_by_id, approved_by_name
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'DEPARTED', $17, $18)
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'DEPARTED', $17, $18)
       RETURNING *`,
       [
         logNumber, vehicle_id, driver_id || null, driver_name.trim(), warehouse_id,
@@ -341,17 +374,53 @@ fleetRoutes.post('/vendor-exit', optionalAuth, async (c) => {
     return c.json({ success: false, message: 'Nama petugas satpam wajib diisi (Mandatory petugas_name)' }, 400);
   }
 
+  // docs/05 V_DOC: resi/SJ yang dibawa harus valid (terdaftar di sistem)
+  const docRes = await query(
+    `SELECT 1 FROM waybills WHERE sj_number = $1 OR resi_number = $1
+     UNION ALL SELECT 1 FROM cross_documents WHERE target_document_number = $1`,
+    [body.waybill_number]
+  );
+  if (docRes.rows.length === 0) {
+    return c.json({
+      success: false,
+      message: `Resi/SJ "${body.waybill_number}" tidak ditemukan — keberangkatan tanpa dokumen sah ditolak (docs/05)`
+    }, 409);
+  }
+
+  // Referensi order/manifest harus ada agar update status tidak diam-diam gagal
+  if (body.reference_type === 'OUTBOUND_ORDER' && body.reference_id) {
+    const refRes = await query(`SELECT id FROM outbound_orders WHERE id = $1`, [body.reference_id]);
+    if (refRes.rows.length === 0) {
+      return c.json({ success: false, message: 'Outbound order referensi tidak ditemukan' }, 404);
+    }
+  } else if (body.reference_type === 'CROSS_DOCK_MANIFEST' && body.reference_id) {
+    const refRes = await query(`SELECT id FROM cross_dock_manifests WHERE id = $1`, [body.reference_id]);
+    if (refRes.rows.length === 0) {
+      return c.json({ success: false, message: 'Cross-dock manifest referensi tidak ditemukan' }, 404);
+    }
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    const logNumber = `VEND-OUT-${Date.now().toString().slice(-8)}`;
+    // Nomor log vendor unik (acak + cek database) — bukan timestamp yang collision-prone
+    let logNumber = '';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = generateDocumentNumber('VEND-OUT');
+      const dup = await client.query(`SELECT 1 FROM vendor_vehicle_exit_logs WHERE log_number = $1`, [candidate]);
+      if (dup.rows.length === 0) {
+        logNumber = candidate;
+        break;
+      }
+    }
+    if (!logNumber) throw new Error('Gagal generate nomor log vendor unik');
     const insertRes = await client.query(
       `INSERT INTO vendor_vehicle_exit_logs (
-        log_number, warehouse_id, vendor_name, plate_number, vehicle_type,
+        id, log_number, warehouse_id, vendor_name, plate_number, vehicle_type,
         driver_name, waybill_number, reference_type, reference_id,
         destination_note, departure_security_officer, departure_photo_url, notes
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING *`,
       [
         logNumber, body.warehouse_id || null, body.vendor_name, body.plate_number, body.vehicle_type || null,

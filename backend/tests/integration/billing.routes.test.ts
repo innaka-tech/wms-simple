@@ -118,12 +118,13 @@ describe('Billing (Invoice & Payment sampai LUNAS) API Routes Integration Tests'
 
     it('should record payment, mark invoice PAID and order payment_status PAID (LUNAS)', async () => {
       vi.mocked(db.query)
-        .mockResolvedValueOnce({ rows: [invoiceRow] } as any) // SELECT invoice
-        .mockResolvedValueOnce({ rows: [{ total_paid: 0 }] } as any); // SUM pembayaran sebelumnya
+        .mockResolvedValueOnce({ rows: [invoiceRow] } as any); // SELECT invoice
 
       mockClient.query
         .mockResolvedValueOnce({}) // BEGIN
+        .mockResolvedValueOnce({}) // SELECT invoices FOR UPDATE (lock anti-race)
         .mockResolvedValueOnce({ rows: [{ id: 'pay-1', amount_paid: 1000000 }] }) // INSERT payment
+        .mockResolvedValueOnce({ rows: [{ total_paid: 1000000 }] } as any) // SUM total DI DALAM transaksi
         .mockResolvedValueOnce({}) // UPDATE invoices PAID
         .mockResolvedValueOnce({}) // UPDATE outbound_orders payment_status PAID
         .mockResolvedValueOnce({}); // COMMIT
@@ -150,12 +151,13 @@ describe('Billing (Invoice & Payment sampai LUNAS) API Routes Integration Tests'
 
     it('should record partial payment without closing the invoice', async () => {
       vi.mocked(db.query)
-        .mockResolvedValueOnce({ rows: [invoiceRow] } as any)
-        .mockResolvedValueOnce({ rows: [{ total_paid: 400000 }] } as any);
+        .mockResolvedValueOnce({ rows: [invoiceRow] } as any); // SELECT invoice
 
       mockClient.query
         .mockResolvedValueOnce({}) // BEGIN
+        .mockResolvedValueOnce({}) // SELECT invoices FOR UPDATE (lock anti-race)
         .mockResolvedValueOnce({ rows: [{ id: 'pay-2', amount_paid: 300000 }] })
+        .mockResolvedValueOnce({ rows: [{ total_paid: 700000 }] } as any) // SUM total DI DALAM transaksi
         .mockResolvedValueOnce({}); // COMMIT
 
       const res = await app.request('/api/billing/invoices/inv-1/payments', {

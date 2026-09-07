@@ -46,7 +46,7 @@ crossdockRoutes.get('/:id', async (c) => {
   }
 
   const itemsRes = await query(
-    `SELECT cdi.*, p.sku_code, p.name AS product_name, p.unit, p.weight_kg
+    `SELECT cdi.*, p.sku_code, p.name AS product_name, p.default_uom_id AS unit, p.weight_kg_per_unit AS weight_kg
      FROM cross_dock_items cdi
      JOIN products p ON cdi.product_id = p.id
      WHERE cdi.manifest_id = $1`,
@@ -102,10 +102,10 @@ crossdockRoutes.post('/', async (c) => {
 
     const manifestRes = await client.query(
       `INSERT INTO cross_dock_manifests (
-        manifest_number, source_warehouse_id, destination_warehouse_id, customer_id,
+        id, manifest_number, source_warehouse_id, destination_warehouse_id, customer_id,
         vehicle_id, driver_name, truck_plate, scheduled_departure, eta_arrival,
         notes, status, created_by_id, created_by_name
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'CREATED', $11, $12)
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'CREATED', $11, $12)
       RETURNING *`,
       [
         manifestNumber, source_warehouse_id, destination_warehouse_id, customer_id,
@@ -117,10 +117,14 @@ crossdockRoutes.post('/', async (c) => {
     const manifest = manifestRes.rows[0];
 
     for (const item of items) {
+      // uom_id wajib (schema): pakai payload atau UOM default produk
+      const uomRes = await client.query(`SELECT default_uom_id FROM products WHERE id = $1`, [item.product_id]);
+      const uomId = item.uom_id || uomRes.rows[0]?.default_uom_id;
+      if (!uomId) throw new Error(`Produk ${item.product_id} tidak memiliki UOM default`);
       await client.query(
-        `INSERT INTO cross_dock_items (manifest_id, product_id, planned_qty, loaded_qty, received_qty)
-         VALUES ($1, $2, $3, 0, 0)`,
-        [manifest.id, item.product_id, item.planned_qty]
+        `INSERT INTO cross_dock_items (id, manifest_id, product_id, planned_qty, loaded_qty, received_qty, uom_id)
+         VALUES (uuid_generate_v4(), $1, $2, $3, 0, 0, $4)`,
+        [manifest.id, item.product_id, item.planned_qty, uomId]
       );
     }
 
@@ -179,6 +183,7 @@ crossdockRoutes.post('/:id/load', async (c) => {
         warehouse_id: manifest.source_warehouse_id,
         product_id: item.product_id,
         movement_type: 'CROSS_DOCK_OUT',
+        txClient: client,
         reference_type: 'CROSS_DOCK_MANIFEST',
         reference_id: manifest.id,
         qty_change: -item.loaded_qty,
@@ -249,6 +254,7 @@ crossdockRoutes.post('/:id/receive-dest', async (c) => {
         warehouse_id: manifest.destination_warehouse_id,
         product_id: item.product_id,
         movement_type: 'CROSS_DOCK_IN',
+        txClient: client,
         reference_type: 'CROSS_DOCK_MANIFEST',
         reference_id: manifest.id,
         qty_change: item.received_qty,

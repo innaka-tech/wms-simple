@@ -48,6 +48,7 @@ describe('Cross-Dock and Cross-Document API Routes Integration Tests', () => {
         .mockResolvedValueOnce({   // INSERT cross_dock_manifests
           rows: [{ id: 'mnf-1', manifest_number: 'MNF-20260901', status: 'CREATED' }]
         })
+        .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
         .mockResolvedValueOnce({}) // INSERT cross_dock_items
         .mockResolvedValueOnce({}); // COMMIT
 

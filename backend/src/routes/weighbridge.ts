@@ -38,10 +38,10 @@ weighbridgeRoutes.post('/', async (c) => {
 
   const result = await query(
     `INSERT INTO weighbridge_logs (
-      ticket_number, warehouse_id, vehicle_id, truck_plate, driver_name,
+      id, ticket_number, warehouse_id, vehicle_id, truck_plate, driver_name,
       reference_type, reference_id, first_weight_gross_kg, second_weight_tare_kg,
       weighbridge_operator, photo_url
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING *`,
     [
       ticketNumber, warehouse_id, vehicle_id || null, truck_plate.trim(),

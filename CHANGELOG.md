@@ -5,6 +5,33 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.6.0] - 2026-09-07
+
+### Fixed (Audit Mendalam 3 Backlog — Temuan P0 Sistemik)
+
+- **P0 — Primary Key NULL di seluruh tabel transaksional:** 26 `INSERT` tidak pernah mengisi kolom `id` (SQLite `TEXT PRIMARY KEY` bersifat nullable) → semua PK NULL, `prev_checkpoint_id` tidak pernah tersambung (rantai audit mati), detail/join berbasis id gagal. Fix: `uuid_generate_v4()` eksplisit di semua INSERT (kompatibel SQLite via `db.ts` dan PostgreSQL).
+- **P0 — Parameter binding salah urutan di SQLite:** `db.ts` mengonversi `$n` menjadi `?` berurutan; query dengan urutan parameter tidak sesuai teks (mis. `SET status = $2 ... WHERE id = $1`) ter-bind salah secara diam-diam — `verify-pod` tidak pernah menyimpan `billing_ready`. Fix: numbered placeholder `?1, ?2, ...` di `normalizeSql`.
+- **P0 — Create order/PO/manifest selalu gagal di DB nyata:** kolom `uom_id` (NOT NULL) tidak pernah diisi pada `outbound_items`, `inbound_items`, `cross_dock_items`, `stock_levels`. Fix: resolusi UOM default produk (fallback payload `uom_id`).
+- **P0 — Nested transaction:** `adjustStock` membuka `BEGIN` sendiri padahal dipanggil dalam transaksi route → "cannot start a transaction within a transaction" di koneksi SQLite bersama (pick/putaway/debulking/cross-dock selalu 500). Fix: parameter opsional `txClient` — ikut transaksi pemanggil.
+- **Kolom hantu:** referensi `p.unit` / `p.weight_kg` (5 query) dan INSERT `products` tidak sesuai schema → diganti `p.default_uom_id AS unit`, `p.weight_kg_per_unit AS weight_kg`, kolom schema yang benar.
+- **P1 — Race LUNAS:** total pembayaran kini dihitung DI DALAM transaksi + `SELECT ... FOR UPDATE` pada baris faktur.
+- **P1 — Validasi resi/SJ (docs/05):** `vendor-exit` menolak 409 resi tidak terdaftar (waybills `sj_number`/`resi_number` atau cross-doc blind shipping); `departure` wajib bawa resi valid untuk pengiriman barang; referensi order/manifest divalidasi 404.
+- **P2 — Nomor dokumen collision-proof:** `ORD-`, `POD-`, `GATE-OUT-`, `VEND-OUT-` kini acak 8 karakter anti-ambigu + cek unik DB (retry 5x), menggantikan timestamp yang gampang tabrakan.
+- **P2 — Partial unique index:** satu waybill aktif & satu faktur aktif per referensi (race-proof, SQLite & PG).
+- **P2 — Checkpoint tie-break:** `ORDER BY created_at DESC, rowid DESC` untuk step dalam detik yang sama.
+- Zod ketat untuk `verify-pod` (enum ACCEPTED/REJECTED).
+
+### Added
+
+- **Mata uang dikunci Rupiah:** kolom `invoices.currency` (`DEFAULT 'IDR'`, migrasi idempotent), faktur selalu terbit `currency='IDR'`, guard nilai faktur/pembayaran di luar batas wajar ditolak.
+- **E2E suite rantai penuh** (`tests/e2e/transaction-chain.e2e.test.ts`, SQLite nyata tanpa mock): Jalur A pool (order → pick → pack → issue-waybill → gate-out → POD → verify → invoice → LUNAS), Jalur B vendor (vendor/nopol/resi wajib, tanpa gate-in, sampai LUNAS), 7 guard, dan **integritas rantai audit checkpoint** (id non-NULL, `prev_checkpoint_id` tersambung berurutan, actor_name wajib).
+
+### Tests
+
+- 117/117 test lulus (19 suite), TSC bersih — termasuk 11 test e2e baru dan perbaikan mock akibat validasi baru.
+
+---
+
 ## [3.5.0] - 2026-09-07
 
 ### Added

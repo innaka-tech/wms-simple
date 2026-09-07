@@ -44,9 +44,11 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
   it('POST /api/outbound should create outbound order and record checkpoint ORDER_CREATED', async () => {
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik order_number
       .mockResolvedValueOnce({   // INSERT outbound_orders
         rows: [{ id: 'out-1', order_number: 'ORD-20260901', status: 'CREATED' }]
       })
+      .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
       .mockResolvedValueOnce({}) // INSERT outbound_items
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -144,6 +146,7 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik pod_number
       .mockResolvedValueOnce({}) // INSERT pod_documents
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status DELIVERED
       .mockResolvedValueOnce({}); // COMMIT

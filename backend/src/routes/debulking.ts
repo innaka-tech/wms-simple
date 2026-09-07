@@ -115,10 +115,10 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
 
     const convRes = await client.query(
       `INSERT INTO stock_conversions (
-        conversion_number, warehouse_id, conversion_type, status, started_at, completed_at,
+        id, conversion_number, warehouse_id, conversion_type, status, started_at, completed_at,
         total_input_weight_kg, total_output_weight_kg, shrinkage_percentage,
         allowable_shrinkage_percentage, notes, supervised_by_id, supervised_by_name
-      ) VALUES ($1, $2, $3, 'COMPLETED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $4, $5, $6, $7, $8, $9, $10)
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, 'COMPLETED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *`,
       [
         conversionNumber, warehouse_id, conversion_type || 'DEBULKING_BREAKDOWN',
@@ -132,8 +132,8 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
     // 1. Process Bulky Inputs (Deduct from Stock)
     for (const inItem of inputs) {
       await client.query(
-        `INSERT INTO stock_conversion_items_in (conversion_id, product_id, location_id, qty_used, uom_id, weight_kg)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO stock_conversion_items_in (id, conversion_id, product_id, location_id, qty_used, uom_id, weight_kg)
+         VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6)`,
         [conv.id, inItem.product_id, inItem.location_id || null, inItem.qty_used, inItem.uom_id, inItem.weight_kg]
       );
 
@@ -141,6 +141,7 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
         warehouse_id,
         product_id: inItem.product_id,
         movement_type: 'DEBULKING_INPUT',
+        txClient: client,
         reference_type: 'STOCK_CONVERSION',
         reference_id: conv.id,
         qty_change: -parseFloat(inItem.qty_used),
@@ -154,8 +155,8 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
     // 2. Process Curah / Child Outputs (Add to Stock)
     for (const outItem of outputs) {
       await client.query(
-        `INSERT INTO stock_conversion_items_out (conversion_id, product_id, destination_location_id, qty_produced, uom_id, weight_kg)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO stock_conversion_items_out (id, conversion_id, product_id, destination_location_id, qty_produced, uom_id, weight_kg)
+         VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6)`,
         [conv.id, outItem.product_id, outItem.destination_location_id || null, outItem.qty_produced, outItem.uom_id, outItem.weight_kg]
       );
 
@@ -163,6 +164,7 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
         warehouse_id,
         product_id: outItem.product_id,
         movement_type: 'DEBULKING_OUTPUT',
+        txClient: client,
         reference_type: 'STOCK_CONVERSION',
         reference_id: conv.id,
         qty_change: parseFloat(outItem.qty_produced),
@@ -176,8 +178,8 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
     // 3. If shrinkage exceeds allowable, create alert
     if (shrinkagePct > (allowable_shrinkage_percentage || 1.0)) {
       await client.query(
-        `INSERT INTO alerts (alert_type, entity_type, entity_id, warehouse_id, title, message, severity)
-         VALUES ('DEBULKING_SHRINKAGE_HIGH', 'STOCK_CONVERSION', $1, $2, 'Susut De-bulking Melebihi Toleransi', $3, 'WARNING')`,
+        `INSERT INTO alerts (id, alert_type, entity_type, entity_id, warehouse_id, title, message, severity)
+         VALUES (uuid_generate_v4(), 'DEBULKING_SHRINKAGE_HIGH', 'STOCK_CONVERSION', $1, $2, 'Susut De-bulking Melebihi Toleransi', $3, 'WARNING')`,
         [
           conv.id, warehouse_id,
           `De-bulking ${conv.conversion_number} mengalami susut ${shrinkagePct.toFixed(2)}% (${shrinkageLossKg.toFixed(1)} kg), di atas batas ${allowable_shrinkage_percentage || 1.0}%.`

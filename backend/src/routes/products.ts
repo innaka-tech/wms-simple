@@ -20,11 +20,12 @@ productRoutes.get('/', async (c) => {
 // Create new product / SKU
 productRoutes.post('/', async (c) => {
   const body = await c.req.json();
-  const { sku_code, name, description, unit, weight_kg, volume_m3, min_stock_qty } = body;
+  // Kolom sesuai schema products: default_uom_id, weight_kg_per_unit, volume_m3_per_unit
+  const { sku_code, name, description, default_uom_id, weight_kg_per_unit, volume_m3_per_unit, min_stock_qty } = body;
   const result = await query(
-    `INSERT INTO products (sku_code, name, description, unit, weight_kg, volume_m3, min_stock_qty)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [sku_code, name, description, unit || 'PCS', weight_kg || 0, volume_m3 || 0, min_stock_qty || 10]
+    `INSERT INTO products (id, sku_code, name, description, default_uom_id, weight_kg_per_unit, volume_m3_per_unit, min_stock_qty)
+     VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [sku_code, name, description, default_uom_id || '30000000-0000-0000-0000-000000000009', weight_kg_per_unit || 0, volume_m3_per_unit || 0, min_stock_qty || 10]
   );
   return c.json({ success: true, data: result.rows[0] }, 201);
 });

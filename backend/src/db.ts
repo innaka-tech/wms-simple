@@ -17,7 +17,9 @@ export interface DatabaseClient {
  */
 function normalizeSql(sql: string): string {
   return sql
-    .replace(/\$([0-9]+)/g, '?') // replace $1, $2 with ?
+    // $1, $2 → ?1, ?2 (numbered placeholder): binding per nomor, AMAN untuk $n
+    // yang urutannya tidak sesuai posisi teks (mis. "SET x = $2 WHERE id = $1").
+    .replace(/\$([0-9]+)/g, '?$1') // replace $1, $2 with ?1, ?2
     .replace(/uuid_generate_v4\(\)/gi, `'${crypto.randomUUID()}'`)
     .replace(/FOR\s+UPDATE/gi, '') // SQLite transactions are serialized
     .replace(/::jsonb/gi, '')
