@@ -1,7 +1,7 @@
 # Project Context: WMS Simple Enterprise
 
 **System:** WMS Simple Enterprise  
-**Version:** 2.3.0  
+**Version:** 3.0.0  
 **Status:** In Progress (Phase 1 Blueprint & Standards 100% Complete, Ready for Production Implementation)  
 **Database Target:** Host PostgreSQL 16 (`wms_simple_db` on `127.0.0.1:5432`)  
 **Backend:** Hono (Node.js & TypeScript)  

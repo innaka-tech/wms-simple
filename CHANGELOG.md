@@ -5,6 +5,15 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.0.0] - 2026-09-07
+### Changed
+- **Universal Waybill & Dual Gate-Out (Penyesuaian Alur Operasional v3.0.0, docs-first):**
+  - `docs/09_Master_End_to_End_Flow_and_Sequence.md`: Master flowchart & sequence ditulis ulang — (1) Timbang truk masuk & keluar (weighbridge gross/tare = muatan bersih) untuk muatan curah/berat; (2) Penerbitan Surat Jalan Baru + Nomor Resi otomatis di SATU titik untuk SEMUA jenis pengiriman keluar (stok gudang, repacking, cross-dock, KDMP) — bukan hanya cross-doc; blind shipping jadi varian; (3) Pos satpam keluar bercabang DUA jalur: armada pool (gate pass odometer/BBM) vs truk vendor (wajib catat nama vendor, nomor polisi, nomor resi/SJ dibawa); (4) Truk vendor tidak wajib kembali; (5) Akhir transaksi TUNGGAL: POD terverifikasi admin siap ditagih (billing) — kembalinya truk ke pool menjadi catatan armada, bukan penutup transaksi.
+  - `docs/05_Fleet_Exit_and_Security_Gate_Flows.md`: Spesifikasi gate pass v3.0.0 — Jalur A (armada pool, siklus keluar-masuk odometer) dan Jalur B (log keluar truk vendor, tanpa kewajiban kembali), plus rencana tabel `vendor_vehicle_exit_logs` & endpoint `POST /api/fleet/vendor-exit`.
+  - `docs/06_Outbound_and_POD_Flows.md`: Spesifikasi outbound v3.0.0 — tabel `waybills` (SJ-XXXXXXXX / RESI-XXXXXXXX auto-generate), endpoint `POST /api/outbound/:id/issue-waybill`, kolom `billing_ready` pada `outbound_orders`, dan akhir tunggal POD_VERIFIED untuk invoicing.
+  - `docs/ai/decisions.md`: ADR-11 (Universal Waybill Issuance & Dual Gate-Out Flow) tercatat. Sinkron status tugas: `docs/ai/current-task.md`, `docs/ai/handoff.md`, `docs/ai/project-context.md`, `docs/00_Index_and_Roadmap.md`, `ai-state.json`.
+- **Master PDF & Diagram PNG diregenerasi** (`scripts/build-master-pdf.mjs`): flowchart 939x2828 & sequence 1851x3474 px, 12 halaman, 0 syntax error, semua tile berisi; PNG diagram utuh diperbarui di `docs/diagrams/`.
+
 ## [1.2.0] - 2026-09-03
 ### Changed
 - **Anti-AI Design Overhaul & B2B Logistics Enterprise Design System:**

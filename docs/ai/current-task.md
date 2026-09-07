@@ -1,8 +1,29 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** ALL PHASES COMPLETED (Responsive Desktop Console & Mobile PWA Active)  
+**Current Status:** ACTIVE TASK — Flow v3.0.0 Docs-First (Universal Waybill & Dual Gate-Out)  
 **Database:** Host PostgreSQL 16 (`wms_simple_db` on `localhost:5432` / `127.0.0.1:5432`)  
-**Version:** 1.1.0  
+**Version:** 3.0.0  
+**Status:** BLUEPRINT v3.0.0 FINALIZED — IMPLEMENTATION BACKLOG OPEN  
+
+---
+
+## 0. Tugas Aktif: Penyesuaian Alur v3.0.0 (ADR-11)
+
+Permintaan owner: (1) ada timbang truk masuk & keluar; (2) penerbitan SJ baru + nomor resi untuk SEMUA jenis pengiriman keluar (bukan cuma cross-dock); (3) truk keluar dicatat vendornya, nopolnya, dan resi/SJ yang dibawa; (4) truk vendor tidak wajib kembali; (5) akhir transaksi tunggal: POD untuk penagihan.
+
+Status: **docs-first SELESAI** — flowchart & sequence baru di `docs/09`, spesifikasi jalur vendor di `docs/05`, spesifikasi waybill universal di `docs/06`, ADR-11 tercatat, master PDF + PNG diagram diregenerasi & terverifikasi (0 syntax error, tanpa halaman kosong).
+
+**Backlog implementasi (menyusul, docs → code):**
+1. Tabel `waybills` (SJ/RESI auto-generate) + endpoint `POST /api/outbound/:id/issue-waybill` + kolom `billing_ready` di `outbound_orders`.
+2. Tabel `vendor_vehicle_exit_logs` + endpoint `POST /api/fleet/vendor-exit` (+ enrich `fleet_exit_logs.waybill_number`).
+3. Frontend: tombol Terbitkan SJ+Resi (thermal), form log keluar truk vendor, tampil nomor resi di POD.
+4. Test: unit generate nomor waybill/resi unik, integrasi issue-waybill & vendor-exit, e2e rantai checkpoint baru (`WAYBILL_ISSUED`, `VENDOR_EXIT`).
+
+---
+
+## 0.1 Status Arsitektur Sebelumnya (Snapshot)
+
+**Current Status:** ALL PHASES COMPLETED (Responsive Desktop Console & Mobile PWA Active)  
 **Status:** READY FOR PRODUCTION DEPLOYMENT & DESKTOP/MOBILE FIELD OPS  
 
 ---

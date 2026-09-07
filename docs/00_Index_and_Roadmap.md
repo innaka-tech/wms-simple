@@ -14,7 +14,7 @@ Seluruh arsitektur, standar, diagram alur terpadu, dan spesifikasi sistem terdok
 
 ### 1.1 Sasaran Strategis & Diagram Terpadu (Master Blueprints)
 - [00_Strategic_Goals_and_Success_Metrics.md](00_Strategic_Goals_and_Success_Metrics.md) — **Matriks Sasaran Strategis Bisnis (GOAL-01 s/d GOAL-07), Sasaran Kualitas Teknis (TECH-01 s/d TECH-06), dan Matriks Keterlacakan (Traceability Matrix)**.
-- [09_Master_End_to_End_Flow_and_Sequence.md](09_Master_End_to_End_Flow_and_Sequence.md) — **Master Flowchart & Sequence Diagram Menyeluruh** mencakup seluruh 7 fase operasional (Inbound, Weighbridge, De-bulking, Cross-Doc, Cross-Dock, Outbound POD, dan Gate Pass Pos Satpam).
+- [09_Master_End_to_End_Flow_and_Sequence.md](09_Master_End_to_End_Flow_and_Sequence.md) — **Master Flowchart & Sequence Diagram Menyeluruh** (v3.0.0) mencakup seluruh fase operasional: Inbound, Weighbridge Masuk/Keluar, De-bulking, Cross-Doc/Cross-Dock, Terbit SJ + Resi Universal, Dual Gate-Out (Armada Pool vs Truk Vendor), Outbound POD sebagai akhir tunggal transaksi (Billing), dan Catatan Armada opsional.
 
 ### 1.2 Fondasi Strategis & Bisnis
 - [01_Strategic_Framework_and_6_Pillars.md](01_Strategic_Framework_and_6_Pillars.md) — 6 Pilar Strategis (Enabler, Accelerator, Decision Support, Protector, Business Driver, Terukur) & Analisis Teknis Kenapa Memilih Backend Hono.
@@ -25,8 +25,8 @@ Seluruh arsitektur, standar, diagram alur terpadu, dan spesifikasi sistem terdok
 - [02_Bulky_Curah_and_Debulking.md](02_Bulky_Curah_and_Debulking.md) — Penanganan Kargo Bulky, Curah Kering/Cair, Work Order De-bulking (Pencurahan Bulky -> Karung/Silo), Toleransi Susut %, dan Jembatan Timbang Truk.
 - [03_CrossDock_and_CrossDocument.md](03_CrossDock_and_CrossDocument.md) — Cross-Docking Antar-Hub & Standar Resmi Cross-Document (Surat Jalan Swap, Re-issuance, Blind Shipping 3PL, Sub-AWB).
 - [04_Dynamic_Master_Data_and_Fleet.md](04_Dynamic_Master_Data_and_Fleet.md) — Master Data Dinamis Tanpa Hardcode & Spesifikasi Lengkap Armada Indonesia (CDE, CDD, Fuso, Tronton Wingbox, Dump Truck, Tanker, Trailer, CDE Tail-Lift).
-- [05_Fleet_Exit_and_Security_Gate_Flows.md](05_Fleet_Exit_and_Security_Gate_Flows.md) — Pencatatan Armada Keluar-Masuk Pos Satpam (Gate Pass, Odometer, BBM, Surat Jalan Sah, Overdue Alert).
-- [06_Outbound_and_POD_Flows.md](06_Outbound_and_POD_Flows.md) — Alur Outbound, Bin Picking, Packing/Boxing, Shipping, dan Digital POD Verification.
+- [05_Fleet_Exit_and_Security_Gate_Flows.md](05_Fleet_Exit_and_Security_Gate_Flows.md) — Pos Satpam Dual Gate-Out v3.0.0: Jalur A Armada Pool (Gate Pass, Odometer, BBM, Overdue Alert) & Jalur B Truk Vendor (Nama Vendor, Nopol, Resi Wajib, Tanpa Kewajiban Kembali).
+- [06_Outbound_and_POD_Flows.md](06_Outbound_and_POD_Flows.md) — Alur Outbound v3.0.0: Terbit SJ + Nomor Resi Otomatis Universal, Bin Picking, Packing/Boxing, Shipping, Digital POD Verification, dan Billing Handoff.
 - [07_Checkpoint_Chain_and_Audit.md](07_Checkpoint_Chain_and_Audit.md) — Arsitektur Rantai Audit Checkpoint Tak Terputus (*Immutable Linked List*) & *Mandatory Petugas Name*.
 - [08_Mobile_First_UI_UX_Design_System.md](08_Mobile_First_UI_UX_Design_System.md) — Desain Sistem Antarmuka Mobile-First, Ergonomi Jempol (*Thumb-Zone*), Scanner Barcode, dan Canvas TTD Digital.
 
@@ -42,4 +42,4 @@ Seluruh arsitektur, standar, diagram alur terpadu, dan spesifikasi sistem terdok
 - [`AGENTS.md`](../AGENTS.md) — Protokol Wajib Agen AI: Urutan pembacaan dokumen sebelum tindakan dan guardrails kepatuhan.
 - [`CHANGELOG.md`](../CHANGELOG.md) — Riwayat lengkap rilis versi dan catatan perubahan sistem.
 - [`ai-state.json`](../ai-state.json) — Status mesin dan kemajuan persentase proyek terstruktur.
-- [**WMS_Simple_Enterprise_Master_Documentation.pdf**](WMS_Simple_Enterprise_Master_Documentation.pdf) — Dokumen Master PDF Terpadu Publikasi Resmi (v2.4.1, diregenerasi via `scripts/build-master-pdf.mjs`).
+- [**WMS_Simple_Enterprise_Master_Documentation.pdf**](WMS_Simple_Enterprise_Master_Documentation.pdf) — Dokumen Master PDF Terpadu Publikasi Resmi (v3.0.0, diregenerasi via `scripts/build-master-pdf.mjs`; diagram utuh tersedia juga sebagai PNG di `docs/diagrams/`).

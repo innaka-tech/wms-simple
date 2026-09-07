@@ -1,10 +1,10 @@
 {
   "project": "wms-simple",
-  "version": "1.1.0",
-  "status": "completed",
-  "phase": "phase_5_sqlite_standalone_and_rbac_login_completed",
+  "version": "3.0.0",
+  "status": "active_task_flow_v3_docs_first_completed",
+  "phase": "flow_v3_universal_waybill_and_dual_gate_out_docs_completed",
   "progress": 100,
-  "last_updated": "2026-09-02T10:45:00+07:00",
+  "last_updated": "2026-09-07T00:00:00+07:00",
   "database": {
     "target": "sqlite_standalone_and_postgresql_hybrid",
     "driver": "node:sqlite",
@@ -49,7 +49,12 @@
     "audit_compliance_standards": "completed",
     "versioning_standards": "completed",
     "master_e2e_diagrams": "completed",
-    "master_pdf_compilation": "completed"
+    "master_pdf_compilation": "completed",
+    "flow_v3_universal_waybill": "docs_completed",
+    "flow_v3_dual_gate_out_vendor_truck": "docs_completed",
+    "flow_v3_weighbridge_in_out": "docs_completed",
+    "flow_v3_single_end_pod_billing": "docs_completed",
+    "implementation_backlog_waybills_vendor_exit_logs": "pending"
   },
   "test_metrics": {
     "framework": "Vitest 4.1.11",
