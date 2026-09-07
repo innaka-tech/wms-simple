@@ -41,4 +41,8 @@ Setiap agen AI yang beroperasi di repositori ini terikat pada aturan:
    - Jika melakukan perubahan kode/fitur, perbarui `CHANGELOG.md` dan naikkan versi sesuai SemVer 2.0.0.
    - Perbarui `docs/ai/current-task.md` di awal dan akhir sesi kerja.
    - Sinkronkan progress ke Uteke Knowledge Base MCP dan tanyakan update ke ictnotes.
+7. **Git Push Protocol (Strict):**
+   - `git push` HANYA boleh dilakukan atas permintaan EKSPLISIT dari user dalam sesi tersebut. Jangan pernah push atas inisiatif sendiri, termasuk setelah commit.
+   - Push HANYA ke branch `ans` — DILARANG keras push ke `main` atau branch lain.
+   - `git commit` bebas dilakukan sesuai kebutuhan; yang dibatasi hanya push.
 <!-- ai-toolkit:protocol:end -->
