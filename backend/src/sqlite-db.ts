@@ -410,6 +410,7 @@ export function initSqliteSchema() {
       truck_plate TEXT,
       cross_doc_id TEXT REFERENCES cross_documents(id) ON DELETE SET NULL,
       billing_ready INTEGER DEFAULT 0,
+      payment_status TEXT DEFAULT 'UNPAID',
       scheduled_ship_date TEXT,
       shipped_at TEXT,
       delivered_at TEXT,
@@ -498,6 +499,31 @@ export function initSqliteSchema() {
       updated_at TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS invoices (
+      id TEXT PRIMARY KEY,
+      invoice_number TEXT UNIQUE NOT NULL,
+      outbound_order_id TEXT NOT NULL REFERENCES outbound_orders(id),
+      amount REAL,
+      status TEXT NOT NULL DEFAULT 'ISSUED',
+      issued_by_id TEXT REFERENCES users(id),
+      issued_by_name TEXT NOT NULL,
+      issued_at TEXT DEFAULT (datetime('now')),
+      notes TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS payments (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL REFERENCES invoices(id),
+      amount_paid REAL NOT NULL,
+      method TEXT,
+      paid_at TEXT DEFAULT (datetime('now')),
+      recorded_by_id TEXT REFERENCES users(id),
+      recorded_by_name TEXT NOT NULL,
+      notes TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS vendor_vehicle_exit_logs (
       id TEXT PRIMARY KEY,
       log_number TEXT UNIQUE NOT NULL,
@@ -574,6 +600,11 @@ export function initSqliteSchema() {
   }
   try {
     sqliteDb.exec('ALTER TABLE fleet_exit_logs ADD COLUMN waybill_number TEXT');
+  } catch {
+    // kolom sudah ada pada database baru
+  }
+  try {
+    sqliteDb.exec("ALTER TABLE outbound_orders ADD COLUMN payment_status TEXT DEFAULT 'UNPAID'");
   } catch {
     // kolom sudah ada pada database baru
   }

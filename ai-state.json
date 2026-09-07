@@ -1,8 +1,8 @@
 {
   "project": "wms-simple",
-  "version": "3.4.0",
-  "status": "active_task_implementation_backlog_vendor_exit_done",
-  "phase": "implementation_backlog_2_vendor_exit_completed",
+  "version": "3.5.0",
+  "status": "active_task_implementation_backlog_billing_done",
+  "phase": "implementation_backlog_3_billing_completed",
   "progress": 100,
   "last_updated": "2026-09-07T00:00:00+07:00",
   "database": {
@@ -54,7 +54,7 @@
     "flow_v3_dual_gate_out_vendor_truck": "docs_completed",
     "flow_v3_weighbridge_in_out": "docs_completed",
     "flow_v3_single_end_pod_billing": "docs_completed",
-    "implementation_backlog_waybills_vendor_exit_logs": "in_progress_waybills_and_vendor_exit_done"
+    "implementation_backlog_waybills_vendor_exit_logs": "in_progress_waybills_vendor_exit_billing_done"
   },
   "test_metrics": {
     "framework": "Vitest 4.1.11",

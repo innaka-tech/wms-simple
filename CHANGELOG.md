@@ -5,6 +5,22 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.5.0] - 2026-09-07
+
+### Added
+
+- **Modul Billing sampai LUNAS (backlog #3 dari ADR-11):**
+  - Tabel `invoices` (`invoice_number` INV-XXXXXXXX unique, `outbound_order_id`, `amount` opsional, `status` ISSUED|PAID|VOID) + tabel `payments` (`amount_paid`, `method`, `paid_at`, `recorded_by_id/name`).
+  - Kolom `payment_status` (UNPAID|PAID) di `outbound_orders` + migrasi idempotent.
+  - `POST /api/billing/:orderId/invoice` — syarat mutlak `billing_ready = true` (POD terverifikasi), guard satu faktur aktif per order, checkpoint `INVOICE_ISSUED`.
+  - `POST /api/billing/invoices/:invoiceId/payments` — catat pembayaran; **LUNAS** saat total ≥ nilai faktur (atau pembayaran pertama bila faktur tanpa nilai) → faktur `PAID` + order `payment_status = PAID`; checkpoint `PAYMENT_RECEIVED` (metadata `lunas`, `total_paid`). Guard: faktur PAID/VOID ditolak 409.
+  - `GET /api/billing/invoices?status=` (daftar + `total_paid`) dan detail faktur (payments + rantai checkpoint).
+  - Rantai audit transaksi kini utuh sampai akhir: `POD_VERIFIED → INVOICE_ISSUED → PAYMENT_RECEIVED (LUNAS)` pada entity order.
+
+### Tests
+
+- Integrasi billing: 10 test baru (invoice sukses/guard billing_ready/duplikat/404, payment LUNAS/parsial/PAID ditolak/404/amount invalid, list). Total 105/105 lulus (18 suite).
+
 ## [3.4.0] - 2026-09-07
 
 ### Added

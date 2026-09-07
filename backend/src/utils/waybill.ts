@@ -5,11 +5,11 @@ const CODE_ALPHABET = '0123456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const CODE_LENGTH = 8;
 
 /**
- * Generate nomor dokumen pengiriman: `SJ-XXXXXXXX` (Surat Jalan) atau
- * `RESI-XXXXXXXX` (Nomor Resi). Unik secara probabilitas (33^8 kombinasi);
+ * Generate nomor dokumen: `SJ-XXXXXXXX` (Surat Jalan), `RESI-XXXXXXXX` (Nomor Resi),
+ * atau `INV-XXXXXXXX` (Faktur). Unik secara probabilitas (33^8 kombinasi);
  * endpoint penerbit tetap wajib mengecek keunikan di database sebelum INSERT.
  */
-export function generateWaybillNumber(prefix: 'SJ' | 'RESI'): string {
+export function generateWaybillNumber(prefix: 'SJ' | 'RESI' | 'INV'): string {
   const bytes = crypto.randomBytes(CODE_LENGTH);
   let code = '';
   for (let i = 0; i < CODE_LENGTH; i++) {
