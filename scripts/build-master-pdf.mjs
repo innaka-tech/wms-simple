@@ -13,13 +13,15 @@ import { setTimeout as sleep } from 'node:timers/promises';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const VERSION = '3.2.0';
+const VERSION = '3.2.3';
 
 // --- 1. Baca diagram dari dokumen sumber ---
+// Blok 1 = flowchart; blok berikutnya = sequence per kelompok fase (B.1, B.2, B.3, ...)
 const seqDoc = readFileSync(join(ROOT, 'docs/09_Master_End_to_End_Flow_and_Sequence.md'), 'utf8');
-const diagrams = [...seqDoc.matchAll(/```mermaid\n([\s\S]*?)```/g)].map(m => m[1].trim());
-if (diagrams.length < 2) throw new Error('Diagram mermaid tidak ditemukan di 09_Master');
-const [flowchartSrc, sequenceSrc] = diagrams;
+const diagramSrcs = [...seqDoc.matchAll(/```mermaid\n([\s\S]*?)```/g)].map(m => m[1].trim());
+if (diagramSrcs.length < 2) throw new Error('Diagram mermaid tidak ditemukan di 09_Master');
+const DIAGRAMS = diagramSrcs.map((src, i) => ({ id: i === 0 ? 'd-flow' : 'd-seq-' + i, src }));
+const DIAGRAM_IDS = DIAGRAMS.map(d => d.id);
 
 // --- 2. HTML template ---
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -113,13 +115,12 @@ const html = `<!DOCTYPE html>
 
 <div class="footer-note">&copy; 2026 BER5 Logistics Technology Ecosystem &bull; Workspace: /Users/anasfikri/Documents/Projects/ber5/wms-simple &bull; v${VERSION}</div>
 
-<div class="diagram placeholder" id="d-flow">${esc(flowchartSrc)}</div>
-<div class="diagram placeholder" id="d-seq">${esc(sequenceSrc)}</div>
+${DIAGRAMS.map(d => `<div class="diagram placeholder" id="${d.id}">${esc(d.src)}</div>`).join('\n')}
 
 <script type="module">
   import mermaid from '__MERMAID_URL__';
   // tampilkan placeholder offscreen sementara (perlu ter-layout utk getBoundingClientRect)
-  for (const id of ['d-flow', 'd-seq']) {
+  for (const id of ${JSON.stringify(DIAGRAM_IDS)}) {
     const el = document.getElementById(id);
     if (el) el.style.cssText = 'position:absolute;left:-10000px;top:0;display:block';
   }
@@ -128,7 +129,7 @@ const html = `<!DOCTYPE html>
     themeVariables: { fontSize: '13px', primaryColor: '#e8eef7', primaryBorderColor: '#0d47a1', lineColor: '#455a64' },
     flowchart: { htmlLabels: true, curve: 'basis', nodeSpacing: 24, rankSpacing: 30, useMaxWidth: false, diagramPadding: 6 },
     sequence: { actorMargin: 55, width: 200, wrap: true, messageMargin: 30, noteMargin: 8, boxMargin: 8, messageFontSize: 12, noteFontSize: 12, useMaxWidth: false, mirrorActors: false } });
-  for (const id of ['d-flow', 'd-seq']) {
+  for (const id of ${JSON.stringify(DIAGRAM_IDS)}) {
     const el = document.getElementById(id);
     try {
       const { svg } = await mermaid.render('svg-' + id, el.textContent);
@@ -139,7 +140,7 @@ const html = `<!DOCTYPE html>
   window.__DIAGRAM_SIZES = {};
   window.__DIAGRAM_GAPS = {};
   window.__DIAGRAM_SVGS = {};
-  for (const id of ['d-flow', 'd-seq']) {
+  for (const id of ${JSON.stringify(DIAGRAM_IDS)}) {
     const svg = document.querySelector('#' + id + ' svg');
     if (!svg) continue;
     const vb = svg.viewBox.baseVal;
@@ -259,15 +260,20 @@ try {
   // Ekstrak string SVG dari halaman render
   const svgs = await cdp.send('Runtime.evaluate', { expression: 'window.__DIAGRAM_SVGS', returnByValue: true });
   const svgMap = svgs.result.value || {};
-  if (!svgMap['d-flow'] || !svgMap['d-seq']) throw new Error('SVG diagram tidak terekstrak');
+  if (!DIAGRAM_IDS.every(id => svgMap[id])) throw new Error('SVG diagram tidak terekstrak: ' + DIAGRAM_IDS.filter(id => !svgMap[id]).join(','));
 
   // Mode --png: export tiap diagram sebagai SATU gambar utuh (untuk share ke client)
   if (process.argv.includes('--png')) {
     const outDir = join(ROOT, 'docs', 'diagrams');
     execFileSync('mkdir', ['-p', outDir]);
-    const PNG_TITLE = { 'd-flow': 'Diagram Alir Operasional Gudang Menyeluruh — WMS Simple Enterprise', 'd-seq': 'Urutan Interaksi & Riwayat Lacak Status (Audit Trail) — WMS Simple Enterprise' };
-    const PNG_FILE = { 'd-flow': 'wms-flowchart.png', 'd-seq': 'wms-sequence.png' };
-    for (const id of ['d-flow', 'd-seq']) {
+    const PNG_TITLE = {
+      'd-flow': 'Diagram Alir Operasional Gudang Menyeluruh — WMS Simple Enterprise',
+      'd-seq-1': 'Sequence B.1 — Penerimaan, Penyimpanan & Penyiapan Kirim (Fase 1–2) — WMS Simple Enterprise',
+      'd-seq-2': 'Sequence B.2 — Loading & Keluar Gerbang (Fase 3–4) — WMS Simple Enterprise',
+      'd-seq-3': 'Sequence B.3 — Pengiriman, POD, Penagihan & Armada (Fase 5–6) — WMS Simple Enterprise',
+    };
+    const PNG_FILE = { 'd-flow': 'wms-flowchart.png', 'd-seq-1': 'wms-sequence-1.png', 'd-seq-2': 'wms-sequence-2.png', 'd-seq-3': 'wms-sequence-3.png' };
+    for (const id of DIAGRAM_IDS) {
       const d = diag[id];
       if (!d) throw new Error('Ukuran diagram tidak tersedia: ' + id);
       const W = d.w, HIMG = d.h;
@@ -308,8 +314,13 @@ try {
   // Cetak tiap diagram sebagai SATU halaman utuh:
   // kertas otomatis seukuran diagram + judul (nol tile, nol potongan, nol kehilangan konten).
   const pdfParts = [];
-  const TITLE = { 'd-flow': 'Lampiran A — Diagram Alir Operasional Gudang Menyeluruh', 'd-seq': 'Lampiran B — Urutan Interaksi & Riwayat Lacak Status (Audit Trail)' };
-  for (const id of ['d-flow', 'd-seq']) {
+  const TITLE = {
+    'd-flow': 'Lampiran A — Diagram Alir Operasional Gudang Menyeluruh',
+    'd-seq-1': 'Lampiran B.1 — Sequence Fase 1–2: Penerimaan, Penyimpanan & Penyiapan Kirim',
+    'd-seq-2': 'Lampiran B.2 — Sequence Fase 3–4: Loading & Keluar Gerbang',
+    'd-seq-3': 'Lampiran B.3 — Sequence Fase 5–6: Pengiriman, POD, Penagihan & Armada',
+  };
+  for (const id of DIAGRAM_IDS) {
     const d = diag[id];
     if (!d) throw new Error('Ukuran diagram tidak tersedia: ' + id);
 
@@ -350,11 +361,12 @@ try {
   // pastikan render & hide selesai: tunggu placeholder tersembunyi ATAU svg belum ada
   for (let i = 0; i < 100; i++) {
     const st = await cdp.send('Runtime.evaluate', { expression: `(() => {
-      const a = document.getElementById('d-flow'), b = document.getElementById('d-seq');
-      if (!a || !b) return 'noel';
-      const sa = a.querySelector('svg'), sb = b.querySelector('svg');
-      if (!sa || !sb) return 'rendering';
-      return (a.style.display === 'none' && b.style.display === 'none') ? 'hidden' : 'visible';
+      const ids = ${JSON.stringify(DIAGRAM_IDS)};
+      const els = ids.map(i => document.getElementById(i));
+      if (els.some(e => !e)) return 'noel';
+      const svgs = els.map(e => e.querySelector('svg'));
+      if (svgs.some(s => !s)) return 'rendering';
+      return els.every(e => e.style.display === 'none') ? 'hidden' : 'visible';
     })()`, returnByValue: true }).catch(() => null);
     if (st && st.result && (st.result.value === 'hidden')) break;
     if (st && st.result && st.result.value === 'noel') break; // halaman lain (tak terduga)

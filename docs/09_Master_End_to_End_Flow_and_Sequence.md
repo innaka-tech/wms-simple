@@ -81,15 +81,13 @@ flowchart TD
 
 ## 2. Urutan Interaksi Sistem (Sequence Diagram)
 
-Diagram ini menunjukkan interaksi antara tim lapangan, sistem (Hono API), Database, dan sistem pelacakan riwayat (Audit Trail/Log Status). Perhatikan: penerbitan Surat Jalan + Resi terjadi pada **satu titik yang sama untuk semua jenis pengiriman**, dan rantai transaksi berakhir di **penerimaan pembayaran (LUNAS)** — POD terverifikasi hanyalah dasar penagihan, bukan akhir transaksi.
+Diagram sekuens dipecah menjadi **tiga bagian sesuai kelompok fase** agar tiap diagram hanya memuat aktor yang benar-benar terlibat (mudah dibaca): **B.1** Penerimaan, Penyimpanan & Penyiapan Kirim — **B.2** Loading & Keluar Gerbang — **B.3** Pengiriman, POD & Penagihan. Perhatikan: penerbitan Surat Jalan + Resi terjadi pada **satu titik yang sama untuk semua jenis pengiriman**, dan rantai transaksi berakhir di **penerimaan pembayaran (LUNAS)** — POD terverifikasi hanyalah dasar penagihan, bukan akhir transaksi.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Vendor as Supplier / Driver Vendor
-    actor Driver as Sopir (Pool / Vendor)
     actor Satpam as Satpam Pos Gerbang
-    actor Recipient as Penerima (Toko/Desa)
     actor Admin as Admin Pusat
     actor Staff as Admin Gudang / Checker
     participant API as Aplikasi WMS (Backend)
@@ -111,25 +109,36 @@ sequenceDiagram
         Staff->>API: Ambil barang induk dari rak
         Staff->>API: Input hasil repacking (1.000 KG jadi 995 KG)
         API->>DB: Potong jumbo bag, tambah karung siap kirim
-        API->>API: Hitung susut 5 KG (aman < 1%)
+        Note over API: Proses internal: hitung susut 5 KG (aman < 1%)
         API->>Audit: Log: "Repacking selesai (on-demand order)"
     else Stok utuh / cross-dock: kirim langsung
         API->>DB: Alokasi stok dari rak / staging
     end
-    API->>API: Generate SJ + No. Resi otomatis (SJ-XXXX / RESI-XXXX)
+    Note over API: Generate SJ-XXXX + RESI-XXXX otomatis
     API->>DB: Simpan SJ + resi (tertaut order)
     API->>Audit: Log: "SJ & resi diterbitkan"
     opt Blind shipping
         API->>DB: Cetak SJ titipan tanpa identitas pabrik
         API->>Audit: Log: "SJ titipan dicetak"
     end
+```
 
-    Note over Vendor,Audit: FASE 3 — LOADING
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Driver as Sopir (Pool / Vendor)
+    actor Satpam as Satpam Pos Gerbang
+    actor Staff as Admin Gudang / Checker
+    participant API as Aplikasi WMS (Backend)
+    participant DB as Database
+    participant Audit as Log Riwayat Status (Audit Trail)
+
+    Note over Driver,Audit: FASE 3 — LOADING
     Staff->>API: Loading selesai, SJ + resi diserahkan ke sopir
     API->>DB: Kartu stok: DALAM PERJALANAN
     API->>Audit: Log: "Dokumen diserahterimakan"
 
-    Note over Vendor,Audit: FASE 4 — POS SATPAM KELUAR (DUAL JALUR)
+    Note over Driver,Audit: FASE 4 — POS SATPAM KELUAR (DUAL JALUR)
     alt Truk pool sendiri (gate pass)
         Driver->>Satpam: Truk pool di pos keluar
         Satpam->>API: Cek SJ sah, catat odometer + BBM
@@ -142,8 +151,20 @@ sequenceDiagram
         API->>Audit: Log: "Truk vendor keluar bawa resi"
     end
     API-->>Satpam: Dokumen sah, palang dibuka
+```
 
-    Note over Vendor,Audit: FASE 5 — KIRIM, POD, TAGIH, LUNAS (AKHIR TUNGGAL)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Recipient as Penerima (Toko/Desa)
+    actor Driver as Sopir (Pool / Vendor)
+    actor Satpam as Satpam Pos Gerbang
+    actor Admin as Admin Pusat
+    participant API as Aplikasi WMS (Backend)
+    participant DB as Database
+    participant Audit as Log Riwayat Status (Audit Trail)
+
+    Note over Recipient,Audit: FASE 5 — KIRIM, POD, TAGIH, LUNAS (AKHIR TUNGGAL)
     Driver->>Recipient: Bongkar barang di lokasi
     Recipient->>Driver: TTD layar HP sopir + foto barang
     Driver->>API: Submit e-POD / BAST digital
@@ -156,7 +177,7 @@ sequenceDiagram
     API->>DB: Catat pembayaran (status PAID)
     API->>Audit: Log: "Pembayaran diterima — LUNAS"
 
-    Note over Vendor,Audit: FASE 6 — OPSIONAL: CATATAN ARMADA (BUKAN AKHIR TRANSAKSI)
+    Note over Recipient,Audit: FASE 6 — OPSIONAL: CATATAN ARMADA (BUKAN AKHIR TRANSAKSI)
     alt Truk pool
         Driver->>Satpam: Truk pool kembali
         Satpam->>API: Catat odometer masuk (total KM otomatis)

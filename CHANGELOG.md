@@ -5,6 +5,14 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.2.3] - 2026-09-07
+
+### Changed
+
+- **Sequence dipecah 3 diagram per kelompok fase** (menggantikan 1 diagram raksasa 9 lifeline): B.1 Penerimaan, Penyimpanan & Penyiapan Kirim (Fase 1–2) · B.2 Loading & Keluar Gerbang (Fase 3–4) · B.3 Pengiriman, POD, Penagihan & Armada (Fase 5–6). Tiap diagram hanya memuat aktor yang terlibat — tanpa lifeline kosong, tanpa band fase membentang; proporsi kini landscape compact (B.2: 1578×825).
+- Self-message `API->>API` (gumpalan teks saat wrap) diganti `Note over API` yang render bersih.
+- Generator kini generik untuk N diagram (blok mermaid pertama = flowchart, sisanya = sequence B.n); PNG per diagram: `wms-sequence-1/2/3.png`.
+
 ## [3.2.2] - 2026-09-07
 
 ### Fixed
