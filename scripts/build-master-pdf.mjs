@@ -1,6 +1,7 @@
 // Generator PDF Master Dokumentasi WMS Simple Enterprise
-// Render mermaid via headless Chrome (DevTools Protocol), print ke PDF A4 rapat.
-// Usage: node scripts/build-master-pdf.mjs [output.pdf]
+// Render mermaid via headless Chrome (DevTools Protocol).
+// Teks: A4 rapat. Diagram: SATU halaman utuh per diagram (kertas otomatis seukuran diagram, nol potongan).
+// Usage: node scripts/build-master-pdf.mjs [output.pdf] | --png (export PNG utuh ke docs/diagrams/)
 import { writeFileSync, readFileSync, mkdtempSync } from 'node:fs';
 import { execFile, execFileSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
@@ -12,7 +13,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const VERSION = '3.0.1';
+const VERSION = '3.2.0';
 
 // --- 1. Baca diagram dari dokumen sumber ---
 const seqDoc = readFileSync(join(ROOT, 'docs/09_Master_End_to_End_Flow_and_Sequence.md'), 'utf8');
@@ -251,12 +252,9 @@ try {
   if (!status) throw new Error('Timeout menunggu render mermaid');
   if (status.includes('MERMAID_ERROR')) throw new Error('Mermaid gagal render: ' + status);
 
-  // Ukuran & gap-map diagram natif (px viewBox) untuk keputusan skala & potongan
-  const sizes = await cdp.send('Runtime.evaluate', { expression: '({sizes: window.__DIAGRAM_SIZES, gaps: window.__DIAGRAM_GAPS})', returnByValue: true });
-  const diag = (sizes.result.value && sizes.result.value.sizes) || {};
-  const gapsMap = (sizes.result.value && sizes.result.value.gaps) || {};
-  const PAGE_W_MM = 186, PAGE_H_MM = 269, PX_PER_MM = 96 / 25.4; // A4 konten @96dpi
-  const PAD = 30; // padding putih sekitar diagram (~8mm)
+  // Ukuran diagram natif (px viewBox)
+  const sizes = await cdp.send('Runtime.evaluate', { expression: 'window.__DIAGRAM_SIZES', returnByValue: true });
+  const diag = (sizes.result && sizes.result.value) || {};
 
   // Ekstrak string SVG dari halaman render
   const svgs = await cdp.send('Runtime.evaluate', { expression: 'window.__DIAGRAM_SVGS', returnByValue: true });
@@ -307,90 +305,40 @@ try {
     process.exit(0);
   }
 
-  // Cetak tiap diagram: pilih orientasi & skala terbaca, tile vertikal bila tidak muat
+  // Cetak tiap diagram sebagai SATU halaman utuh:
+  // kertas otomatis seukuran diagram + judul (nol tile, nol potongan, nol kehilangan konten).
   const pdfParts = [];
   const TITLE = { 'd-flow': 'Lampiran A — Diagram Alir Operasional Gudang Menyeluruh', 'd-seq': 'Lampiran B — Urutan Interaksi & Riwayat Lacak Status (Audit Trail)' };
   for (const id of ['d-flow', 'd-seq']) {
     const d = diag[id];
     if (!d) throw new Error('Ukuran diagram tidak tersedia: ' + id);
 
-    const opts = [
-      { land: false, pw: PAGE_W_MM * PX_PER_MM, ph: PAGE_H_MM * PX_PER_MM },
-      { land: true, pw: PAGE_H_MM * PX_PER_MM, ph: PAGE_W_MM * PX_PER_MM },
-    ].map(o => {
-      const scale = Math.min((o.pw - 2 * PAD) / d.w, 1);
-      return { ...o, scale, pages: Math.ceil((d.h * scale + 3 * PAD + 22) / o.ph) };
+    const pad = 24, headH = 74, buf = 24;
+    const totalW = d.w + 2 * pad + buf, totalH = headH + d.h + 2 * pad + buf;
+    const pageHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+      @page { size: ${totalW}px ${totalH}px; margin: 0; }
+      html,body { margin:0; padding:0; background:#fff; }
+      .head { height: 48px; padding: ${pad}px ${pad}px 0; box-sizing: content-box; font:700 18px/48px -apple-system,Helvetica,Arial,sans-serif; color:#0d47a1; }
+      .sub { height: 26px; padding: 0 ${pad}px; box-sizing: content-box; font:400 11px/26px -apple-system,Helvetica,Arial,sans-serif; color:#78909c; }
+      .body { padding: 0 ${pad}px ${pad}px; width: ${d.w}px; box-sizing: content-box; }
+      .body svg { width: ${d.w}px !important; height: ${d.h}px !important; display: block; }
+    </style></head><body>
+      <div class="head">${TITLE[id]}</div>
+      <div class="sub">v${VERSION} • ${new Date().toISOString().slice(0, 10)} • BER5 Logistics</div>
+      <div class="body">${svgMap[id]}</div>
+    </body></html>`;
+    const pagePath = join(workDir, `page-${id}.html`);
+    writeFileSync(pagePath, pageHtml);
+    await new Promise((res) => {
+      const h = (msg) => { if (msg.method === 'Page.loadEventFired') res(); };
+      cdp.on(h);
+      cdp.send('Page.navigate', { url: 'file://' + pagePath }).then(() => setTimeout(res, 400));
     });
-    // pilih skala terbesar; bila selisih marginal (<5%) pilih yang halamannya lebih sedikit
-    opts.sort((a, b) => (Math.abs(a.scale - b.scale) < 0.05 ? a.pages - b.pages : b.scale - a.scale));
-    const best = opts[0];
-    const drawW = d.w * best.scale, drawH = d.h * best.scale;
-
-    const H = drawH; // tinggi konten ter-scale (px)
-    const paperWmm = best.land ? PAGE_H_MM : PAGE_W_MM;
-    const paperHmm = best.land ? PAGE_W_MM : PAGE_H_MM;
-    const ph = paperHmm * PX_PER_MM;
-    const CB_MAX = ph - 2 * PAD;
-    const TB = 40, LB = 24; // tinggi blok judul tile-0 / label lanjutan
-    const gapsNat = (gapsMap[id] || []).map(g => Math.round(g * best.scale)).filter(g => g >= 0 && g <= H);
-
-    // Bagi seimbang jadi N tile, snap tiap cut ke gap solid terdekat dari ideal
-    // supaya tidak ada kotak/pesan yang terbelah dua halaman (garis edge boleh menyambung).
-    const capN = CB_MAX - TB, capC = CB_MAX - LB;
-    const segsOf = (cs) => { let prev = 0; const s = []; for (const c of cs) { s.push(c - prev); prev = c; } s.push(H - prev); return s; };
-    const build = (n) => {
-      const cuts = [];
-      for (let k = 1; k < n; k++) {
-        const ideal = Math.round(H * k / n);
-        const prev = k === 1 ? 0 : cuts[k - 2];
-        const maxPos = prev + (k === 1 ? capN : capC);
-        const win = gapsNat.filter(g => g > prev + 50 && g <= maxPos);
-        let cut = win.length
-          ? win.reduce((b, g) => (Math.abs(g - ideal) < Math.abs(b - ideal) ? g : b), win[0])
-          : Math.min(ideal, maxPos - 2);
-        cut = Math.max(60, Math.min(cut, maxPos));
-        cuts.push(cut);
-      }
-      return cuts;
-    };
-    let nT = Math.max(1, Math.ceil((H - capN) / capC) + 1);
-    let cuts = build(nT);
-    for (let tries = 0; tries < 12; tries++) {
-      const segs = segsOf(cuts);
-      if (segs.every((s, i) => s > 0 && s <= (i === 0 ? capN : capC))) break;
-      nT++;
-      cuts = build(nT);
-    }
-
-    const bounds = [0, ...cuts, H];
-    for (let i = 0; i < bounds.length - 1; i++) {
-      const start = bounds[i], end = bounds[i + 1];
-      const cH = end - start;
-      const labelHtml = i === 0
-        ? `<div style="font:700 15px -apple-system,Helvetica,Arial,sans-serif;color:#0d47a1;margin:0 0 ${PAD - 8}px;height:${TB - (PAD - 8)}px">${TITLE[id]}</div>`
-        : `<div style="font:400 9px -apple-system,Helvetica,Arial,sans-serif;color:#90a4ae;margin:0 0 ${PAD - 8}px;height:${LB - (PAD - 8)}px">${TITLE[id].split('—')[0].trim()} — lanjutan (${i + 1}/${bounds.length - 1})</div>`;
-      const tile = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-        @page { size: ${paperWmm}mm ${paperHmm}mm; margin: 0; }
-        html,body { margin:0; padding:0; background:#fff; }
-        .wrap { padding: ${PAD}px; }
-        .clipbox { width:${Math.min(drawW + 2 * PAD, paperWmm * PX_PER_MM)}px; height:${cH}px; overflow:hidden; position:relative; }
-        .inner { position:absolute; top:${-start}px; left:0; width:${drawW}px; }
-        .inner svg { width:${drawW}px !important; height:${drawH}px !important; }
-      </style></head><body><div class="wrap">${labelHtml}<div class="clipbox"><div class="inner">${svgMap[id]}</div></div></div></body></html>`;
-      const tilePath = join(workDir, `tile-${id}-${i}.html`);
-      writeFileSync(tilePath, tile);
-      await new Promise((res) => {
-        const h = (msg) => { if (msg.method === 'Page.loadEventFired') res(); };
-        cdp.on(h);
-        cdp.send('Page.navigate', { url: 'file://' + tilePath }).then(() => setTimeout(res, 400));
-      });
-      const { data } = await cdp.send('Page.printToPDF', {
-        printBackground: true, preferCSSPageSize: true,
-        paperWidth: paperWmm / 25.4, paperHeight: paperHmm / 25.4,
-        marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
-      });
-      pdfParts.push(Buffer.from(data, 'base64'));
-    }
+    const { data } = await cdp.send('Page.printToPDF', {
+      printBackground: true, preferCSSPageSize: true,
+      marginTop: 0, marginBottom: 0, marginLeft: 0, marginRight: 0,
+    });
+    pdfParts.push(Buffer.from(data, 'base64'));
   }
 
   // Kembali ke dokumen utama untuk cetak bagian teks (diagram tersembunyi)

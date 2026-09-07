@@ -5,6 +5,17 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.2.1] - 2026-09-07
+
+### Fixed
+
+- **Generator PDF (v3):** tiap diagram kini dicetak sebagai **SATU halaman utuh** — kertas otomatis disesuaikan ukuran diagram (`@page` eksplisit dalam px, margin 0, buffer anti-luapan). Nol tile, nol potongan, nol kehilangan konten. Dokumen teks tetap A4 rapat.
+- **Folder `workspace/`** di root repo: salinan siap-share (master PDF + 2 PNG diagram utuh).
+
+### Changed
+
+- Struktur PDF master: 4 halaman (2 teks + 1 halaman penuh flowchart + 1 halaman penuh sequence). Verifikasi piksel: 0 kontak tepi, 0 halaman kosong, 0 syntax error.
+
 ## [3.2.0] - 2026-09-07
 ### Changed
 - **Tanpa Timbang Truk & Siklus Penagihan Penuh (Revisi Alur ADR-11, docs-first):**
