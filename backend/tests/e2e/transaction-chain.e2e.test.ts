@@ -2,8 +2,8 @@
  * E2E Test — Rantai Transaksi Penuh 3 Backlog Terakhir
  * (1: Waybill SJ+Resi, 2: Vendor Exit, 3: Billing sampai LUNAS)
  *
- * Dijalankan lawan SQLite nyata (file temp) lewat HTTP app.request — TANPA mock.
- * Memverifikasi:
+ * Dijalankan lawan PostgreSQL RESMI (global DB stack, database wms_simple_test_db)
+ * lewat HTTP app.request — TANPA mock. Memverifikasi:
  *   - Alur pool: order → pick → pack → issue-waybill → gate-out → POD → verify → invoice → LUNAS
  *   - Alur vendor: order → issue-waybill → vendor-exit (vendor/nopol/resi wajib) → POD → invoice → LUNAS
  *   - Guard: duplikat waybill/faktur, invoice sebelum billing_ready, bayar setelah LUNAS,
@@ -13,20 +13,20 @@
  *   - Mata uang Rupiah (IDR) pada faktur
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { tmpdir } from 'node:os';
-import { rmSync } from 'node:fs';
-import path from 'node:path';
 
-const DB_FILE = path.join(tmpdir(), `wms-e2e-${process.pid}-${Date.now()}.sqlite`);
+// Database test terpisah — HARUS di-set sebelum import modul backend
+process.env.DB_NAME = 'wms_simple_test_db';
+process.env.NODE_ENV = 'test';
 
-// IDs dari seed master data (sqlite-db.ts)
+// IDs dari seed master data
 const WH_JKT = 'a0000000-0000-0000-0000-000000000001';
 const CUST_A1 = 'c0000000-0000-0000-0000-000000000001';
 const PRODUCT_TV = 'e0000000-0000-0000-0000-000000000004';
 const VEHICLE_TRONTON = 'f0000000-0000-0000-0000-000000000001';
 
 let app: any;
-let sqliteDb: any;
+let query: any;
+let closePool: any;
 
 async function req(method: string, url: string, body?: any) {
   const res = await app.request(url, {
@@ -92,16 +92,17 @@ async function submitAndVerifyPod(orderId: string) {
 /**
  * Integritas rantai checkpoint (AGENTS.md aturan 5):
  * semua id non-NULL, actor_name terisi, prev_checkpoint_id menyambung mundur
- * persis seurutan rowid, dan urutan step_code sesuai rantai transaksi.
+ * persis seurutan ctid (insert order), dan urutan step_code sesuai rantai transaksi.
  */
-function expectChainIntegrity(orderId: string, expectedSteps: string[]) {
-  const rows = sqliteDb
-    .prepare(
-      `SELECT * FROM checkpoint_logs WHERE entity_type = 'OUTBOUND_ORDER' AND entity_id = ? ORDER BY rowid ASC`
+async function expectChainIntegrity(orderId: string, expectedSteps: string[]) {
+  const rows = (
+    await query(
+      `SELECT * FROM checkpoint_logs WHERE entity_type = 'OUTBOUND_ORDER' AND entity_id = $1 ORDER BY rowid ASC`,
+      [orderId]
     )
-    .all(orderId) as any[];
+  ).rows;
 
-  expect(rows.map((r) => r.step_code)).toEqual(expectedSteps);
+  expect(rows.map((r: any) => r.step_code)).toEqual(expectedSteps);
   for (const r of rows) {
     expect(r.id, `checkpoint ${r.step_code} harus punya id (bukan NULL)`).toBeTruthy();
     expect((r.actor_name || '').trim().length).toBeGreaterThanOrEqual(2);
@@ -109,47 +110,35 @@ function expectChainIntegrity(orderId: string, expectedSteps: string[]) {
   }
 
   // Telusuri prev_checkpoint_id dari ujung ekor ke kepala
-  const byId = new Map(rows.map((r) => [r.id, r]));
+  const byId = new Map(rows.map((r: any) => [r.id, r]));
   let cur: any = rows[rows.length - 1];
   const walked: string[] = [];
   while (cur) {
     walked.unshift(cur.step_code);
     cur = cur.prev_checkpoint_id ? byId.get(cur.prev_checkpoint_id) : undefined;
-    if (cur === undefined && walked.length < rows.length) {
-      // prev menunjuk id yang tidak ada = rantai putus
-      break;
-    }
   }
   expect(walked).toEqual(expectedSteps);
 }
 
-describe('E2E Rantai Transaksi: Waybill → Gate → POD → Invoice → LUNAS', () => {
+describe('E2E Rantai Transaksi (PostgreSQL): Waybill → Gate → POD → Invoice → LUNAS', () => {
   beforeAll(async () => {
-    process.env.SQLITE_DB_PATH = DB_FILE;
-    process.env.NODE_ENV = 'test';
-    const dbMod = await import('../../src/sqlite-db.js');
-    sqliteDb = dbMod.sqliteDb;
+    const dbMod = await import('../../src/db.js');
+    query = dbMod.query;
+    closePool = dbMod.closePool;
     const appMod = await import('../../src/app.js');
     app = appMod.app;
+
+    // Pastikan schema + seed siap, lalu bersihkan state transaksional (master data dipertahankan)
+    await query('SELECT 1');
+    await query(`TRUNCATE outbound_orders, inbound_orders, cross_dock_manifests, cross_documents,
+      stock_conversions, fleet_exit_logs, vendor_vehicle_exit_logs, waybills, invoices, payments,
+      pod_documents, packages, outbound_items, checkpoint_logs, stock_movements, weighbridge_logs, alerts
+      RESTART IDENTITY CASCADE`);
+    await query(`UPDATE vehicles SET status = 'AVAILABLE'`);
   });
 
-  afterAll(() => {
-    try {
-      sqliteDb?.close();
-    } catch {
-      /* ignore */
-    }
-    try {
-      rmSync(DB_FILE, { force: true });
-    } catch {
-      /* ignore */
-    }
-    try {
-      rmSync(`${DB_FILE}-wal`, { force: true });
-      rmSync(`${DB_FILE}-shm`, { force: true });
-    } catch {
-      /* ignore */
-    }
+  afterAll(async () => {
+    await closePool?.();
   });
 
   it('Jalur A (armada pool): rantai penuh sampai LUNAS', async () => {
@@ -227,23 +216,25 @@ describe('E2E Rantai Transaksi: Waybill → Gate → POD → Invoice → LUNAS',
     expect(finalOrder.data.payment_status).toBe('PAID');
 
     // Keadaan DB: waybill, gate pass, stok, kendaraan
-    const wbRow = sqliteDb.prepare(`SELECT * FROM waybills WHERE id = ?`).get(wb.data.id) as any;
+    const wbRow = (await query(`SELECT * FROM waybills WHERE id = $1`, [wb.data.id])).rows[0];
     expect(wbRow.status).toBe('ISSUED');
 
-    const fleetRow = sqliteDb.prepare(`SELECT * FROM fleet_exit_logs WHERE id = ?`).get(dep.data.id) as any;
+    const fleetRow = (await query(`SELECT * FROM fleet_exit_logs WHERE id = $1`, [dep.data.id])).rows[0];
     expect(fleetRow.waybill_number).toBe(wb.data.sj_number);
 
-    const vehicle = sqliteDb.prepare(`SELECT status FROM vehicles WHERE id = ?`).get(VEHICLE_TRONTON) as any;
+    const vehicle = (await query(`SELECT status FROM vehicles WHERE id = $1`, [VEHICLE_TRONTON])).rows[0];
     expect(vehicle.status).toBe('IN_USE'); // armada pool menunggu gate-in
 
-    const movement = sqliteDb
-      .prepare(`SELECT * FROM stock_movements WHERE reference_id = ? AND movement_type = 'OUTBOUND_PICK'`)
-      .get(order.id) as any;
+    const movement = (
+      await query(`SELECT * FROM stock_movements WHERE reference_id = $1 AND movement_type = 'OUTBOUND_PICK'`, [
+        order.id
+      ])
+    ).rows[0];
     expect(movement).toBeTruthy();
     expect(movement.id).toBeTruthy();
 
     // Rantai audit order (FLEET_DEPARTED tercatat di entity FLEET_EXIT_LOG, bukan order)
-    expectChainIntegrity(order.id, [
+    await expectChainIntegrity(order.id, [
       'ORDER_CREATED',
       'PICKING_COMPLETED',
       'PACKING_COMPLETED',
@@ -256,10 +247,12 @@ describe('E2E Rantai Transaksi: Waybill → Gate → POD → Invoice → LUNAS',
     ]);
 
     // Rantai audit gate pass
-    const fleetCk = sqliteDb
-      .prepare(`SELECT * FROM checkpoint_logs WHERE entity_type = 'FLEET_EXIT_LOG' AND entity_id = ?`)
-      .all(dep.data.id) as any[];
-    expect(fleetCk.map((r) => r.step_code)).toEqual(['FLEET_DEPARTED']);
+    const fleetCk = (
+      await query(`SELECT * FROM checkpoint_logs WHERE entity_type = 'FLEET_EXIT_LOG' AND entity_id = $1`, [
+        dep.data.id
+      ])
+    ).rows;
+    expect(fleetCk.map((r: any) => r.step_code)).toEqual(['FLEET_DEPARTED']);
     expect(fleetCk[0].actor_name).toBe('Sersan Hendro');
   });
 
@@ -311,19 +304,21 @@ describe('E2E Rantai Transaksi: Waybill → Gate → POD → Invoice → LUNAS',
     expect(pay.data.invoice_status).toBe('PAID');
 
     // Log vendor + checkpoint-nya
-    const vlog = sqliteDb.prepare(`SELECT * FROM vendor_vehicle_exit_logs WHERE id = ?`).get(vexit.data.id) as any;
+    const vlog = (await query(`SELECT * FROM vendor_vehicle_exit_logs WHERE id = $1`, [vexit.data.id])).rows[0];
     expect(vlog.vendor_name).toBe('PT Ekspedisi Jaya Sentosa');
     expect(vlog.plate_number).toBe('B 8765 XYZ');
     expect(vlog.waybill_number).toBe(wb.data.sj_number);
 
-    const vCk = sqliteDb
-      .prepare(`SELECT * FROM checkpoint_logs WHERE entity_type = 'VENDOR_EXIT_LOG' AND entity_id = ?`)
-      .all(vexit.data.id) as any[];
-    expect(vCk.map((r) => r.step_code)).toEqual(['VENDOR_EXIT']);
+    const vCk = (
+      await query(`SELECT * FROM checkpoint_logs WHERE entity_type = 'VENDOR_EXIT_LOG' AND entity_id = $1`, [
+        vexit.data.id
+      ])
+    ).rows;
+    expect(vCk.map((r: any) => r.step_code)).toEqual(['VENDOR_EXIT']);
     expect(vCk[0].id).toBeTruthy();
     expect(vCk[0].actor_name).toBe('Sersan Hendro');
 
-    expectChainIntegrity(order.id, [
+    await expectChainIntegrity(order.id, [
       'ORDER_CREATED',
       'WAYBILL_ISSUED',
       'DELIVERED',

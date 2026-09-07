@@ -5,6 +5,23 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.0.0] - 2026-09-07
+
+### Changed (BREAKING — Engine Database)
+
+- **Runtime wajib PostgreSQL (ADR-12):** layer `db.ts` kini `node-postgres` asli — global DB stack (`postgres:16-alpine`, `127.0.0.1:5432`, DB `wms_simple_db`), sesuai AGENTS.md & kebijakan Engine Tunggal. **SQLite dihapus dari runtime** (`sqlite-db.ts` dihapus, file `wms_simple.sqlite` dihapus).
+- Schema + seed dikelola `pg-schema.ts` (transliterasi PG, idempotent): CREATE IF NOT EXISTS + seed ON CONFLICT DO NOTHING + migrasi kolom guarded + partial unique index. Schema & seed otomatis saat koneksi pertama.
+- `normalizeSql`: `uuid_generate_v4()` → `gen_random_uuid()` (core PG13+), `rowid` → `ctid`; binding parameter native `$n` PostgreSQL — kelas bug translasi placeholder SQLite hilang.
+- Database lama `wms_simple_db` (schema uuid lama, data demo seed) di-reset ke schema baru yang konsisten; backup otomatis: `wms_simple_db_backup_20260907-212032.sql`.
+- E2E suite kini berjalan lawan PostgreSQL `wms_simple_test_db` (database test terpisah, truncate transaksional tiap run).
+- `index.ts`: dotenv dimuat via `import 'dotenv/config'` sebelum evaluasi modul (kredensial DB terbaca pasti).
+
+### Tests
+
+- 117/117 test lulus (19 suite) sepenuhnya di PostgreSQL — termasuk e2e rantai penuh pool & vendor sampai LUNAS. Smoke manual: order → waybill → gate → POD → invoice → LUNAS ✓.
+
+---
+
 ## [3.6.0] - 2026-09-07
 
 ### Fixed (Audit Mendalam 3 Backlog — Temuan P0 Sistemik)

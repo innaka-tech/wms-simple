@@ -179,3 +179,13 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 4. [x] **E2E suite baru** (`backend/tests/e2e/transaction-chain.e2e.test.ts`): rantai penuh Jalur A (pool) & B (vendor) sampai LUNAS lawan SQLite nyata tanpa mock, 7 guard, integritas rantai checkpoint. 117/117 test lulus, TSC bersih.
 
 **Next:** frontend backlog #4 (tombol SJ+resi thermal, form vendor exit, resi di POD, halaman billing) atau push `ans` bila diminta.
+
+---
+
+## Sesi 2026-09-07 (Lanjutan 2) — Runtime Wajib PostgreSQL, SQLite Dihapus (v4.0.0)
+
+1. [x] **Migrasi engine:** `db.ts` kini `node-postgres` asli (global DB stack `postgres:16-alpine`, `127.0.0.1:5432`, `wms_simple_db`); SQLite & `sqlite-db.ts` dihapus dari runtime; `pg-schema.ts` = DDL + seed idempotent + migrasi guarded + partial index; `normalizeSql` → `gen_random_uuid()` / `ctid`.
+2. [x] **DB lama di-reset** ke schema konsisten (backup: `wms_simple_db_backup_20260907-212032.sql`); DB test terpisah `wms_simple_test_db`; e2e kini lawan PostgreSQL nyata.
+3. [x] **117/117 test lulus (19 suite)** + smoke manual rantai penuh sampai LUNAS di dev DB. ADR-12 tercatat.
+
+**Next:** frontend backlog #4, atau push `ans` bila diminta.
