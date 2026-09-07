@@ -5,6 +5,20 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.4.0] - 2026-09-07
+
+### Added
+
+- **Modul Vendor Exit — Jalur B Pos Satpam (backlog #2 dari ADR-11):**
+  - Tabel `vendor_vehicle_exit_logs` (`log_number` VEND-OUT-XXXX, `vendor_name`, `plate_number` manual, `waybill_number` wajib, `destination_note`, `departure_security_officer`) — tanpa kolom odometer/BBM (khusus armada pool), tanpa gate-in (truk vendor tidak wajib kembali).
+  - Endpoint `POST /api/fleet/vendor-exit` — wajib nama vendor + nopol + resi/SJ dibawa; validasi Zod; checkpoint audit `VENDOR_EXIT` (entity `VENDOR_EXIT_LOG`); order/manifest terkait otomatis `SHIPPED`/`IN_TRANSIT`.
+  - Endpoint `GET /api/fleet/vendor-exits` — daftar log keluar vendor, filter `warehouse_id` & `vendor`.
+  - Kolom `waybill_number` di `fleet_exit_logs` (jalur A pool kini juga bisa mencatat resi yang dibawa) + migrasi idempotent untuk DB lama.
+
+### Tests
+
+- Integrasi: vendor-exit sukses (201 + checkpoint + metadata), 400 tanpa waybill, 400 nama vendor pendek, 400 tanpa actor_name, GET list — 5 test baru. Total 95/95 lulus (17 suite).
+
 ## [3.3.0] - 2026-09-07
 
 ### Added

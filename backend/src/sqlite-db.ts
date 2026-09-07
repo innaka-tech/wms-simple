@@ -476,6 +476,7 @@ export function initSqliteSchema() {
       reference_type TEXT,
       reference_id TEXT,
       reference_number TEXT,
+      waybill_number TEXT,
       departure_time TEXT DEFAULT (datetime('now')),
       expected_return_time TEXT,
       odometer_out REAL NOT NULL,
@@ -495,6 +496,25 @@ export function initSqliteSchema() {
       approved_by_name TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS vendor_vehicle_exit_logs (
+      id TEXT PRIMARY KEY,
+      log_number TEXT UNIQUE NOT NULL,
+      warehouse_id TEXT REFERENCES warehouses(id),
+      vendor_name TEXT NOT NULL,
+      plate_number TEXT NOT NULL,
+      vehicle_type TEXT,
+      driver_name TEXT,
+      waybill_number TEXT NOT NULL,
+      reference_type TEXT,
+      reference_id TEXT,
+      destination_note TEXT,
+      departure_security_officer TEXT NOT NULL,
+      departure_photo_url TEXT,
+      notes TEXT,
+      closed_at TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS checkpoint_logs (
@@ -546,9 +566,14 @@ export function initSqliteSchema() {
     );
   `);
 
-  // Migrasi ringan untuk file database lama (idempotent): kolom billing_ready
+  // Migrasi ringan untuk file database lama (idempotent): kolom billing_ready & waybill_number
   try {
     sqliteDb.exec('ALTER TABLE outbound_orders ADD COLUMN billing_ready INTEGER DEFAULT 0');
+  } catch {
+    // kolom sudah ada pada database baru
+  }
+  try {
+    sqliteDb.exec('ALTER TABLE fleet_exit_logs ADD COLUMN waybill_number TEXT');
   } catch {
     // kolom sudah ada pada database baru
   }

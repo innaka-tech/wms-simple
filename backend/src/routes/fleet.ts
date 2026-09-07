@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { query, pool } from '../db.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
 import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
@@ -93,6 +94,7 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
     reference_type,
     reference_id,
     reference_number,
+    waybill_number,
     expected_return_time,
     odometer_out,
     fuel_level_out,
@@ -134,15 +136,15 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
     const insertRes = await client.query(
       `INSERT INTO fleet_exit_logs (
         log_number, vehicle_id, driver_id, driver_name, warehouse_id,
-        purpose, reference_type, reference_id, reference_number,
+        purpose, reference_type, reference_id, reference_number, waybill_number,
         expected_return_time, odometer_out, fuel_level_out,
         departure_security_officer, departure_photo_url, departure_notes,
         status, approved_by_id, approved_by_name
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'DEPARTED', $16, $17)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'DEPARTED', $17, $18)
       RETURNING *`,
       [
         logNumber, vehicle_id, driver_id || null, driver_name.trim(), warehouse_id,
-        purpose || 'OUTBOUND_DELIVERY', reference_type || 'NONE', reference_id || null, reference_number || null,
+        purpose || 'OUTBOUND_DELIVERY', reference_type || 'NONE', reference_id || null, reference_number || null, waybill_number || null,
         expected_return_time || null, odometer_out, fuel_level_out || 'FULL',
         departure_security_officer.trim(), departure_photo_url || null, departure_notes || null,
         actor_id || null, actor_name.trim()
@@ -301,4 +303,124 @@ fleetRoutes.post('/logs/:id/return', optionalAuth, async (c) => {
   } finally {
     client.release();
   }
+});
+
+// 6. Vendor Truck Exit — Jalur B Pos Satpam (truk sewa/ekspedisi eksternal)
+// Wajib: nama vendor, nomor polisi (manual), nomor resi/SJ yang dibawa.
+// Tidak menyentuh master armada pool; tidak ada gate-in odometer (truk vendor tidak wajib kembali).
+const vendorExitSchema = z.object({
+  vendor_name: z.string().trim().min(2, 'Nama vendor wajib diisi (min 2 karakter)'),
+  plate_number: z.string().trim().min(3, 'Nomor polisi truk vendor wajib diisi'),
+  waybill_number: z.string().trim().min(4, 'Nomor Resi/Surat Jalan yang dibawa wajib dicatat'),
+  warehouse_id: z.string().optional(),
+  vehicle_type: z.string().optional(),
+  driver_name: z.string().optional(),
+  reference_type: z.enum(['OUTBOUND_ORDER', 'CROSS_DOCK_MANIFEST', 'NONE']).optional(),
+  reference_id: z.string().optional(),
+  destination_note: z.string().max(300).optional(),
+  departure_photo_url: z.string().optional(),
+  notes: z.string().max(500).optional(),
+  actor_name: z.string().trim().min(2, 'Nama petugas satpam wajib diisi (min 2 karakter)').optional(),
+  actor_id: z.string().optional()
+});
+
+fleetRoutes.post('/vendor-exit', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
+
+  const parsed = vendorExitSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ success: false, message: parsed.error.issues[0]?.message || 'Payload tidak valid' }, 400);
+  }
+  const body = parsed.data;
+
+  const actor_name = (user?.full_name || body.actor_name || '').trim();
+  const actor_id = user?.id || body.actor_id;
+  const actor_role = user?.role || 'GATE_OFFICER';
+
+  if (!actor_name || actor_name.length < 2) {
+    return c.json({ success: false, message: 'Nama petugas satpam wajib diisi (Mandatory petugas_name)' }, 400);
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const logNumber = `VEND-OUT-${Date.now().toString().slice(-8)}`;
+    const insertRes = await client.query(
+      `INSERT INTO vendor_vehicle_exit_logs (
+        log_number, warehouse_id, vendor_name, plate_number, vehicle_type,
+        driver_name, waybill_number, reference_type, reference_id,
+        destination_note, departure_security_officer, departure_photo_url, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING *`,
+      [
+        logNumber, body.warehouse_id || null, body.vendor_name, body.plate_number, body.vehicle_type || null,
+        body.driver_name || null, body.waybill_number, body.reference_type || 'NONE', body.reference_id || null,
+        body.destination_note || null, actor_name, body.departure_photo_url || null, body.notes || null
+      ]
+    );
+    const vendorLog = insertRes.rows[0];
+
+    // Sama seperti jalur pool: order terkait berangkat dari gudang
+    if (body.reference_type === 'OUTBOUND_ORDER' && body.reference_id) {
+      await client.query(
+        `UPDATE outbound_orders SET status = 'SHIPPED', shipped_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [body.reference_id]
+      );
+    } else if (body.reference_type === 'CROSS_DOCK_MANIFEST' && body.reference_id) {
+      await client.query(
+        `UPDATE cross_dock_manifests SET status = 'IN_TRANSIT', actual_departure = CURRENT_TIMESTAMP WHERE id = $1`,
+        [body.reference_id]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    // Record Checkpoint: VENDOR_EXIT (rantai audit tetap tersambung)
+    await recordCheckpoint({
+      entity_type: 'VENDOR_EXIT_LOG',
+      entity_id: vendorLog.id,
+      entity_number: vendorLog.log_number,
+      step_code: 'VENDOR_EXIT',
+      step_label: 'Truk Vendor Keluar via Pos Satpam (Log Keluar Vendor)',
+      actor_id: actor_id || null,
+      actor_name: actor_name,
+      actor_role: actor_role,
+      notes: body.notes || `Vendor ${body.vendor_name} nopol ${body.plate_number} bawa resi/SJ ${body.waybill_number}. Tidak wajib kembali.`,
+      metadata: {
+        vendor_name: body.vendor_name,
+        plate_number: body.plate_number,
+        waybill_number: body.waybill_number
+      },
+      photo_urls: body.departure_photo_url ? [body.departure_photo_url] : []
+    });
+
+    return c.json({ success: true, data: vendorLog }, 201);
+  } catch (err: any) {
+    await client.query('ROLLBACK');
+    return c.json({ success: false, message: err.message }, 500);
+  } finally {
+    client.release();
+  }
+});
+
+// 7. List Vendor Exit Logs (daftar + filter)
+fleetRoutes.get('/vendor-exits', async (c) => {
+  const warehouse_id = c.req.query('warehouse_id');
+  const vendor = c.req.query('vendor');
+
+  let sql = `SELECT * FROM vendor_vehicle_exit_logs WHERE 1=1`;
+  const params: any[] = [];
+  if (warehouse_id) {
+    params.push(warehouse_id);
+    sql += ` AND warehouse_id = $${params.length}`;
+  }
+  if (vendor) {
+    params.push(`%${vendor.toLowerCase()}%`);
+    sql += ` AND LOWER(vendor_name) LIKE $${params.length}`;
+  }
+  sql += ` ORDER BY created_at DESC`;
+
+  const result = await query(sql, params);
+  return c.json({ success: true, data: result.rows });
 });
