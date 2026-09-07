@@ -197,4 +197,94 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
       })
     );
   });
+
+  describe('POST /api/outbound/:id/issue-waybill', () => {
+    const orderRow = { id: 'out-1', order_number: 'ORD-001', status: 'PACKED' };
+
+    it('should issue waybill with unique SJ + RESI numbers and record checkpoint WAYBILL_ISSUED', async () => {
+      vi.mocked(db.query)
+        .mockResolvedValueOnce({ rows: [orderRow] } as any) // SELECT order
+        .mockResolvedValueOnce({ rows: [] } as any) // cek waybill aktif (kosong)
+        .mockResolvedValueOnce({ rows: [] } as any) // cek sj_number unik
+        .mockResolvedValueOnce({ rows: [] } as any); // cek resi_number unik
+
+      mockClient.query
+        .mockResolvedValueOnce({}) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ id: 'wb-1', sj_number: 'SJ-AAAA1111', resi_number: 'RESI-BBBB2222', status: 'ISSUED' }] }) // INSERT waybills
+        .mockResolvedValueOnce({}); // COMMIT
+
+      const res = await app.request('/api/outbound/out-1/issue-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor_name: 'Admin Gudang Siti' })
+      });
+
+      expect(res.status).toBe(201);
+      const bodyRes = await res.json();
+      expect(bodyRes.success).toBe(true);
+      expect(bodyRes.data.sj_number).toMatch(/^SJ-[0-9A-HJ-NP-Z]{8}$/);
+      expect(bodyRes.data.resi_number).toMatch(/^RESI-[0-9A-HJ-NP-Z]{8}$/);
+      expect(checkpointService.recordCheckpoint).toHaveBeenCalledWith(
+        expect.objectContaining({
+          step_code: 'WAYBILL_ISSUED',
+          actor_name: 'Admin Gudang Siti',
+          metadata: expect.objectContaining({
+            sj_number: expect.stringMatching(/^SJ-[0-9A-HJ-NP-Z]{8}$/),
+            resi_number: expect.stringMatching(/^RESI-[0-9A-HJ-NP-Z]{8}$/)
+          })
+        })
+      );
+    });
+
+    it('should return 404 when outbound order does not exist', async () => {
+      vi.mocked(db.query).mockResolvedValueOnce({ rows: [] } as any);
+
+      const res = await app.request('/api/outbound/out-404/issue-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor_name: 'Admin Gudang Siti' })
+      });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 409 when an active waybill already exists for the order', async () => {
+      vi.mocked(db.query)
+        .mockResolvedValueOnce({ rows: [orderRow] } as any)
+        .mockResolvedValueOnce({ rows: [{ id: 'wb-1', sj_number: 'SJ-EXIST77' }] } as any);
+
+      const res = await app.request('/api/outbound/out-1/issue-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor_name: 'Admin Gudang Siti' })
+      });
+
+      expect(res.status).toBe(409);
+      const bodyRes = await res.json();
+      expect(bodyRes.message).toContain('SJ-EXIST77');
+    });
+
+    it('should return 409 when order status is DELIVERED or POD_VERIFIED', async () => {
+      vi.mocked(db.query)
+        .mockResolvedValueOnce({ rows: [{ ...orderRow, status: 'POD_VERIFIED' }] } as any);
+
+      const res = await app.request('/api/outbound/out-1/issue-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor_name: 'Admin Gudang Siti' })
+      });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('should return 400 when actor_name is missing (Mandatory petugas_name)', async () => {
+      const res = await app.request('/api/outbound/out-1/issue-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+
+      expect(res.status).toBe(400);
+    });
+  });
 });

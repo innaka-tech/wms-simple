@@ -12,6 +12,7 @@ import { debulkingRoutes } from './routes/debulking.js';
 import { crossdockRoutes } from './routes/crossdock.js';
 import { crossDocRoutes } from './routes/crossdoc.js';
 import { outboundRoutes } from './routes/outbound.js';
+import { waybillRoutes } from './routes/waybills.js';
 import { fleetRoutes } from './routes/fleet.js';
 import { stockRoutes } from './routes/stock.js';
 import { weighbridgeRoutes } from './routes/weighbridge.js';
@@ -77,6 +78,7 @@ export function createApp() {
   app.route('/api/crossdock', crossdockRoutes);
   app.route('/api/crossdoc', crossDocRoutes);
   app.route('/api/outbound', outboundRoutes);
+  app.route('/api/waybills', waybillRoutes);
   app.route('/api/fleet', fleetRoutes);
   app.route('/api/stock', stockRoutes);
   app.route('/api/weighbridge', weighbridgeRoutes);

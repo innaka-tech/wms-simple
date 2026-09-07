@@ -409,6 +409,7 @@ export function initSqliteSchema() {
       driver_name TEXT,
       truck_plate TEXT,
       cross_doc_id TEXT REFERENCES cross_documents(id) ON DELETE SET NULL,
+      billing_ready INTEGER DEFAULT 0,
       scheduled_ship_date TEXT,
       shipped_at TEXT,
       delivered_at TEXT,
@@ -529,7 +530,28 @@ export function initSqliteSchema() {
       resolution_notes TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS waybills (
+      id TEXT PRIMARY KEY,
+      sj_number TEXT UNIQUE NOT NULL,
+      resi_number TEXT UNIQUE NOT NULL,
+      reference_type TEXT NOT NULL DEFAULT 'OUTBOUND_ORDER',
+      reference_id TEXT NOT NULL,
+      issued_by_id TEXT REFERENCES users(id),
+      issued_by_name TEXT NOT NULL,
+      issued_at TEXT DEFAULT (datetime('now')),
+      status TEXT NOT NULL DEFAULT 'ISSUED',
+      notes TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `);
+
+  // Migrasi ringan untuk file database lama (idempotent): kolom billing_ready
+  try {
+    sqliteDb.exec('ALTER TABLE outbound_orders ADD COLUMN billing_ready INTEGER DEFAULT 0');
+  } catch {
+    // kolom sudah ada pada database baru
+  }
 
   seedSqliteData();
 }

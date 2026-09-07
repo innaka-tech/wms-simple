@@ -5,6 +5,23 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.3.0] - 2026-09-07
+
+### Added
+
+- **Modul Waybill (backlog #1 dari ADR-11):**
+  - Tabel `waybills` (`sj_number` SJ-XXXXXXXX unique, `resi_number` RESI-XXXXXXXX unique, `reference_type`, `reference_id`, `issued_by_id/name`, `status` ISSUED|PRINTED|IN_TRANSIT|POD_VERIFIED|VOID).
+  - Endpoint `POST /api/outbound/:id/issue-waybill` — penerbitan SJ + resi otomatis untuk SEMUA jenis pengiriman; validasi Zod, wajib `actor_name`, guard status (blokir DELIVERED/POD_VERIFIED/CANCELLED), guard satu waybill aktif per order (409), retry generate nomor unik (5x).
+  - Kolom `billing_ready` di `outbound_orders` — otomatis `true` saat `POD_VERIFIED` (dasar modul penagihan, backlog #3).
+  - Endpoint `GET /api/waybills?status=` + detail waybill dengan rantai checkpoint.
+  - Checkpoint audit baru `WAYBILL_ISSUED` (tertaut `prev_checkpoint_id` otomatis, metadata SJ/Resi).
+- Generator nomor `backend/src/utils/waybill.ts` (alfabet tanpa I/O agar mudah dibacakan).
+
+### Tests
+
+- Unit: format + keunikan generator nomor (5.000 iterasi) — 5 test baru.
+- Integrasi: issue-waybill sukses/404/409 duplikat/409 status terblokir/400 tanpa actor_name — 5 test baru. Total 90/90 lulus (17 suite).
+
 ## [3.2.4] - 2026-09-07
 
 ### Added

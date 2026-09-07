@@ -18,7 +18,7 @@ Revisi v3.2.0 (feedback owner): (a) timbang truk keluar juga DIHAPUS — tidak a
 Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, spesifikasi outbound + billing di `docs/06`, spesifikasi jalur vendor di `docs/05`, ADR-11 direvisi, master PDF + PNG diregenerasi & terverifikasi.
 
 **Backlog implementasi (menyusul, docs → code):**
-1. Tabel `waybills` (SJ/RESI auto-generate) + endpoint `POST /api/outbound/:id/issue-waybill` + kolom `billing_ready` di `outbound_orders`.
+1. [x] **SELESAI v3.3.0** — Tabel `waybills` + endpoint `POST /api/outbound/:id/issue-waybill` (Zod, guard status & duplikat, checkpoint `WAYBILL_ISSUED`) + kolom `billing_ready` (true saat POD_VERIFIED) + `GET /api/waybills?status=`. Test: 90/90 (unit generator 5 + integrasi 5).
 2. Tabel `vendor_vehicle_exit_logs` + endpoint `POST /api/fleet/vendor-exit` (+ enrich `fleet_exit_logs.waybill_number`).
 3. Tabel `invoices` + `payments` + endpoint `POST /api/billing/:orderId/invoice`, `POST /api/billing/:invoiceId/payments` (checkpoint `INVOICE_ISSUED`, `PAYMENT_RECEIVED`).
 4. Frontend: tombol Terbitkan SJ+Resi (thermal), form log keluar truk vendor, tampil nomor resi di POD, halaman billing (faktur, catat pembayaran, piutang).

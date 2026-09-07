@@ -1,8 +1,10 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { query, pool } from '../db.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
 import { adjustStock } from '../services/stock.js';
 import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
+import { generateWaybillNumber } from '../utils/waybill.js';
 
 export const outboundRoutes = new Hono();
 
@@ -379,7 +381,12 @@ outboundRoutes.post('/:id/verify-pod', optionalAuth, async (c) => {
     );
 
     const nextStatus = status === 'REJECTED' ? 'CANCELLED' : 'POD_VERIFIED';
-    await client.query(`UPDATE outbound_orders SET status = $2 WHERE id = $1`, [id, nextStatus]);
+    // billing_ready = penanda tunggal modul penagihan (true saat POD_VERIFIED)
+    await client.query(`UPDATE outbound_orders SET status = $2, billing_ready = $3 WHERE id = $1`, [
+      id,
+      nextStatus,
+      nextStatus === 'POD_VERIFIED'
+    ]);
 
     await client.query('COMMIT');
 
@@ -397,6 +404,116 @@ outboundRoutes.post('/:id/verify-pod', optionalAuth, async (c) => {
     });
 
     return c.json({ success: true, message: 'POD verified successfully' });
+  } catch (err: any) {
+    await client.query('ROLLBACK');
+    return c.json({ success: false, message: err.message }, 500);
+  } finally {
+    client.release();
+  }
+});
+
+// 8. Issue Waybill (Step 4: Terbitkan Surat Jalan Baru + Nomor Resi Otomatis)
+// Satu titik penerbitan untuk SEMUA jenis pengiriman (stok, repacking, cross-dock, KDMP).
+const issueWaybillSchema = z.object({
+  actor_name: z.string().trim().min(2, 'Nama petugas penerbit wajib diisi (min 2 karakter)').optional(),
+  actor_id: z.string().optional(),
+  reference_type: z.enum(['OUTBOUND_ORDER', 'CROSS_DOCK_MANIFEST']).default('OUTBOUND_ORDER'),
+  notes: z.string().max(500).optional()
+});
+
+outboundRoutes.post('/:id/issue-waybill', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
+  const id = c.req.param('id');
+
+  const parsed = issueWaybillSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ success: false, message: parsed.error.issues[0]?.message || 'Payload tidak valid' }, 400);
+  }
+  const body = parsed.data;
+
+  const actor_name = (user?.full_name || body.actor_name || '').trim();
+  const actor_id = user?.id || body.actor_id;
+  const actor_role = user?.role || 'WH_STAFF';
+
+  if (!actor_name || actor_name.length < 2) {
+    return c.json({ success: false, message: 'Nama petugas penerbit wajib diisi (Mandatory petugas_name)' }, 400);
+  }
+
+  const orderRes = await query(`SELECT * FROM outbound_orders WHERE id = $1`, [id]);
+  if (orderRes.rows.length === 0) {
+    return c.json({ success: false, message: 'Outbound order not found' }, 404);
+  }
+  const order = orderRes.rows[0];
+
+  // Waybill tidak boleh diterbitkan setelah barang terkirim / dibatalkan
+  const blockedStatuses = ['DELIVERED', 'POD_VERIFIED', 'CANCELLED'];
+  if (blockedStatuses.includes(order.status)) {
+    return c.json(
+      { success: false, message: `Waybill tidak dapat diterbitkan pada status ${order.status}` },
+      409
+    );
+  }
+
+  // Satu waybill aktif per order (idempoten)
+  const dupRes = await query(
+    `SELECT id, sj_number FROM waybills
+     WHERE reference_type = $1 AND reference_id = $2 AND status != 'VOID'`,
+    [body.reference_type, id]
+  );
+  if (dupRes.rows.length > 0) {
+    return c.json(
+      { success: false, message: `Waybill sudah diterbitkan untuk order ini (SJ: ${dupRes.rows[0].sj_number})` },
+      409
+    );
+  }
+
+  // Generate nomor unik (cek database, maksimal 5 percobaan)
+  let sjNumber = '';
+  let resiNumber = '';
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const sj = generateWaybillNumber('SJ');
+    const resi = generateWaybillNumber('RESI');
+    const sjExists = await query(`SELECT 1 FROM waybills WHERE sj_number = $1`, [sj]);
+    const resiExists = await query(`SELECT 1 FROM waybills WHERE resi_number = $1`, [resi]);
+    if (sjExists.rows.length === 0 && resiExists.rows.length === 0) {
+      sjNumber = sj;
+      resiNumber = resi;
+      break;
+    }
+  }
+  if (!sjNumber || !resiNumber) {
+    return c.json({ success: false, message: 'Gagal generate nomor SJ/Resi unik, coba lagi' }, 500);
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const waybillRes = await client.query(
+      `INSERT INTO waybills (
+        sj_number, resi_number, reference_type, reference_id,
+        issued_by_id, issued_by_name, status, notes
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'ISSUED', $7)
+      RETURNING *`,
+      [sjNumber, resiNumber, body.reference_type, id, actor_id || null, actor_name, body.notes || null]
+    );
+    const waybill = waybillRes.rows[0];
+    await client.query('COMMIT');
+
+    // Record Checkpoint: WAYBILL_ISSUED (rantai audit tetap tersambung)
+    await recordCheckpoint({
+      entity_type: 'OUTBOUND_ORDER',
+      entity_id: id as string,
+      entity_number: order.order_number,
+      step_code: 'WAYBILL_ISSUED',
+      step_label: 'Surat Jalan Baru & Nomor Resi Diterbitkan Otomatis',
+      actor_id: actor_id || null,
+      actor_name: actor_name,
+      actor_role: actor_role,
+      notes: body.notes || `SJ: ${sjNumber} / Resi: ${resiNumber} diserahkan ke sopir saat loading`,
+      metadata: { sj_number: sjNumber, resi_number: resiNumber, waybill_id: waybill.id }
+    });
+
+    return c.json({ success: true, data: waybill }, 201);
   } catch (err: any) {
     await client.query('ROLLBACK');
     return c.json({ success: false, message: err.message }, 500);
