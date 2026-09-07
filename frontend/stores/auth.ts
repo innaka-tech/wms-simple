@@ -18,7 +18,7 @@ export interface NavItem {
   name: string;
   path: string;
   icon: string;
-  code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod';
+  code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing';
   badge?: string;
   roles: UserRole[];
 }
@@ -48,13 +48,16 @@ const MASTER_NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: 'Operasional Gudang',
     items: [
-      { name: 'Repacking (De-bulking)', path: '/debulking', icon: 'debulking', code: 'debulking', badge: 'Curah', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
+      { name: 'Repacking (De-bulking)', path: '/debulking', icon: 'debulking', code: 'debulking', badge: 'Curah', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Surat Jalan & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
     ]
   },
   {
     title: 'Distribusi & Pengiriman',
     items: [
-      { name: 'Bukti Kirim (e-POD / BAST)', path: '/outbound/pod', icon: 'pod', code: 'outbound_pod', badge: 'KDMP', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'] }
+      { name: 'Pengiriman (Outbound)', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Bukti Kirim (e-POD / BAST)', path: '/outbound/pod', icon: 'pod', code: 'outbound_pod', badge: 'KDMP', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'] },
+      { name: 'Penagihan & Pembayaran', path: '/billing', icon: 'stock', code: 'billing', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] }
     ]
   }
 ];
@@ -155,6 +158,11 @@ export const useAuthStore = defineStore('auth', {
           return ['ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'].includes(currentRole);
         case 'outbound_pod':
           return ['ADMIN_ADM', 'WH_MANAGER', 'DRIVER'].includes(currentRole);
+        case 'outbound_orders':
+        case 'waybills':
+          return ['ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'].includes(currentRole);
+        case 'billing':
+          return ['ADMIN_ADM', 'WH_MANAGER'].includes(currentRole);
         case 'stock':
           return ['ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'].includes(currentRole);
         default:
@@ -176,8 +184,14 @@ export const useAuthStore = defineStore('auth', {
       if (path.startsWith('/debulking')) {
         return ['ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'].includes(currentRole);
       }
-      if (path.startsWith('/outbound')) {
+      if (path.startsWith('/outbound/pod')) {
         return ['ADMIN_ADM', 'WH_MANAGER', 'DRIVER'].includes(currentRole);
+      }
+      if (path.startsWith('/outbound') || path.startsWith('/waybills')) {
+        return ['ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'].includes(currentRole);
+      }
+      if (path.startsWith('/billing')) {
+        return ['ADMIN_ADM', 'WH_MANAGER'].includes(currentRole);
       }
       if (path.startsWith('/stock')) {
         return ['ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'].includes(currentRole);

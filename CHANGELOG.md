@@ -5,6 +5,23 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.1.0] - 2026-09-07
+
+### Added (Backlog #4 — Frontend Alur Baru)
+
+- **Halaman Pengiriman `/outbound`:** daftar order + tombol **Terbitkan SJ + Resi** (guard status & anti-duplikat) + **cetak struk thermal ESC/POS** (preset `printWaybillReceipt` — Web Bluetooth, fallback simulasi).
+- **Halaman `/waybills`:** daftar SJ-XXXXXXXX / RESI-XXXXXXXX semua jalur + filter status (daftar waybill docs/06 §6).
+- **Halaman `/billing`:** order siap tagih (`billing_ready`), terbitkan faktur **Rupiah (IDR)**, catat pembayaran (parsial → LUNAS), ringkasan piutang berjalan & penerimaan; modal pembayaran (TRANSFER/CASH/QRIS/GIRO).
+- **Halaman POD `/outbound/pod`:** pencarian nomor order → **nomor resi/SJ wajib tampil** (docs/06), submit POD nyata ke API (sebelumnya mock).
+- **Pos Satpam `/gate-pass`:** tab baru **Jalur B — Truk Vendor**: nama vendor + nopol manual + resi wajib (datalist dari waybill terdaftar), referensi order opsional, sesuai docs/05 — truk vendor tidak wajib kembali.
+- **Navigasi RBAC:** menu baru (outbound, waybills, billing) dengan pemetaan peran di `canAccess`/`canAccessRoute`.
+
+### Verification
+
+- `nuxt build` sukses; seluruh alur frontend tersambung ke API PostgreSQL (issue-waybill → departure/vendor-exit → POD → invoice → LUNAS).
+
+---
+
 ## [4.0.0] - 2026-09-07
 
 ### Changed (BREAKING — Engine Database)

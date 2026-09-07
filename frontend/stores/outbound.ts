@@ -9,6 +9,9 @@ export interface OutboundOrder {
   recipient_name: string;
   destination_address: string;
   status: 'CREATED' | 'PICKED' | 'PACKED' | 'SHIPPED' | 'DELIVERED' | 'POD_VERIFIED' | 'CANCELLED';
+  billing_ready?: number;
+  payment_status?: 'UNPAID' | 'PAID';
+  destination_city?: string | null;
   items?: any[];
   packages?: any[];
   pod?: any;

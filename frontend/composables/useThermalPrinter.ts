@@ -225,6 +225,48 @@ export function useThermalPrinter() {
     return await sendRawBytes(bytes);
   }
 
+  // Preset Template 3: Struk Terbit Surat Jalan + Nomor Resi (semua jenis pengiriman)
+  async function printWaybillReceipt(data: {
+    order_number: string;
+    sj_number: string;
+    resi_number: string;
+    recipient_name: string;
+    destination?: string;
+    issued_by: string;
+  }) {
+    let bytes: number[] = initBuffer();
+
+    bytes.push(...setAlign('CENTER'));
+    bytes.push(...setSize('DOUBLE_HEIGHT'));
+    bytes.push(...setBold(true));
+    bytes.push(...addLine('SURAT JALAN + RESI'));
+    bytes.push(...setSize('NORMAL'));
+    bytes.push(...setBold(false));
+    bytes.push(...addLine('WMS SIMPLE ENTERPRISE'));
+    bytes.push(...addDivider('='));
+
+    bytes.push(...setAlign('LEFT'));
+    bytes.push(...addRow('ORDER:', data.order_number));
+    bytes.push(...setBold(true));
+    bytes.push(...addRow('NO. SJ:', data.sj_number));
+    bytes.push(...addRow('NO. RESI:', data.resi_number));
+    bytes.push(...setBold(false));
+    bytes.push(...addRow('PENERIMA:', data.recipient_name));
+    if (data.destination) {
+      bytes.push(...addRow('TUJUAN:', data.destination));
+    }
+    bytes.push(...addRow('DITERBITKAN:', data.issued_by));
+    bytes.push(...addRow('WAKTU:', new Date().toLocaleString('id-ID')));
+    bytes.push(...addDivider('='));
+
+    bytes.push(...setAlign('CENTER'));
+    bytes.push(...addLine('Surat jalan sah untuk keluar gerbang.'));
+    bytes.push(...addLine('Wajib ditunjukkan di pos satpam.'));
+    bytes.push(...cutPaper());
+
+    return await sendRawBytes(bytes);
+  }
+
   return {
     isConnected,
     isPrinting,
@@ -232,6 +274,7 @@ export function useThermalPrinter() {
     connectBluetoothPrinter,
     sendRawBytes,
     printGatePassReceipt,
-    printSuratJalanSwap
+    printSuratJalanSwap,
+    printWaybillReceipt
   };
 }

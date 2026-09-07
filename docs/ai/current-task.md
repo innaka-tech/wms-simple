@@ -189,3 +189,16 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 3. [x] **117/117 test lulus (19 suite)** + smoke manual rantai penuh sampai LUNAS di dev DB. ADR-12 tercatat.
 
 **Next:** frontend backlog #4, atau push `ans` bila diminta.
+
+---
+
+## Sesi 2026-09-07 (Lanjutan 3) — Backlog #4 Frontend (v4.1.0)
+
+1. [x] **/outbound** — daftar order + Terbitkan SJ+Resi + struk thermal ESC/POS (guard status & anti-duplikat).
+2. [x] **/waybills** — daftar SJ/Resi semua jalur + filter status.
+3. [x] **/billing** — siap tagih (billing_ready), faktur IDR, pembayaran parsial→LUNAS, ringkasan piutang.
+4. [x] **/outbound/pod** — lookup nomor order → resi/SJ wajib tampil; submit POD nyata (dulu mock).
+5. [x] **/gate-pass** — tab Jalur B truk vendor: vendor + nopol + resi wajib (datalist), tanpa gate-in.
+6. [x] **Nav RBAC** — menu outbound/waybills/billing per peran. `nuxt build` sukses.
+
+**Next:** smoke test app penuh (dev server), atau push `ans` bila diminta.

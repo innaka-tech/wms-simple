@@ -19,19 +19,30 @@
     <!-- Header & Order Destination -->
     <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-2 transition-colors">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div class="flex items-center space-x-2">
-          <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800">
-            ORD-20260901-004
-          </span>
-          <span class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-            DRIVER POD / BAST DESA
-          </span>
+        <div class="flex items-center space-x-2 flex-wrap">
+          <input
+            v-model="orderNumberInput"
+            @keydown.enter="lookupWaybill"
+            type="text"
+            placeholder="Masukkan No. Order (ORD-...)"
+            class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none w-56"
+          />
+          <button type="button" @click="lookupWaybill" class="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition cursor-pointer">
+            Cari Resi
+          </button>
         </div>
         <span class="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center space-x-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
           <span>Program KDMP Cold Chain</span>
         </span>
       </div>
+      <div v-if="matchedWaybill" class="flex items-center gap-2 flex-wrap p-2.5 rounded-md bg-blue-50/60 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+        <AppIcon name="printer" custom-class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{{ matchedWaybill.sj_number }}</span>
+        <span class="text-xs font-mono font-bold text-slate-900 dark:text-white">RESI: {{ matchedWaybill.resi_number }}</span>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{{ matchedWaybill.status }}</span>
+      </div>
+      <p v-if="lookupMessage" class="text-[11px] text-amber-600 dark:text-amber-400 font-medium">{{ lookupMessage }}</p>
       <div>
         <h3 class="font-bold text-slate-900 dark:text-slate-100 text-base">Balai Desa Sukamaju (Koperasi Desa Merah Putih)</h3>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Kargo Khusus: 2 Unit Showcase Display KDMP Chiller (Aturan Upright Only & Tail-Lift Validated)</p>
@@ -120,31 +131,86 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import SignaturePad from '~/components/SignaturePad.vue'
 import { useOutboundStore } from '~/stores/outbound'
+import { useWaybillStore } from '~/stores/waybill'
+import { useWmsApi } from '~/composables/useWmsApi'
+import { useAuthStore } from '~/stores/auth'
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner'
 
 const outboundStore = useOutboundStore()
+const waybillStore = useWaybillStore()
+const authStore = useAuthStore()
+const { apiFetch } = useWmsApi()
 const { playAudioFeedback } = useBarcodeScanner()
 
 const photoPreview = ref(false)
 const signatureData = ref('')
 const recipientName = ref('I Made Sukarja (Ketua KDMP)')
 
+// Lookup order + waybill (resi) — nomor resi wajib tampil di halaman POD (docs/06)
+const orderNumberInput = ref('')
+const matchedWaybill = ref(null)
+const lookupMessage = ref('')
+
 function takePhoto() {
   photoPreview.value = true
   playAudioFeedback('SUCCESS')
 }
 
+async function lookupWaybill() {
+  lookupMessage.value = ''
+  matchedWaybill.value = null
+  if (!orderNumberInput.value.trim()) return
+  await waybillStore.fetchWaybills()
+  const found = waybillStore.waybills.find(
+    (w) => (w.order_number || '').toLowerCase() === orderNumberInput.value.trim().toLowerCase()
+  )
+  if (found) {
+    matchedWaybill.value = found
+    playAudioFeedback('SUCCESS')
+  } else {
+    lookupMessage.value = 'Waybill untuk nomor order itu tidak ditemukan — pastikan SJ + resi sudah diterbitkan.'
+    playAudioFeedback('ERROR')
+  }
+}
+
 async function handleSubmitPod() {
+  if (!matchedWaybill.value) {
+    outboundStore.errorMessage = 'Cari nomor order dulu — POD harus menautkan order + nomor resi.'
+    playAudioFeedback('ERROR')
+    return
+  }
   if (!photoPreview.value) {
     outboundStore.errorMessage = 'Foto serah terima fisik barang wajib diambil terlebih dahulu!'
     playAudioFeedback('ERROR')
     return
   }
 
-  playAudioFeedback('SUCCESS')
-  outboundStore.successMessage = `POD Berhasil Dikirim! Diterima oleh ${recipientName.value}. Status Order menjadi DELIVERED & Siap Diverifikasi Admin.`
+  const orderId = matchedWaybill.value.reference_id
+  const actor = authStore.user?.full_name || 'Driver Pengiriman'
+  try {
+    await apiFetch(`/outbound/${orderId}/pod`, {
+      method: 'POST',
+      body: {
+        recipient_name: recipientName.value,
+        pod_photo_url: 'uploaded://pod-photo-capture',
+        signature_photo_url: signatureData.value || 'data:image/png;base64,manual',
+        delivered_qty: 1,
+        actor_name: actor,
+        notes: `Resi ${matchedWaybill.value.resi_number} / SJ ${matchedWaybill.value.sj_number}`
+      }
+    })
+    playAudioFeedback('SUCCESS')
+    outboundStore.successMessage = `POD Berhasil Dikirim! Diterima oleh ${recipientName.value}. Status Order DELIVERED — menunggu verifikasi admin sebelum penagihan.`
+  } catch (err) {
+    outboundStore.errorMessage = err.detail || err.message
+    playAudioFeedback('ERROR')
+  }
 }
+
+onMounted(() => {
+  waybillStore.fetchWaybills()
+})
 </script>
