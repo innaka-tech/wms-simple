@@ -306,6 +306,44 @@ try {
       writeFileSync(outPath, Buffer.from(shot.data, 'base64'));
       console.log('OK PNG:', outPath, `(${totalW * 2}x${totalH * 2}px, diagram utuh tanpa potongan)`);
     }
+
+    // Gabung semua diagram sequence jadi SATU PNG (stack vertikal, lebar seragam)
+    const seqIds = DIAGRAM_IDS.filter(id => id !== 'd-flow');
+    if (seqIds.length > 1) {
+      const pad = 24, gap = 18;
+      const W = Math.max(...seqIds.map(id => diag[id].w));
+      const secs = seqIds.map((id, i) => `
+        <div class="sec" style="margin-top:${i ? gap : 0}px; border-top:${i ? '2px solid #cfd8dc' : 'none'}">
+          <div class="head">${PNG_TITLE[id]}</div>
+          <div class="sub">v${VERSION} • ${new Date().toISOString().slice(0, 10)} • BER5 Logistics</div>
+          <div class="body">${svgMap[id]}</div>
+        </div>`).join('');
+      const combHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+        html,body { margin:0; padding:0; background:#fff; }
+        .wrap { padding: ${pad}px; width: ${W}px; }
+        .head { font:700 20px -apple-system,Helvetica,Arial,sans-serif; color:#0d47a1; padding: 12px 0 4px; }
+        .sub { font:400 12px -apple-system,Helvetica,Arial,sans-serif; color:#78909c; padding-bottom: 10px; }
+        .body svg { width: ${W}px !important; height: auto !important; display: block; }
+      </style></head><body><div class="wrap">${secs}</div></body></html>`;
+      const combPath = join(workDir, 'png-combined.html');
+      writeFileSync(combPath, combHtml);
+      await new Promise((res) => {
+        const h = (msg) => { if (msg.method === 'Page.loadEventFired') res(); };
+        cdp.on(h);
+        cdp.send('Page.navigate', { url: 'file://' + combPath }).then(() => setTimeout(res, 500));
+      });
+      const hRes = await cdp.send('Runtime.evaluate', { expression: 'document.documentElement.scrollHeight', returnByValue: true });
+      const totalW = W + 2 * pad, totalH = Math.ceil(hRes.result.value || 4000);
+      // dsf=2 memberi 2x; clip.scale diturunkan ke 1 agar tidak menggandakan jadi 4x
+      await cdp.send('Emulation.setDeviceMetricsOverride', { width: totalW, height: totalH, deviceScaleFactor: 2, mobile: false });
+      const combShot = await cdp.send('Page.captureScreenshot', {
+        format: 'png', captureBeyondViewport: true,
+        clip: { x: 0, y: 0, width: totalW, height: totalH, scale: 1 },
+      });
+      const combOut = join(outDir, 'wms-sequence.png');
+      writeFileSync(combOut, Buffer.from(combShot.data, 'base64'));
+      console.log('OK PNG (gabungan):', combOut, `(${totalW * 2}x${totalH * 2}px, ${seqIds.length} diagram dalam satu gambar)`);
+    }
     cdp.close();
     chrome.kill();
     process.exit(0);

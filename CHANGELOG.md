@@ -5,6 +5,12 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [3.2.4] - 2026-09-07
+
+### Added
+
+- **PNG sequence gabungan** `wms-sequence.png`: B.1 + B.2 + B.3 distack vertikal dalam satu gambar utuh (3758×6904, lebar seragam, pemisah antar bagian) — siap share satu file ke client. PNG per-fase tetap tersedia di `docs/diagrams/`.
+
 ## [3.2.3] - 2026-09-07
 
 ### Changed
