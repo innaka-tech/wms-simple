@@ -1,14 +1,16 @@
 {
   "project": "wms-simple",
-  "version": "4.1.0",
-  "status": "active_task_implementation_backlog_billing_done",
-  "phase": "implementation_backlog_3_billing_completed",
+  "version": "4.1.2",
+  "status": "active_task_implementation_backlog_frontend_done",
+  "phase": "implementation_backlog_4_frontend_completed_runtime_postgresql",
   "progress": 100,
-  "last_updated": "2026-09-07T00:00:00+07:00",
+  "last_updated": "2026-09-08T21:20:00+07:00",
   "database": {
-    "target": "sqlite_standalone_and_postgresql_hybrid",
-    "driver": "node:sqlite",
-    "sqlite_file": "./wms_simple.sqlite",
+    "target": "postgresql_host_global_stack",
+    "driver": "node-postgres (pg Pool)",
+    "host": "127.0.0.1:5432",
+    "database": "wms_simple_db",
+    "test_database": "wms_simple_test_db",
     "status": "active"
   },
   "modules": {
@@ -54,14 +56,18 @@
     "flow_v3_dual_gate_out_vendor_truck": "docs_completed",
     "flow_v3_weighbridge_in_out": "docs_completed",
     "flow_v3_single_end_pod_billing": "docs_completed",
-    "implementation_backlog_waybills_vendor_exit_logs": "in_progress_waybills_vendor_exit_billing_done"
+    "implementation_backlog_waybills_vendor_exit_logs": "completed_waybill_vendor_exit_billing",
+    "runtime_postgresql_native": "completed_adr_12",
+    "implementation_backlog_frontend_outbound_waybills_billing": "completed",
+    "dev_login_bypass_and_port_pin": "completed"
   },
   "test_metrics": {
     "framework": "Vitest 4.1.11",
-    "total_test_suites": 16,
-    "total_tests": 80,
-    "passed": 80,
+    "total_test_suites": 19,
+    "total_tests": 117,
+    "passed": 117,
     "failed": 0,
+    "e2e_chain": "transaction-chain.e2e.test.ts (PostgreSQL nyata, jalur pool + vendor sampai LUNAS)",
     "domain_service_coverage": "94.5%",
     "api_transport_coverage": "81.07%",
     "overall_coverage": "78.56%",
@@ -70,7 +76,7 @@
   "stack": {
     "frontend": "Nuxt 3 (Adaptive Desktop Console & Mobile PWA, Pinia, Tailwind CSS, Web Bluetooth ESC/POS)",
     "backend": "Hono (Node.js/TypeScript, JWT RBAC, Zod, RFC 7807)",
-    "database": "SQLite (node:sqlite) + PostgreSQL Ready",
+    "database": "PostgreSQL 16 asli (global stack, ADR-12) — SQLite dihapus dari runtime",
     "infra": "Docker Compose Prod + Nginx Gateway + Host Database"
   }
 }

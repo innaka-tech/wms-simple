@@ -202,3 +202,14 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 6. [x] **Nav RBAC** — menu outbound/waybills/billing per peran. `nuxt build` sukses.
 
 **Next:** smoke test app penuh (dev server), atau push `ans` bila diminta.
+
+---
+
+## Sesi 2026-09-08 — Smoke E2E, Login Fix, Dev Bypass (v4.1.1–v4.1.2)
+
+1. [x] **Smoke app penuh:** backend boot ke PostgreSQL global stack (login semua role 200, endpoint backlog hijau); frontend semua halaman 200.
+2. [x] **v4.1.1 — Fix login 500 di PG asli:** 27 kolom flag transliterasi SQLite (`INTEGER 0/1`) dikonversi `BOOLEAN` asli + seed `TRUE/FALSE`; dev & test DB di-reset. 117/117 test + TSC bersih.
+3. [x] **v4.1.2 — Dev bypass login:** tekan `D` 3x di halaman login masuk instan Super Admin (dev-only, `import.meta.dev`); port frontend dipin 3001 via CLI flag (env `PORT=3000` global tidak lagi menimpa config; backend 3000 / frontend 3001 tanpa bentrok).
+4. [x] **Dev server permanen via tmux:** sesi `wms-be` (3000) & `wms-fe` (3001) — backend login 200, halaman frontend 200.
+
+**Next (sisa backlog):** #5 — e2e rantai checkpoint inbound/crossdock (outbound pool + vendor sudah tertutup suite e2e), atau push `ans` bila diminta.
