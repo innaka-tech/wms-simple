@@ -5,6 +5,12 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.1.1] - 2026-09-08
+
+### Fixed (PostgreSQL Boolean Type Mismatch)
+
+- **Login 500 di PG asli:** kolom flag hasil transliterasi schema masih `INTEGER 0/1` sementara query pakai `= true` (error `integer = boolean`). 27 kolom dikonversi ke `BOOLEAN` asli + seluruh seed `TRUE/FALSE`.
+
 ## [4.1.0] - 2026-09-07
 
 ### Added (Backlog #4 — Frontend Alur Baru)

@@ -11,9 +11,9 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       name TEXT NOT NULL,
       category TEXT NOT NULL DEFAULT 'GENERAL',
       handling_instructions TEXT,
-      requires_weighbridge INTEGER DEFAULT 0,
-      requires_temperature_control INTEGER DEFAULT 0,
-      is_active INTEGER DEFAULT 1,
+      requires_weighbridge BOOLEAN DEFAULT FALSE,
+      requires_temperature_control BOOLEAN DEFAULT FALSE,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now(),
       updated_at TEXT DEFAULT now()
     );
@@ -22,11 +22,11 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       id TEXT PRIMARY KEY,
       code TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
-      is_bulk_container INTEGER DEFAULT 0,
+      is_bulk_container BOOLEAN DEFAULT FALSE,
       tare_weight_kg DOUBLE PRECISION DEFAULT 0,
       nominal_capacity_kg DOUBLE PRECISION DEFAULT 0,
       nominal_capacity_liter DOUBLE PRECISION DEFAULT 0,
-      is_active INTEGER DEFAULT 1,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now(),
       updated_at TEXT DEFAULT now()
     );
@@ -36,8 +36,8 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       code TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
       base_category TEXT NOT NULL,
-      is_base_unit INTEGER DEFAULT 0,
-      is_active INTEGER DEFAULT 1,
+      is_base_unit BOOLEAN DEFAULT FALSE,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now()
     );
 
@@ -55,9 +55,9 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       id TEXT PRIMARY KEY,
       code TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
-      can_store_bulk INTEGER DEFAULT 0,
-      can_cross_dock INTEGER DEFAULT 1,
-      is_active INTEGER DEFAULT 1,
+      can_store_bulk BOOLEAN DEFAULT FALSE,
+      can_cross_dock BOOLEAN DEFAULT TRUE,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now()
     );
 
@@ -66,8 +66,8 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       code TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
       category TEXT NOT NULL DEFAULT 'SHIPPING',
-      is_cross_doc_eligible INTEGER DEFAULT 1,
-      is_active INTEGER DEFAULT 1,
+      is_cross_doc_eligible BOOLEAN DEFAULT TRUE,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now()
     );
 
@@ -86,7 +86,7 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       fuel_type TEXT DEFAULT 'SOLAR',
       avg_fuel_consumption_km_per_liter DOUBLE PRECISION DEFAULT 3.5,
       compatible_cargo_type_ids TEXT DEFAULT '[]',
-      is_active INTEGER DEFAULT 1,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now(),
       updated_at TEXT DEFAULT now()
     );
@@ -98,11 +98,11 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       warehouse_type_id TEXT NOT NULL REFERENCES master_warehouse_types(id),
       address TEXT NOT NULL,
       city TEXT NOT NULL,
-      has_weighbridge INTEGER DEFAULT 0,
-      has_debulking_facility INTEGER DEFAULT 0,
+      has_weighbridge BOOLEAN DEFAULT FALSE,
+      has_debulking_facility BOOLEAN DEFAULT FALSE,
       contact_name TEXT,
       contact_phone TEXT,
-      is_active INTEGER DEFAULT 1,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now(),
       updated_at TEXT DEFAULT now()
     );
@@ -119,7 +119,7 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       max_volume_capacity_cbm DOUBLE PRECISION DEFAULT 5.0,
       current_qty INTEGER DEFAULT 0,
       current_weight_kg DOUBLE PRECISION DEFAULT 0,
-      is_active INTEGER DEFAULT 1,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now(),
       UNIQUE(warehouse_id, zone, aisle, rack, bin)
     );
@@ -133,7 +133,7 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       contact_phone TEXT,
       contact_email TEXT,
       address TEXT,
-      is_active INTEGER DEFAULT 1,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now(),
       updated_at TEXT DEFAULT now()
     );
@@ -147,7 +147,7 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       role TEXT NOT NULL,
       warehouse_id TEXT REFERENCES warehouses(id) ON DELETE SET NULL,
       customer_id TEXT REFERENCES customers(id) ON DELETE SET NULL,
-      is_active INTEGER DEFAULT 1,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now(),
       updated_at TEXT DEFAULT now()
     );
@@ -162,10 +162,10 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       default_uom_id TEXT NOT NULL REFERENCES master_uom(id),
       weight_kg_per_unit DOUBLE PRECISION DEFAULT 1.0,
       volume_m3_per_unit DOUBLE PRECISION DEFAULT 0.001,
-      is_debulking_target INTEGER DEFAULT 0,
+      is_debulking_target BOOLEAN DEFAULT FALSE,
       parent_bulky_product_id TEXT REFERENCES products(id) ON DELETE SET NULL,
       min_stock_qty DOUBLE PRECISION DEFAULT 10,
-      is_active INTEGER DEFAULT 1,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now(),
       updated_at TEXT DEFAULT now()
     );
@@ -184,7 +184,7 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       kir_expiry_date TEXT,
       stnk_expiry_date TEXT,
       gps_tracking_id TEXT,
-      is_active INTEGER DEFAULT 1,
+      is_active BOOLEAN DEFAULT TRUE,
       created_at TEXT DEFAULT now(),
       updated_at TEXT DEFAULT now()
     );
@@ -290,8 +290,8 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       sender_info TEXT,
       truck_plate TEXT,
       driver_name TEXT,
-      is_bulk_cargo INTEGER DEFAULT 0,
-      requires_weighbridge INTEGER DEFAULT 0,
+      is_bulk_cargo BOOLEAN DEFAULT FALSE,
+      requires_weighbridge BOOLEAN DEFAULT FALSE,
       notes TEXT,
       created_by_id TEXT REFERENCES users(id),
       created_by_name TEXT NOT NULL,
@@ -399,7 +399,7 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       driver_name TEXT,
       truck_plate TEXT,
       cross_doc_id TEXT REFERENCES cross_documents(id) ON DELETE SET NULL,
-      billing_ready INTEGER DEFAULT 0,
+      billing_ready BOOLEAN DEFAULT FALSE,
       payment_status TEXT DEFAULT 'UNPAID',
       scheduled_ship_date TEXT,
       shipped_at TEXT,
@@ -560,7 +560,7 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       title TEXT NOT NULL,
       message TEXT NOT NULL,
       severity TEXT DEFAULT 'WARNING',
-      is_resolved INTEGER DEFAULT 0,
+      is_resolved BOOLEAN DEFAULT FALSE,
       resolved_by_id TEXT REFERENCES users(id),
       resolved_by_name TEXT,
       resolved_at TEXT,
@@ -583,45 +583,45 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
     );`;
 
 const SEED_SQL = `      INSERT INTO master_cargo_types (id, code, name, category, handling_instructions, requires_weighbridge, requires_temperature_control) VALUES
-      ('10000000-0000-0000-0000-000000000001', 'GENERAL_CARGO', 'General Packaged Goods', 'PACKAGED', 'Penanganan standar, susun sesuai tanda arah panah', 0, 0),
-      ('10000000-0000-0000-0000-000000000002', 'BULKY_HEAVY', 'Bulky & Heavy Lift Cargo', 'BULKY', 'Gunakan Forklift > 5 Ton / Crane, pastikan tumpuan rata', 1, 0),
-      ('10000000-0000-0000-0000-000000000003', 'DRY_BULK', 'Curah Kering (Grains / Fertilizer / Sugar)', 'BULK_DRY', 'Timbang jembatan timbang, hindari kelembapan dan kontak air', 1, 0),
-      ('10000000-0000-0000-0000-000000000004', 'LIQUID_BULK', 'Curah Cair (CPO / Oil / Chemical)', 'BULK_LIQUID', 'Gunakan pompa hisap & selang pipa makanan/kimia, cek segel tangki', 1, 0),
-      ('10000000-0000-0000-0000-000000000005', 'TEMPERATURE_CONTROLLED', 'Cold Chain & Frozen Food', 'SPECIAL', 'Pertahankan suhu -18C s.d 4C, catat log suhu', 0, 1)
+      ('10000000-0000-0000-0000-000000000001', 'GENERAL_CARGO', 'General Packaged Goods', 'PACKAGED', 'Penanganan standar, susun sesuai tanda arah panah', FALSE, FALSE),
+      ('10000000-0000-0000-0000-000000000002', 'BULKY_HEAVY', 'Bulky & Heavy Lift Cargo', 'BULKY', 'Gunakan Forklift > 5 Ton / Crane, pastikan tumpuan rata', TRUE, FALSE),
+      ('10000000-0000-0000-0000-000000000003', 'DRY_BULK', 'Curah Kering (Grains / Fertilizer / Sugar)', 'BULK_DRY', 'Timbang jembatan timbang, hindari kelembapan dan kontak air', TRUE, FALSE),
+      ('10000000-0000-0000-0000-000000000004', 'LIQUID_BULK', 'Curah Cair (CPO / Oil / Chemical)', 'BULK_LIQUID', 'Gunakan pompa hisap & selang pipa makanan/kimia, cek segel tangki', TRUE, FALSE),
+      ('10000000-0000-0000-0000-000000000005', 'TEMPERATURE_CONTROLLED', 'Cold Chain & Frozen Food', 'SPECIAL', 'Pertahankan suhu -18C s.d 4C, catat log suhu', FALSE, TRUE)
       ON CONFLICT DO NOTHING;
 
       INSERT INTO master_packaging_types (id, code, name, is_bulk_container, tare_weight_kg, nominal_capacity_kg, nominal_capacity_liter) VALUES
-      ('20000000-0000-0000-0000-000000000001', 'JUMBO_BAG_1T', 'Jumbo Bag FIBC 1.000 KG', 1, 2.50, 1000.00, 1200.00),
-      ('20000000-0000-0000-0000-000000000002', 'STEEL_DRUM_200L', 'Steel Drum 200 Liter', 1, 18.00, 200.00, 200.00),
-      ('20000000-0000-0000-0000-000000000003', 'WOODEN_PALLET', 'Standard Wooden Pallet (120x100cm)', 0, 20.00, 1500.00, 0.00),
-      ('20000000-0000-0000-0000-000000000004', 'SACK_50KG', 'Karung Anyaman PP 50 KG', 0, 0.15, 50.00, 60.00),
-      ('20000000-0000-0000-0000-000000000005', 'SACK_25KG', 'Karung Anyaman PP 25 KG', 0, 0.10, 25.00, 30.00),
-      ('20000000-0000-0000-0000-000000000006', 'LOOSE_BULK', 'Curah Bebas / Tanpa Kemasan', 1, 0.00, 30000.00, 35000.00),
-      ('20000000-0000-0000-0000-000000000007', 'CARTON_BOX', 'Karton Box Standar', 0, 0.50, 25.00, 35.00)
+      ('20000000-0000-0000-0000-000000000001', 'JUMBO_BAG_1T', 'Jumbo Bag FIBC 1.000 KG', TRUE, 2.50, 1000.00, 1200.00),
+      ('20000000-0000-0000-0000-000000000002', 'STEEL_DRUM_200L', 'Steel Drum 200 Liter', TRUE, 18.00, 200.00, 200.00),
+      ('20000000-0000-0000-0000-000000000003', 'WOODEN_PALLET', 'Standard Wooden Pallet (120x100cm)', FALSE, 20.00, 1500.00, 0.00),
+      ('20000000-0000-0000-0000-000000000004', 'SACK_50KG', 'Karung Anyaman PP 50 KG', FALSE, 0.15, 50.00, 60.00),
+      ('20000000-0000-0000-0000-000000000005', 'SACK_25KG', 'Karung Anyaman PP 25 KG', FALSE, 0.10, 25.00, 30.00),
+      ('20000000-0000-0000-0000-000000000006', 'LOOSE_BULK', 'Curah Bebas / Tanpa Kemasan', TRUE, 0.00, 30000.00, 35000.00),
+      ('20000000-0000-0000-0000-000000000007', 'CARTON_BOX', 'Karton Box Standar', FALSE, 0.50, 25.00, 35.00)
       ON CONFLICT DO NOTHING;
 
       INSERT INTO master_uom (id, code, name, base_category, is_base_unit) VALUES
-      ('30000000-0000-0000-0000-000000000001', 'KG', 'Kilogram', 'WEIGHT', 1),
-      ('30000000-0000-0000-0000-000000000002', 'TON', 'Metric Ton', 'WEIGHT', 0),
-      ('30000000-0000-0000-0000-000000000003', 'LTR', 'Liter', 'VOLUME', 1),
-      ('30000000-0000-0000-0000-000000000004', 'M3', 'Meter Kubik (CBM)', 'VOLUME', 0),
-      ('30000000-0000-0000-0000-000000000005', 'JUMBO_BAG', 'Jumbo Bag Unit', 'PACKAGING', 0),
-      ('30000000-0000-0000-0000-000000000006', 'DRUM', 'Drum Unit', 'PACKAGING', 0),
-      ('30000000-0000-0000-0000-000000000007', 'SACK', 'Karung / Sack', 'PACKAGING', 0),
-      ('30000000-0000-0000-0000-000000000008', 'CTN', 'Carton Box', 'PACKAGING', 0),
-      ('30000000-0000-0000-0000-000000000009', 'PCS', 'Pieces / Unit', 'PIECES', 1)
+      ('30000000-0000-0000-0000-000000000001', 'KG', 'Kilogram', 'WEIGHT', TRUE),
+      ('30000000-0000-0000-0000-000000000002', 'TON', 'Metric Ton', 'WEIGHT', FALSE),
+      ('30000000-0000-0000-0000-000000000003', 'LTR', 'Liter', 'VOLUME', TRUE),
+      ('30000000-0000-0000-0000-000000000004', 'M3', 'Meter Kubik (CBM)', 'VOLUME', FALSE),
+      ('30000000-0000-0000-0000-000000000005', 'JUMBO_BAG', 'Jumbo Bag Unit', 'PACKAGING', FALSE),
+      ('30000000-0000-0000-0000-000000000006', 'DRUM', 'Drum Unit', 'PACKAGING', FALSE),
+      ('30000000-0000-0000-0000-000000000007', 'SACK', 'Karung / Sack', 'PACKAGING', FALSE),
+      ('30000000-0000-0000-0000-000000000008', 'CTN', 'Carton Box', 'PACKAGING', FALSE),
+      ('30000000-0000-0000-0000-000000000009', 'PCS', 'Pieces / Unit', 'PIECES', TRUE)
       ON CONFLICT DO NOTHING;
 
       INSERT INTO master_warehouse_types (id, code, name, can_store_bulk, can_cross_dock) VALUES
-      ('40000000-0000-0000-0000-000000000001', 'MAIN_HUB', 'Main Consolidation & Fulfillment Hub', 1, 1),
-      ('40000000-0000-0000-0000-000000000002', 'TRANSIT_SPOKE', 'Transit Spoke Warehouse', 0, 1)
+      ('40000000-0000-0000-0000-000000000001', 'MAIN_HUB', 'Main Consolidation & Fulfillment Hub', TRUE, TRUE),
+      ('40000000-0000-0000-0000-000000000002', 'TRANSIT_SPOKE', 'Transit Spoke Warehouse', FALSE, TRUE)
       ON CONFLICT DO NOTHING;
 
       INSERT INTO master_document_types (id, code, name, category, is_cross_doc_eligible) VALUES
-      ('50000000-0000-0000-0000-000000000001', 'SJ_SUPPLIER', 'Surat Jalan Supplier / Vendor Asal', 'INBOUND', 1),
-      ('50000000-0000-0000-0000-000000000002', 'SJ_PENGIRIMAN', 'Surat Jalan Pengiriman Resmi (WMS)', 'OUTBOUND', 1),
-      ('50000000-0000-0000-0000-000000000003', 'MASTER_AWB', 'Master Airway Bill / Master B/L', 'CROSS_DOC', 1),
-      ('50000000-0000-0000-0000-000000000004', 'HOUSE_AWB', 'House Airway Bill (Sub-AWB Penerima Akhir)', 'CROSS_DOC', 1)
+      ('50000000-0000-0000-0000-000000000001', 'SJ_SUPPLIER', 'Surat Jalan Supplier / Vendor Asal', 'INBOUND', TRUE),
+      ('50000000-0000-0000-0000-000000000002', 'SJ_PENGIRIMAN', 'Surat Jalan Pengiriman Resmi (WMS)', 'OUTBOUND', TRUE),
+      ('50000000-0000-0000-0000-000000000003', 'MASTER_AWB', 'Master Airway Bill / Master B/L', 'CROSS_DOC', TRUE),
+      ('50000000-0000-0000-0000-000000000004', 'HOUSE_AWB', 'House Airway Bill (Sub-AWB Penerima Akhir)', 'CROSS_DOC', TRUE)
       ON CONFLICT DO NOTHING;
 
       INSERT INTO master_vehicle_types (id, code, name, body_type, axle_count, max_payload_kg, max_volume_cbm, length_cm, width_cm, height_cm, door_type, fuel_type, avg_fuel_consumption_km_per_liter) VALUES
@@ -631,8 +631,8 @@ const SEED_SQL = `      INSERT INTO master_cargo_types (id, code, name, category
       ON CONFLICT DO NOTHING;
 
       INSERT INTO warehouses (id, code, name, warehouse_type_id, address, city, has_weighbridge, has_debulking_facility, contact_name, contact_phone) VALUES
-      ('a0000000-0000-0000-0000-000000000001', 'WH-JKT-01', 'Gudang Utama Jakarta Hub & Terminal Bulky', '40000000-0000-0000-0000-000000000001', 'Kawasan Industri Cakung Blok A1-4', 'Jakarta Timur', 1, 1, 'Bambang Sudiro', '081122334455'),
-      ('a0000000-0000-0000-0000-000000000002', 'WH-DPS-01', 'Gudang Transit Denpasar Spoke', '40000000-0000-0000-0000-000000000002', 'Jl. Bypass Ngurah Rai No. 88', 'Denpasar', 0, 0, 'I Made Wardana', '081299887766')
+      ('a0000000-0000-0000-0000-000000000001', 'WH-JKT-01', 'Gudang Utama Jakarta Hub & Terminal Bulky', '40000000-0000-0000-0000-000000000001', 'Kawasan Industri Cakung Blok A1-4', 'Jakarta Timur', TRUE, TRUE, 'Bambang Sudiro', '081122334455'),
+      ('a0000000-0000-0000-0000-000000000002', 'WH-DPS-01', 'Gudang Transit Denpasar Spoke', '40000000-0000-0000-0000-000000000002', 'Jl. Bypass Ngurah Rai No. 88', 'Denpasar', FALSE, FALSE, 'I Made Wardana', '081299887766')
       ON CONFLICT DO NOTHING;
 
       INSERT INTO customers (id, code, name, type, contact_name, contact_phone, contact_email, address) VALUES
@@ -651,10 +651,10 @@ const SEED_SQL = `      INSERT INTO master_cargo_types (id, code, name, category
       ON CONFLICT DO NOTHING;
 
       INSERT INTO products (id, sku_code, name, description, cargo_type_id, default_packaging_type_id, default_uom_id, weight_kg_per_unit, volume_m3_per_unit, is_debulking_target, parent_bulky_product_id, min_stock_qty) VALUES
-      ('e0000000-0000-0000-0000-000000000001', 'BULK-SUGAR-1T', 'Gula Pasir Rafinasi Jumbo Bag 1 Ton (Bulky)', 'Gula rafinasi industri kemasan Jumbo Bag 1000 kg', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000005', 1000.00, 1.2000, 0, NULL, 5),
-      ('e0000000-0000-0000-0000-000000000002', 'SUGAR-SACK-25KG', 'Gula Pasir Rafinasi Karung 25 KG (Retail/Distribusi)', 'Hasil repack bagging-off dari Jumbo Bag 1 Ton', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000007', 25.00, 0.0300, 1, 'e0000000-0000-0000-0000-000000000001', 50),
-      ('e0000000-0000-0000-0000-000000000003', 'KDMP-CHILLER-300L', 'Showcase Display Chiller 300L (KDMP)', 'Showcase display pendingin untuk Koperasi Desa Merah Putih', '10000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000009', 65.00, 0.6500, 0, NULL, 10),
-      ('e0000000-0000-0000-0000-000000000004', 'ELEC-TV-43', 'Smart LED TV 43 Inch FHD', 'Televisi LED 43 Inch with Smart OS', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000009', 8.50, 0.0850, 0, NULL, 20)
+      ('e0000000-0000-0000-0000-000000000001', 'BULK-SUGAR-1T', 'Gula Pasir Rafinasi Jumbo Bag 1 Ton (Bulky)', 'Gula rafinasi industri kemasan Jumbo Bag 1000 kg', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000005', 1000.00, 1.2000, FALSE, NULL, 5),
+      ('e0000000-0000-0000-0000-000000000002', 'SUGAR-SACK-25KG', 'Gula Pasir Rafinasi Karung 25 KG (Retail/Distribusi)', 'Hasil repack bagging-off dari Jumbo Bag 1 Ton', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000007', 25.00, 0.0300, TRUE, 'e0000000-0000-0000-0000-000000000001', 50),
+      ('e0000000-0000-0000-0000-000000000003', 'KDMP-CHILLER-300L', 'Showcase Display Chiller 300L (KDMP)', 'Showcase display pendingin untuk Koperasi Desa Merah Putih', '10000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000009', 65.00, 0.6500, FALSE, NULL, 10),
+      ('e0000000-0000-0000-0000-000000000004', 'ELEC-TV-43', 'Smart LED TV 43 Inch FHD', 'Televisi LED 43 Inch with Smart OS', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000009', 8.50, 0.0850, FALSE, NULL, 20)
       ON CONFLICT DO NOTHING;
 
       INSERT INTO vehicles (id, plate_number, vehicle_type_id, brand, model, year_made, current_driver_id, assigned_warehouse_id, status, last_odometer_km) VALUES
@@ -671,7 +671,7 @@ const SEED_SQL = `      INSERT INTO master_cargo_types (id, code, name, category
 
 /** Kolom baru hasil migrasi backlog — guard idempotent untuk database lama */
 const MIGRATION_ALTERS = [
-  'ALTER TABLE outbound_orders ADD COLUMN billing_ready INTEGER DEFAULT 0',
+  'ALTER TABLE outbound_orders ADD COLUMN billing_ready BOOLEAN DEFAULT FALSE',
   "ALTER TABLE outbound_orders ADD COLUMN payment_status TEXT DEFAULT 'UNPAID'",
   'ALTER TABLE fleet_exit_logs ADD COLUMN waybill_number TEXT',
   "ALTER TABLE invoices ADD COLUMN currency TEXT NOT NULL DEFAULT 'IDR'",
