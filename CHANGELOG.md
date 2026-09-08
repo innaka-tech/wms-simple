@@ -5,6 +5,16 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.1.2] - 2026-09-08
+
+### Added (Dev Login Bypass)
+
+- **Bypass keyboard di halaman login:** tekan `D` 3x beruntun (interval < 1,5 detik) untuk masuk instan sebagai Super Admin — hanya aktif di mode development (`import.meta.dev`), tidak ikut ter-build ke produksi.
+
+### Fixed
+
+- **Frontend port:** script `dev`/`preview` kini mem-pin port **3001** via CLI flag — environment `PORT=3000` global tidak lagi menimpa `devServer.port` config, sehingga backend (3000) dan frontend (3001) tidak pernah bentrok.
+
 ## [4.1.1] - 2026-09-08
 
 ### Fixed (PostgreSQL Boolean Type Mismatch)
