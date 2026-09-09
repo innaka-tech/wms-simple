@@ -62,10 +62,11 @@
               class="desktop-nav-link" 
               :class="$route.path === item.path || ($route.path.startsWith(item.path) && item.path !== '/') ? 'active' : ''"
             >
+              <span v-if="item.accent" class="w-1.5 h-1.5 rounded-full shrink-0" :class="item.accent" :title="'Fase ' + item.phase + ' alur operasional'"></span>
               <AppIcon :name="item.icon" custom-class="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
               <span class="text-xs flex-1 truncate">{{ item.name }}</span>
-              <span v-if="item.phase" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900" :title="'Fase ' + item.phase + ' alur operasional'">
-                {{ item.phase }}
+              <span v-if="item.phase" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border" :class="phaseAccent(item.phase).chip" :title="'Fase ' + item.phase + ' alur operasional'">
+                F{{ item.phase }}
               </span>
               <span v-if="item.badge" class="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                 {{ item.badge }}
@@ -185,7 +186,9 @@ import AppDrawer from '~/components/AppDrawer.vue'
 import BottomNav from '~/components/BottomNav.vue'
 import ThemeToggle from '~/components/ThemeToggle.vue'
 import { useTheme } from '~/composables/useTheme'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthStore, PHASE_ACCENT } from '~/stores/auth'
+
+const phaseAccent = (p) => PHASE_ACCENT[p || 5] || PHASE_ACCENT[5]
 
 const isDrawerOpen = ref(false)
 const { initTheme } = useTheme()

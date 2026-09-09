@@ -13,10 +13,11 @@ stockRoutes.get('/levels', async (c) => {
 
   let sql = `
     SELECT sl.*, 
-           w.name AS warehouse_name, w.type AS warehouse_type,            p.sku_code, p.name AS product_name, p.default_uom_id AS unit, p.min_stock_qty,
+           w.name AS warehouse_name, wt.name AS warehouse_type,            p.sku_code, p.name AS product_name, p.default_uom_id AS unit, p.min_stock_qty,
            CASE WHEN sl.qty_on_hand <= p.min_stock_qty THEN true ELSE false END AS is_low_stock
     FROM stock_levels sl
     JOIN warehouses w ON sl.warehouse_id = w.id
+    LEFT JOIN master_warehouse_types wt ON w.warehouse_type_id = wt.id
     JOIN products p ON sl.product_id = p.id
     WHERE 1=1
   `;

@@ -52,21 +52,42 @@
         <NuxtLink
           v-for="fase in alurOperasional"
           :key="fase.no"
-          v-show="!fase.roles || fase.roles.includes(authStore.userRole)"
           :to="fase.to"
-          class="p-3 rounded-md border transition group hover:border-slate-400 dark:hover:border-slate-600"
-          :class="fase.kritis ? 'bg-slate-900 dark:bg-slate-100 border-slate-900 dark:border-slate-100' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'"
+          class="p-3 rounded-md border transition group hover:border-slate-400 dark:hover:border-slate-600 border-l-4"
+          :class="fase.card"
         >
           <div class="flex items-center justify-between">
-            <span class="text-[10px] font-mono font-bold" :class="fase.kritis ? 'text-slate-400' : 'text-slate-400'">FASE {{ fase.no }}</span>
+            <span class="text-[10px] font-mono font-bold" :class="fase.text">FASE {{ fase.no }}</span>
             <span v-if="fase.kritis" class="text-[9px] font-mono px-1 py-0.5 rounded bg-rose-500 text-white font-bold" title="Titik kritis audit">!</span>
           </div>
-          <p class="text-xs font-bold mt-1 leading-snug" :class="fase.kritis ? 'text-white dark:text-slate-900' : 'text-slate-900 dark:text-white'">{{ fase.label }}</p>
-          <p class="text-[10px] mt-0.5 leading-snug" :class="fase.kritis ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'">{{ fase.sub }}</p>
-          <p class="text-lg font-mono font-bold mt-2" :class="fase.kritis ? 'text-white' : 'text-slate-900 dark:text-white'">{{ fase.count }}</p>
-          <p class="text-[9px] font-mono mt-0.5" :class="fase.kritis ? 'text-slate-400' : 'text-slate-400'">{{ fase.metric }}</p>
+          <p class="text-xs font-bold mt-1 leading-snug text-slate-900 dark:text-white">{{ fase.label }}</p>
+          <p class="text-[10px] mt-0.5 leading-snug text-slate-500 dark:text-slate-400">{{ fase.sub }}</p>
+          <p class="text-lg font-mono font-bold mt-2 text-slate-900 dark:text-white">{{ fase.count }}</p>
+          <p class="text-[9px] font-mono mt-0.5 text-slate-400">{{ fase.metric }}</p>
         </NuxtLink>
-  </div>
+      </div>
+    </div>
+
+    <!-- Strip Audit Checkpoint Terakhir (Rantai Immutable) -->
+    <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div class="flex items-center justify-between mb-2.5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">Checkpoint Audit Terakhir</h3>
+        <span class="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          Rantai Immutable
+        </span>
+      </div>
+      <div v-if="recentCheckpoints.length === 0" class="p-3 text-center text-[11px] text-slate-400 font-mono">Belum ada aktivitas checkpoint.</div>
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5">
+        <div v-for="cp in recentCheckpoints" :key="cp.id" class="flex items-center gap-2.5 py-1 border-b border-slate-100 dark:border-slate-800/60 last:border-0">
+          <span class="w-2 h-2 rounded-full shrink-0" :class="cpDot(cp.step_code)"></span>
+          <div class="flex-1 min-w-0">
+            <p class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate">{{ cp.step_label || cp.step_code }}</p>
+            <p class="text-[10px] font-mono text-slate-400 truncate">{{ cp.entity_number || cp.entity_type }} • {{ cp.actor_name }}</p>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400 shrink-0">{{ shortTime(cp.created_at) }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Operational Telemetry Bar (4 Key Metrics) -->
@@ -393,7 +414,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useStockStore } from '~/stores/stock'
 import { useGatePassStore } from '~/stores/gatePass'
@@ -425,6 +446,14 @@ onMounted(async () => {
       waybillStore.fetchWaybills(),
       billingStore.fetchInvoices()
     ])
+    // Strip audit checkpoint (non-blocking)
+    try {
+      const { apiFetch } = useWmsApi()
+      const cpRes = await apiFetch('/checkpoints/recent?limit=10')
+      if (cpRes.success) recentCheckpoints.value = cpRes.data || []
+    } catch (e) {
+      console.error('Failed to load recent checkpoints:', e)
+    }
   } catch (err) {
     console.error('Failed to load dashboard telemetry:', err)
   }
@@ -454,12 +483,29 @@ const belumLunas = computed(() =>
   (billingStore.invoices || []).filter(i => i.status === 'ISSUED').length
 )
 
-/** Peta alur operasional — mirror dari struktur menu sidebar (fase 1-5) */
+// Strip audit checkpoint terakhir (rantai immutable)
+const recentCheckpoints = ref([])
+const CHECKPOINT_COLORS = {
+  PO_CREATED: 'bg-emerald-500', PO_RECEIVED: 'bg-emerald-500', PUTAWAY_COMPLETED: 'bg-emerald-500',
+  DEBULKING: 'bg-amber-500', DEBULKING_COMPLETED: 'bg-amber-500',
+  MANIFEST: 'bg-blue-500', LOADED: 'bg-blue-500', DEPARTED: 'bg-blue-500', GATE: 'bg-blue-500', PICK: 'bg-blue-500', PACK: 'bg-blue-500', SHIP: 'bg-blue-500', WAYBILL: 'bg-blue-500', VENDOR_EXIT: 'bg-blue-500',
+  POD: 'bg-cyan-500', POD_VERIFIED: 'bg-cyan-500', INVOICE: 'bg-cyan-500', PAYMENT: 'bg-cyan-500', PAID: 'bg-cyan-500', CROSS_DOC: 'bg-cyan-500',
+  RECEIVED_AT_DEST: 'bg-blue-500'
+}
+function cpDot(code) {    const key = Object.keys(CHECKPOINT_COLORS).find(k => (code || '').includes(k))
+    return key ? CHECKPOINT_COLORS[key] : 'bg-slate-400'
+}
+function shortTime(v) {
+  if (!v) return '-'
+  try { return new Date(v).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) } catch { return '-' }
+}
+
+/** Peta alur operasional — warna koding per fase senada dengan sidebar */
 const alurOperasional = computed(() => [
-  { no: 1, label: 'Barang Masuk', sub: 'Terima di dock & simpan ke rak', to: '/inbound/receive', count: inboundAktif.value, metric: 'kiriman aktif' },
-  { no: 2, label: 'Pekerjaan Gudang', sub: 'Bongkar ulang & repacking curah', to: '/debulking', count: repackAktif.value, metric: 'work order aktif' },
-  { no: 3, label: 'Barang Keluar', sub: 'Order, SJ + resi, gerbang', to: '/outbound', count: siapKirim.value, metric: 'order siap proses', kritis: true },
-  { no: 4, label: 'Bukti & Tagihan', sub: 'e-POD → faktur → LUNAS', to: '/outbound/pod', count: menungguPod.value + belumLunas.value, metric: 'menunggu POD / bayar' },
-  { no: 5, label: 'Pemantauan', sub: 'Posisi stok & mutasi real-time', to: '/stock', count: stockStore.stockLevels.length, metric: 'SKU terpantau' }
+  { no: 1, label: 'Barang Masuk', sub: 'Terima di dock & simpan ke rak', to: '/inbound/receive', count: inboundAktif.value, metric: 'kiriman aktif', card: 'bg-slate-50 dark:bg-slate-950 border-emerald-500/60', text: 'text-emerald-600 dark:text-emerald-400' },
+  { no: 2, label: 'Pekerjaan Gudang', sub: 'Bongkar ulang & repacking curah', to: '/debulking', count: repackAktif.value, metric: 'work order aktif', card: 'bg-slate-50 dark:bg-slate-950 border-amber-500/60', text: 'text-amber-600 dark:text-amber-400' },
+  { no: 3, label: 'Barang Keluar', sub: 'Order, SJ + resi, gerbang', to: '/outbound', count: siapKirim.value, metric: 'order siap proses', kritis: true, card: 'bg-slate-50 dark:bg-slate-950 border-blue-500/60', text: 'text-blue-600 dark:text-blue-400' },
+  { no: 4, label: 'Bukti & Tagihan', sub: 'e-POD → faktur → LUNAS', to: '/outbound/pod', count: menungguPod.value + belumLunas.value, metric: 'menunggu POD / bayar', card: 'bg-slate-50 dark:bg-slate-950 border-cyan-500/60', text: 'text-cyan-600 dark:text-cyan-400' },
+  { no: 5, label: 'Pemantauan', sub: 'Posisi stok & mutasi real-time', to: '/stock', count: stockStore.stockLevels.length, metric: 'SKU terpantau', card: 'bg-slate-50 dark:bg-slate-950 border-slate-400/60', text: 'text-slate-500 dark:text-slate-400' }
 ])
 </script>

@@ -26,10 +26,11 @@ fleetRoutes.get('/logs', async (c) => {
 
   let sql = `
     SELECT fel.*, 
-           v.plate_number, v.type AS vehicle_type,
+           v.plate_number, vt.name AS vehicle_type,
            w.name AS warehouse_name
     FROM fleet_exit_logs fel
     JOIN vehicles v ON fel.vehicle_id = v.id
+    LEFT JOIN master_vehicle_types vt ON v.vehicle_type_id = vt.id
     JOIN warehouses w ON fel.warehouse_id = w.id
     WHERE 1=1
   `;
@@ -53,10 +54,11 @@ fleetRoutes.get('/logs/:id', async (c) => {
   const id = c.req.param('id');
   const logRes = await query(
     `SELECT fel.*, 
-            v.plate_number, v.type AS vehicle_type, v.brand, v.model,
+            v.plate_number, vt.name AS vehicle_type, v.brand, v.model,
             w.name AS warehouse_name
      FROM fleet_exit_logs fel
      JOIN vehicles v ON fel.vehicle_id = v.id
+    LEFT JOIN master_vehicle_types vt ON v.vehicle_type_id = vt.id
      JOIN warehouses w ON fel.warehouse_id = w.id
      WHERE fel.id = $1`,
     [id]

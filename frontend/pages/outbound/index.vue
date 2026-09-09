@@ -20,7 +20,7 @@
     <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
       <div>
         <div>
-          <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-0.5">Fase 3 — Barang Keluar</p>
+          <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Fase 3 — Barang Keluar • Checkpoint: ORDER → SJ/RESI → GATE-OUT</p>
           <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
             <AppIcon name="package" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <span>Order &amp; Terbitkan Surat Jalan</span>

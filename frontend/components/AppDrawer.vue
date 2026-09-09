@@ -76,10 +76,11 @@
                 class="drawer-link flex items-center space-x-2.5 px-2.5 py-2 rounded-md text-xs font-normal text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition" 
                 :class="$route.path === item.path || ($route.path.startsWith(item.path) && item.path !== '/') ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold border-l-2 border-slate-900 dark:border-white rounded-l-none pl-2' : ''"
               >
+                <span v-if="item.accent" class="w-1.5 h-1.5 rounded-full shrink-0" :class="item.accent"></span>
                 <AppIcon :name="item.icon" custom-class="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
                 <span class="flex-1 truncate">{{ item.name }}</span>
-                <span v-if="item.phase" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900">
-                  {{ item.phase }}
+                <span v-if="item.phase" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border" :class="phaseAccent(item.phase).chip">
+                  F{{ item.phase }}
                 </span>
                 <span v-if="item.badge" class="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                   {{ item.badge }}
@@ -128,8 +129,10 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useAuthStore } from '~/stores/auth'
+import { useAuthStore, PHASE_ACCENT } from '~/stores/auth'
 import ThemeToggle from '~/components/ThemeToggle.vue'
+
+const phaseAccent = (p) => PHASE_ACCENT[p || 5] || PHASE_ACCENT[5]
 
 const props = defineProps({
   isOpen: {

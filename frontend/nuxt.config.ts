@@ -1,5 +1,7 @@
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
+  // App internal berbasis localStorage auth — SSR hanya memicu hydration mismatch
+  ssr: false,
   devtools: { enabled: false },
   devServer: {
     port: 3001

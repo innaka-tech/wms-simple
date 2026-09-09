@@ -23,7 +23,18 @@ export interface NavItem {
   roles: UserRole[];
   /** Fase alur operasional: 1=Masuk 2=Gudang 3=Keluar 4=Bukti&Tagihan 5=Pemantauan */
   phase?: 1 | 2 | 3 | 4 | 5;
+  /** Kelas warna aksen fase (dot + badge) untuk penandaan visual cepat */
+  accent?: string;
 }
+
+/** Warna koding fase — konsisten di sidebar, drawer, dashboard & kicker halaman */
+export const PHASE_ACCENT: Record<number, { dot: string; chip: string; text: string }> = {
+  1: { dot: 'bg-emerald-500', chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400' },
+  2: { dot: 'bg-amber-500', chip: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20', text: 'text-amber-600 dark:text-amber-400' },
+  3: { dot: 'bg-blue-500', chip: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20', text: 'text-blue-600 dark:text-blue-400' },
+  4: { dot: 'bg-cyan-500', chip: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20', text: 'text-cyan-600 dark:text-cyan-400' },
+  5: { dot: 'bg-slate-400', chip: 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/20', text: 'text-slate-500 dark:text-slate-400' }
+};
 
 export interface NavSection {
   title: string;
@@ -42,34 +53,34 @@ const MASTER_NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Ringkasan & Pemantauan',
     items: [
       { name: 'Dashboard Operasional', path: '/', icon: 'home', code: 'dashboard', roles: ALL_ROLES },
-      { name: 'Posisi Stok & Mutasi', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'], phase: 5 }
+      { name: 'Posisi Stok & Mutasi', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'], phase: 5, accent: 'bg-slate-400' }
     ]
   },
   {
     title: '1. Barang Masuk',
     items: [
-      { name: 'Terima Kiriman di Dock', path: '/inbound/receive', icon: 'inbound', code: 'inbound', badge: 'Dock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 1 }
+      { name: 'Terima Kiriman di Dock', path: '/inbound/receive', icon: 'inbound', code: 'inbound', badge: 'Dock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 1, accent: 'bg-emerald-500' }
     ]
   },
   {
     title: '2. Pekerjaan Gudang',
     items: [
-      { name: 'Bongkar Ulang & Repacking', path: '/debulking', icon: 'debulking', code: 'debulking', badge: 'Curah', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 2 }
+      { name: 'Bongkar Ulang & Repacking', path: '/debulking', icon: 'debulking', code: 'debulking', badge: 'Curah', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 2, accent: 'bg-amber-500' }
     ]
   },
   {
     title: '3. Barang Keluar',
     items: [
-      { name: 'Order & Terbitkan Surat Jalan', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 3 },
-      { name: 'Daftar Surat Jalan & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 3 },
-      { name: 'Pos Satpam: Keluar-Masuk Truk', path: '/gate-pass', icon: 'truck', code: 'gate_pass', badge: 'Gerbang', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'], phase: 3 }
+      { name: 'Order & Terbitkan Surat Jalan', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 3, accent: 'bg-blue-500' },
+      { name: 'Daftar Surat Jalan & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 3, accent: 'bg-blue-500' },
+      { name: 'Pos Satpam: Keluar-Masuk Truk', path: '/gate-pass', icon: 'truck', code: 'gate_pass', badge: 'Gerbang', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'], phase: 3, accent: 'bg-blue-500' }
     ]
   },
   {
     title: '4. Bukti Kirim & Penagihan',
     items: [
-      { name: 'Pengiriman & e-POD', path: '/outbound/pod', icon: 'pod', code: 'outbound_pod', badge: 'KDMP', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'], phase: 4 },
-      { name: 'Faktur & Pembayaran', path: '/billing', icon: 'chart', code: 'billing', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'], phase: 4 }
+      { name: 'Pengiriman & e-POD', path: '/outbound/pod', icon: 'pod', code: 'outbound_pod', badge: 'KDMP', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'], phase: 4, accent: 'bg-cyan-500' },
+      { name: 'Faktur & Pembayaran', path: '/billing', icon: 'chart', code: 'billing', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'], phase: 4, accent: 'bg-cyan-500' }
     ]
   }
 ];
