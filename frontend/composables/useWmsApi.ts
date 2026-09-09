@@ -3,7 +3,7 @@ import { useAuthStore } from '~/stores/auth';
 
 export function useWmsApi() {
   const config = useRuntimeConfig();
-  const apiBase = config.public.apiBase || 'http://localhost:3000/api';
+  const apiBase = config.public.apiBase || 'http://localhost:8000/api';
 
   async function apiFetch<T = any>(endpoint: string, options: any = {}): Promise<T> {
     const authStore = useAuthStore();
