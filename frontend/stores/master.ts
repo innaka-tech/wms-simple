@@ -14,6 +14,8 @@ export const useMasterStore = defineStore('master', {
     cargoTypes: [] as MasterItem[],
     uoms: [] as MasterItem[],
     packagingTypes: [] as MasterItem[],
+    vehicles: [] as MasterItem[],
+    vehicleTypes: [] as MasterItem[],
     isLoading: false,
     errorMessage: '',
     successMessage: ''
@@ -167,6 +169,42 @@ export const useMasterStore = defineStore('master', {
         return false;
       } catch (err: any) { return this._err(err, 'Gagal memperbarui akun'); }
       finally { this.isLoading = false; }
+    },
+
+    async fetchVehicles(includeInactive = true) {
+      this.isLoading = true; this._reset();
+      try {
+        const res = await useWmsApi().apiFetch(`/fleet/vehicles?include_inactive=${includeInactive}`);
+        this.vehicles = res.data || [];
+      } catch (err: any) { this._err(err, 'Gagal memuat master armada'); }
+      finally { this.isLoading = false; }
+    },
+
+    async createVehicle(payload: any) {
+      this.isLoading = true; this._reset();
+      try {
+        const res = await useWmsApi().apiFetch('/fleet/vehicles', { method: 'POST', body: payload });
+        if (this._apply(res, 'Kendaraan terdaftar')) { await this.fetchVehicles(); return true; }
+        return false;
+      } catch (err: any) { return this._err(err, 'Gagal mendaftarkan kendaraan'); }
+      finally { this.isLoading = false; }
+    },
+
+    async updateVehicle(id: string, payload: any) {
+      this.isLoading = true; this._reset();
+      try {
+        const res = await useWmsApi().apiFetch(`/fleet/vehicles/${id}`, { method: 'PUT', body: payload });
+        if (this._apply(res, 'Data kendaraan diperbarui')) { await this.fetchVehicles(); return true; }
+        return false;
+      } catch (err: any) { return this._err(err, 'Gagal memperbarui kendaraan'); }
+      finally { this.isLoading = false; }
+    },
+
+    async fetchVehicleTypes() {
+      try {
+        const res = await useWmsApi().apiFetch('/master/vehicle-types');
+        this.vehicleTypes = res.data || [];
+      } catch (err: any) { this._err(err, 'Gagal memuat tipe kendaraan'); }
     },
 
     async fetchReferences() {

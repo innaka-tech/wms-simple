@@ -34,6 +34,7 @@ function getShortName(fullName) {
   if (fullName.includes('Gudang & Rak')) return 'Gudang'
   if (fullName.includes('Customer')) return 'Customer'
   if (fullName.includes('Pengguna')) return 'Akses'
+  if (fullName.includes('Armada')) return 'Armada'
   return fullName.slice(0, 8)
 }
 </script>

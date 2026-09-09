@@ -2,21 +2,191 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { query, pool } from '../db.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
-import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
+import { optionalAuth, authenticate, requireRole, UserTokenPayload } from '../middlewares/auth.js';
 import { generateDocumentNumber } from '../utils/waybill.js';
 
 export const fleetRoutes = new Hono();
 
+const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN_ADM'];
+
+const VEHICLE_STATUSES = ['AVAILABLE', 'IN_USE', 'MAINTENANCE', 'RETIRED'] as const;
+
+const createVehicleSchema = z.object({
+  plate_number: z.string().trim().min(4).max(16).toUpperCase(),
+  vehicle_type_id: z.string().uuid(),
+  brand: z.string().trim().max(60).nullish(),
+  model: z.string().trim().max(60).nullish(),
+  year_made: z.number().int().min(1980).max(2100).nullish(),
+  current_driver_id: z.string().uuid().nullish(),
+  assigned_warehouse_id: z.string().uuid().nullish(),
+  kir_expiry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'format YYYY-MM-DD').nullish(),
+  stnk_expiry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'format YYYY-MM-DD').nullish(),
+  gps_tracking_id: z.string().trim().max(64).nullish(),
+  last_odometer_km: z.number().nonnegative().max(3000000).default(0)
+});
+
+const updateVehicleSchema = createVehicleSchema.partial().extend({
+  status: z.enum(VEHICLE_STATUSES).optional(),
+  is_active: z.boolean().optional()
+});
+
 // 1. List Vehicles Master
 fleetRoutes.get('/vehicles', async (c) => {
+  const includeInactive = c.req.query('include_inactive') === 'true';
   const result = await query(`
-    SELECT v.*, u.full_name AS driver_name, w.name AS assigned_warehouse_name
+    SELECT v.*, u.full_name AS driver_name, w.name AS assigned_warehouse_name,
+           vt.name AS vehicle_type_name, vt.code AS vehicle_type_code
     FROM vehicles v
     LEFT JOIN users u ON v.current_driver_id = u.id
     LEFT JOIN warehouses w ON v.assigned_warehouse_id = w.id
+    LEFT JOIN master_vehicle_types vt ON v.vehicle_type_id = vt.id
+    ${includeInactive ? '' : 'WHERE v.is_active = true'}
     ORDER BY v.plate_number ASC
   `);
   return c.json({ success: true, data: result.rows });
+});
+
+// 1b. Create pool vehicle (admin only)
+fleetRoutes.post('/vehicles', authenticate, requireRole(ADMIN_ROLES), async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload;
+  const parsed = createVehicleSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ success: false, message: 'Data kendaraan tidak valid', details: parsed.error.flatten().fieldErrors }, 400);
+  }
+  const d = parsed.data;
+
+  const dupRes = await query(`SELECT id FROM vehicles WHERE plate_number = $1 LIMIT 1`, [d.plate_number]);
+  if (dupRes.rows.length > 0) {
+    return c.json({ success: false, message: `Nomor polisi '${d.plate_number}' sudah terdaftar` }, 409);
+  }
+
+  const typeRes = await query(`SELECT id, name FROM master_vehicle_types WHERE id = $1`, [d.vehicle_type_id]);
+  if (typeRes.rows.length === 0) {
+    return c.json({ success: false, message: 'Tipe kendaraan tidak dikenal' }, 400);
+  }
+
+  if (d.current_driver_id) {
+    const drvRes = await query(`SELECT id, full_name, role FROM users WHERE id = $1 AND is_active = true`, [d.current_driver_id]);
+    if (drvRes.rows.length === 0) {
+      return c.json({ success: false, message: 'Pengemudi tidak ditemukan / tidak aktif' }, 400);
+    }
+  }
+
+  const result = await query(
+    `INSERT INTO vehicles (id, plate_number, vehicle_type_id, brand, model, year_made, current_driver_id,
+                           assigned_warehouse_id, status, last_odometer_km, kir_expiry_date, stnk_expiry_date, gps_tracking_id)
+     VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, 'AVAILABLE', $8, $9, $10, $11) RETURNING *`,
+    [d.plate_number, d.vehicle_type_id, d.brand || null, d.model || null, d.year_made || null,
+     d.current_driver_id || null, d.assigned_warehouse_id || null, d.last_odometer_km,
+     d.kir_expiry_date || null, d.stnk_expiry_date || null, d.gps_tracking_id || null]
+  );
+  const created = result.rows[0];
+
+  await recordCheckpoint({
+    entity_type: 'VEHICLE',
+    entity_id: created.id,
+    entity_number: created.plate_number,
+    step_code: 'VEHICLE_REGISTERED',
+    step_label: 'Kendaraan pool terdaftar',
+    actor_id: user.id,
+    actor_name: user.full_name,
+    actor_role: user.role,
+    notes: `${typeRes.rows[0]!.name} — ${created.plate_number}`
+  });
+
+  return c.json({ success: true, data: created }, 201);
+});
+
+// 1c. Update pool vehicle (admin only)
+// Guard: kendaraan dengan exit log aktif (DEPARTED belum RETURNED) tidak boleh dinonaktifkan/retired
+fleetRoutes.put('/vehicles/:id', authenticate, requireRole(ADMIN_ROLES), async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload;
+  const id = c.req.param('id');
+  const parsed = updateVehicleSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ success: false, message: 'Data kendaraan tidak valid', details: parsed.error.flatten().fieldErrors }, 400);
+  }
+  const d = parsed.data;
+
+  const exists = await query(`SELECT id, plate_number, status FROM vehicles WHERE id = $1`, [id]);
+  if (exists.rows.length === 0) {
+    return c.json({ success: false, message: 'Kendaraan tidak ditemukan' }, 404);
+  }
+  const current = exists.rows[0]!;
+
+  if (d.plate_number && d.plate_number !== current.plate_number) {
+    const dupRes = await query(`SELECT id FROM vehicles WHERE plate_number = $1 AND id <> $2 LIMIT 1`, [d.plate_number, id]);
+    if (dupRes.rows.length > 0) {
+      return c.json({ success: false, message: `Nomor polisi '${d.plate_number}' sudah dipakai kendaraan lain` }, 409);
+    }
+  }
+
+  if (d.vehicle_type_id) {
+    const typeRes = await query(`SELECT id FROM master_vehicle_types WHERE id = $1`, [d.vehicle_type_id]);
+    if (typeRes.rows.length === 0) {
+      return c.json({ success: false, message: 'Tipe kendaraan tidak dikenal' }, 400);
+    }
+  }
+
+  if (d.current_driver_id) {
+    const drvRes = await query(`SELECT id FROM users WHERE id = $1 AND is_active = true`, [d.current_driver_id]);
+    if (drvRes.rows.length === 0) {
+      return c.json({ success: false, message: 'Pengemudi tidak ditemukan / tidak aktif' }, 400);
+    }
+  }
+
+  const deactivating = (d.is_active === false || d.status === 'RETIRED');
+  if (deactivating && current.status === 'IN_USE') {
+    const activeLog = await query(
+      `SELECT id FROM fleet_exit_logs WHERE vehicle_id = $1 AND actual_return_time IS NULL LIMIT 1`,
+      [id]
+    );
+    if (activeLog.rows.length > 0) {
+      return c.json({ success: false, message: 'Kendaraan sedang di perjalanan (exit log belum ditutup) — tidak bisa dinonaktifkan' }, 400);
+    }
+  }
+
+  const sets: string[] = [];
+  const params: any[] = [];
+  const push = (col: string, val: any) => { params.push(val); sets.push(`${col} = $${params.length}`); };
+  if (d.plate_number !== undefined) push('plate_number', d.plate_number);
+  if (d.vehicle_type_id !== undefined) push('vehicle_type_id', d.vehicle_type_id);
+  if (d.brand !== undefined) push('brand', d.brand || null);
+  if (d.model !== undefined) push('model', d.model || null);
+  if (d.year_made !== undefined) push('year_made', d.year_made || null);
+  if (d.current_driver_id !== undefined) push('current_driver_id', d.current_driver_id || null);
+  if (d.assigned_warehouse_id !== undefined) push('assigned_warehouse_id', d.assigned_warehouse_id || null);
+  if (d.kir_expiry_date !== undefined) push('kir_expiry_date', d.kir_expiry_date || null);
+  if (d.stnk_expiry_date !== undefined) push('stnk_expiry_date', d.stnk_expiry_date || null);
+  if (d.gps_tracking_id !== undefined) push('gps_tracking_id', d.gps_tracking_id || null);
+  if (d.last_odometer_km !== undefined) push('last_odometer_km', d.last_odometer_km);
+  if (d.status !== undefined) push('status', d.status);
+  if (d.is_active !== undefined) push('is_active', d.is_active);
+  if (sets.length === 0) {
+    return c.json({ success: false, message: 'Tidak ada perubahan yang dikirim' }, 400);
+  }
+  params.push(id);
+  sets.push(`updated_at = CURRENT_TIMESTAMP`);
+
+  const result = await query(
+    `UPDATE vehicles SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
+    params
+  );
+  const updated = result.rows[0];
+
+  await recordCheckpoint({
+    entity_type: 'VEHICLE',
+    entity_id: updated.id,
+    entity_number: updated.plate_number,
+    step_code: 'VEHICLE_UPDATED',
+    step_label: 'Data kendaraan diperbarui',
+    actor_id: user.id,
+    actor_name: user.full_name,
+    actor_role: user.role,
+    notes: `Perubahan: ${Object.keys(d).join(', ')}`
+  });
+
+  return c.json({ success: true, data: updated });
 });
 
 // 2. List Fleet Exit Logs (Pencatatan Armada Keluar-Masuk)

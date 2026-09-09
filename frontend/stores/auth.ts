@@ -18,7 +18,7 @@ export interface NavItem {
   name: string;
   path: string;
   icon: string;
-  code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing' | 'checkpoints' | 'master_products' | 'master_warehouses' | 'master_customers' | 'master_users';
+  code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing' | 'checkpoints' | 'master_products' | 'master_warehouses' | 'master_customers' | 'master_users' | 'master_fleet';
   badge?: string;
   roles: UserRole[];
   /** Fase alur operasional: 1=Masuk 2=Gudang 3=Keluar 4=Bukti&Tagihan 5=Pemantauan */
@@ -90,7 +90,8 @@ const MASTER_NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { name: 'Master Barang (SKU)', path: '/master/products', icon: 'box', code: 'master_products', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'], accent: 'bg-violet-500' },
       { name: 'Master Gudang & Rak', path: '/master/warehouses', icon: 'warehouse', code: 'master_warehouses', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'], accent: 'bg-violet-500' },
       { name: 'Master Customer & Vendor', path: '/master/customers', icon: 'users', code: 'master_customers', roles: ['SUPER_ADMIN', 'ADMIN_ADM'], accent: 'bg-violet-500' },
-      { name: 'Pengguna & Hak Akses', path: '/master/users', icon: 'shield', code: 'master_users', roles: ['SUPER_ADMIN', 'ADMIN_ADM'], accent: 'bg-violet-500' }
+      { name: 'Pengguna & Hak Akses', path: '/master/users', icon: 'shield', code: 'master_users', roles: ['SUPER_ADMIN', 'ADMIN_ADM'], accent: 'bg-violet-500' },
+      { name: 'Master Armada Pool', path: '/master/fleet', icon: 'truck', code: 'master_fleet', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'], accent: 'bg-violet-500' }
     ]
   }
 ];
