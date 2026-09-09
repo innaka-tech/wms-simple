@@ -66,10 +66,10 @@
         </div>
         <div class="mt-2 flex items-baseline justify-between">
           <p class="text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-white">
-            {{ inTransitCount }}
+            {{ availableVehiclesCount }}
           </p>
           <span class="text-[10px] font-mono text-blue-600 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 font-medium">
-            Cross-Dock
+            Siap Berangkat
           </span>
         </div>
       </div>
@@ -81,7 +81,7 @@
         </div>
         <div class="mt-2 flex items-baseline justify-between">
           <p class="text-2xl font-bold font-mono tracking-tight text-slate-900 dark:text-white">
-            {{ stockStore.stockLevels.length || 4 }}
+            {{ stockStore.stockLevels.length || '—' }}
           </p>
           <span class="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 font-medium">
             Double-Entry
@@ -324,7 +324,8 @@ onMounted(async () => {
   try {
     await Promise.all([
       stockStore.fetchStockLevels(),
-      gatePassStore.fetchLogs()
+      gatePassStore.fetchLogs(),
+      gatePassStore.fetchVehicles()
     ])
   } catch (err) {
     console.error('Failed to load dashboard telemetry:', err)
@@ -335,7 +336,7 @@ const departedVehiclesCount = computed(() => {
   return (gatePassStore.logs || []).filter(gp => gp.status === 'DEPARTED').length
 })
 
-const inTransitCount = computed(() => {
-  return (gatePassStore.logs || []).filter(gp => gp.status === 'IN_TRANSIT').length
+const availableVehiclesCount = computed(() => {
+  return (gatePassStore.vehicles || []).filter(v => v.status === 'AVAILABLE').length
 })
 </script>

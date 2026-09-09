@@ -8,12 +8,12 @@
       </div>
       <button type="button" @click="waybillStore.errorMessage = ''" class="font-bold ml-2 hover:opacity-80">✕</button>
     </div>
-    <div v-if="waybillStore.successMessage" class="p-3.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs md:text-sm text-emerald-600 dark:text-emerald-400 flex justify-between items-center shadow-2xs">
+    <div v-if="waybillStore.successMessage || outboundStore.successMessage" class="p-3.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs md:text-sm text-emerald-600 dark:text-emerald-400 flex justify-between items-center shadow-2xs">
       <div class="flex items-center space-x-2">
         <AppIcon name="check" custom-class="w-4 h-4 shrink-0" />
-        <span class="font-medium">{{ waybillStore.successMessage }}</span>
+        <span class="font-medium">{{ waybillStore.successMessage || outboundStore.successMessage }}</span>
       </div>
-      <button type="button" @click="waybillStore.successMessage = ''" class="font-bold ml-2 hover:opacity-80">✕</button>
+      <button type="button" @click="waybillStore.successMessage = ''; outboundStore.successMessage = ''" class="font-bold ml-2 hover:opacity-80">✕</button>
     </div>
 
     <!-- Header -->
