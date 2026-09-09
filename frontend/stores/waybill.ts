@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { useWmsApi } from '~/composables/useWmsApi';
+import { describeApiError } from '~/composables/useApiError';
 
 export interface Waybill {
   id: string;
@@ -33,9 +34,10 @@ export const useWaybillStore = defineStore('waybill', {
         const res = await apiFetch(`/waybills${qs}`);
         if (res.success) {
           this.waybills = res.data;
+          this.errorMessage = '';
         }
       } catch (err: any) {
-        this.errorMessage = err.detail || err.message;
+        this.errorMessage = describeApiError(err).message;
       } finally {
         this.isLoading = false;
       }
@@ -71,7 +73,7 @@ export const useWaybillStore = defineStore('waybill', {
         }
         return null;
       } catch (err: any) {
-        this.errorMessage = err.detail || err.message;
+        this.errorMessage = describeApiError(err).message;
         return null;
       } finally {
         this.isLoading = false;

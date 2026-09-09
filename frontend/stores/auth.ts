@@ -96,6 +96,11 @@ const MASTER_NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   }
 ];
 
+/** Metadata path → nama & fase (untuk breadcrumb shell, tanpa hardcode per halaman) */
+export const NAV_META: Record<string, { name: string; phase?: 1 | 2 | 3 | 4 | 5 }> = Object.fromEntries(
+  MASTER_NAV_SECTIONS.flatMap(section => section.items.map(item => [item.path, { name: item.name, phase: item.phase }]))
+);
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null as User | null,

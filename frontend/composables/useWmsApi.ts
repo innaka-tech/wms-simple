@@ -25,9 +25,11 @@ export function useWmsApi() {
       });
       return response;
     } catch (err: any) {
-      // Parse RFC 7807 Problem Details or fetch error
+      // Parse RFC 7807 Problem Details or fetch error.
+      // statusCode disertakan agar peta error humanis (useApiError) bisa memetakan per HTTP code.
       const problem = err.data || {
         success: false,
+        statusCode: err.statusCode || err.status || err.response?.status || 0,
         message: err.message || 'Gagal berkomunikasi dengan server WMS',
         code: 'NETWORK_ERROR'
       };
