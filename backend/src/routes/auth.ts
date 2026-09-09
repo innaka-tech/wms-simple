@@ -1,7 +1,34 @@
 import { Hono } from 'hono';
+import { z } from 'zod';
 import { query } from '../db.js';
-import { generateToken, authenticate, UserTokenPayload } from '../middlewares/auth.js';
+import { generateToken, authenticate, requireRole, UserTokenPayload } from '../middlewares/auth.js';
 import { formatProblemDetails } from '../utils/errors.js';
+import { hashPassword, verifyPassword } from '../utils/password.js';
+import { recordCheckpoint } from '../services/checkpoint.js';
+
+const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN_ADM'];
+
+const SYSTEM_ROLES = ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'DRIVER', 'GATE_OFFICER', 'CUSTOMER'] as const;
+
+const createUserSchema = z.object({
+  username: z.string().min(3).max(32).regex(/^[a-z0-9_.]+$/, 'huruf kecil, angka, titik, underscore'),
+  full_name: z.string().min(3).max(120),
+  email: z.string().email().max(160),
+  password: z.string().min(8).max(72),
+  role: z.enum(SYSTEM_ROLES),
+  warehouse_id: z.string().uuid().nullish(),
+  customer_id: z.string().uuid().nullish()
+});
+
+const updateUserSchema = z.object({
+  full_name: z.string().min(3).max(120).optional(),
+  email: z.string().email().max(160).optional(),
+  role: z.enum(SYSTEM_ROLES).optional(),
+  warehouse_id: z.string().uuid().nullish(),
+  customer_id: z.string().uuid().nullish(),
+  is_active: z.boolean().optional(),
+  new_password: z.string().min(8).max(72).optional()
+});
 
 export const authRoutes = new Hono();
 
@@ -104,17 +131,21 @@ authRoutes.get('/me', authenticate, async (c) => {
   });
 });
 
-// 3. List System Users
-authRoutes.get('/users', async (c) => {
+// 3. List System Users (include inactive for admin visibility)
+authRoutes.get('/users', authenticate, async (c) => {
   const role = c.req.query('role');
+  const includeInactive = c.req.query('include_inactive') === 'true';
   let sql = `
-    SELECT u.id, u.username, u.full_name, u.email, u.role, u.warehouse_id, u.is_active,
+    SELECT u.id, u.username, u.full_name, u.email, u.role, u.warehouse_id, u.customer_id, u.is_active,
            w.name AS warehouse_name
     FROM users u
     LEFT JOIN warehouses w ON u.warehouse_id = w.id
-    WHERE u.is_active = true
+    WHERE 1=1
   `;
   const params: any[] = [];
+  if (!includeInactive) {
+    sql += ` AND u.is_active = true`;
+  }
   if (role) {
     params.push(role);
     sql += ` AND u.role = $${params.length}`;
@@ -123,4 +154,127 @@ authRoutes.get('/users', async (c) => {
 
   const result = await query(sql, params);
   return c.json({ success: true, data: result.rows });
+});
+
+// 4. Create System User (admin only)
+authRoutes.post('/users', authenticate, requireRole(ADMIN_ROLES), async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload;
+  const parsed = createUserSchema.safeParse(await c.req.json());
+  if (!parsed.success) {
+    return c.json({ success: false, message: 'Data tidak valid', details: parsed.error.flatten().fieldErrors }, 400);
+  }
+  const d = parsed.data;
+
+  const dupRes = await query(
+    `SELECT id FROM users WHERE username = $1 OR email = $2 LIMIT 1`,
+    [d.username, d.email]
+  );
+  if (dupRes.rows.length > 0) {
+    return c.json({ success: false, message: 'Username atau email sudah dipakai' }, 409);
+  }
+
+  const result = await query(
+    `INSERT INTO users (id, username, full_name, email, password_hash, role, warehouse_id, customer_id)
+     VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7)
+     RETURNING id, username, full_name, email, role, warehouse_id, customer_id, is_active`,
+    [d.username, d.full_name, d.email, hashPassword(d.password), d.role, d.warehouse_id || null, d.customer_id || null]
+  );
+  const created = result.rows[0];
+
+  await recordCheckpoint({
+    entity_type: 'SYSTEM_USER',
+    entity_id: created.id,
+    entity_number: created.username,
+    step_code: 'USER_CREATED',
+    step_label: 'Akun pengguna dibuat',
+    actor_id: user.id,
+    actor_name: user.full_name,
+    actor_role: user.role,
+    notes: `Akun ${created.username} dibuat dengan peran ${created.role}`
+  });
+
+  return c.json({ success: true, data: created }, 201);
+});
+
+// 5. Update System User (admin only; self role-change blocked)
+authRoutes.put('/users/:id', authenticate, requireRole(ADMIN_ROLES), async (c) => {
+  const actor = c.get('user' as any) as UserTokenPayload;
+  const targetId = c.req.param('id');
+  const parsed = updateUserSchema.safeParse(await c.req.json());
+  if (!parsed.success) {
+    return c.json({ success: false, message: 'Data tidak valid', details: parsed.error.flatten().fieldErrors }, 400);
+  }
+  const d = parsed.data;
+
+  const targetRes = await query(`SELECT id, username, role, is_active FROM users WHERE id = $1`, [targetId]);
+  if (targetRes.rows.length === 0) {
+    return c.json({ success: false, message: 'Pengguna tidak ditemukan' }, 404);
+  }
+  const target = targetRes.rows[0];
+
+  if (actor.id === targetId && (d.role && d.role !== target.role || d.is_active === false)) {
+    return c.json({ success: false, message: 'Tidak boleh menurunkan peran atau menonaktifkan akun sendiri' }, 400);
+  }
+
+  const sets: string[] = [];
+  const params: any[] = [];
+  const push = (col: string, val: any) => { params.push(val); sets.push(`${col} = $${params.length}`); };
+  if (d.full_name !== undefined) push('full_name', d.full_name);
+  if (d.email !== undefined) push('email', d.email);
+  if (d.role !== undefined) push('role', d.role);
+  if (d.warehouse_id !== undefined) push('warehouse_id', d.warehouse_id || null);
+  if (d.customer_id !== undefined) push('customer_id', d.customer_id || null);
+  if (d.is_active !== undefined) push('is_active', d.is_active);
+  if (d.new_password !== undefined) push('password_hash', hashPassword(d.new_password));
+  if (sets.length === 0) {
+    return c.json({ success: false, message: 'Tidak ada perubahan yang dikirim' }, 400);
+  }
+  params.push(targetId);
+  sets.push(`updated_at = CURRENT_TIMESTAMP`);
+
+  const result = await query(
+    `UPDATE users SET ${sets.join(', ')} WHERE id = $${params.length}
+     RETURNING id, username, full_name, email, role, warehouse_id, customer_id, is_active`,
+    params
+  );
+  const updated = result.rows[0];
+
+  await recordCheckpoint({
+    entity_type: 'SYSTEM_USER',
+    entity_id: updated.id,
+    entity_number: updated.username,
+    step_code: 'USER_UPDATED',
+    step_label: 'Data pengguna diperbarui',
+    actor_id: actor.id,
+    actor_name: actor.full_name,
+    actor_role: actor.role,
+    notes: `Perubahan: ${Object.keys(d).filter(k => k !== 'new_password').join(', ')}${d.new_password ? ', password' : ''}`
+  });
+
+  return c.json({ success: true, data: updated });
+});
+
+// 6. Change Own Password (any authenticated user)
+authRoutes.put('/users/me/password', authenticate, async (c) => {
+  const actor = c.get('user' as any) as UserTokenPayload;
+  const schema = z.object({ current_password: z.string().min(1), new_password: z.string().min(8).max(72) });
+  const parsed = schema.safeParse(await c.req.json());
+  if (!parsed.success) {
+    return c.json({ success: false, message: 'Password baru minimal 8 karakter' }, 400);
+  }
+  const { current_password, new_password } = parsed.data;
+
+  const selfRes = await query(`SELECT id, password_hash FROM users WHERE id = $1`, [actor.id]);
+  if (selfRes.rows.length === 0) {
+    return c.json({ success: false, message: 'Pengguna tidak ditemukan' }, 404);
+  }
+  if (!verifyPassword(current_password, selfRes.rows[0].password_hash)) {
+    return c.json({ success: false, message: 'Password saat ini salah' }, 400);
+  }
+
+  await query(
+    `UPDATE users SET password_hash = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+    [actor.id, hashPassword(new_password)]
+  );
+  return c.json({ success: true, message: 'Password berhasil diganti' });
 });

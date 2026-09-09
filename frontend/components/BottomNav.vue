@@ -30,6 +30,10 @@ function getShortName(fullName) {
   if (fullName.includes('Faktur')) return 'Tagihan'
   if (fullName.includes('Posisi Stok')) return 'Stok'
   if (fullName.includes('Checkpoint')) return 'Audit'
+  if (fullName.includes('Barang (SKU)')) return 'Barang'
+  if (fullName.includes('Gudang & Rak')) return 'Gudang'
+  if (fullName.includes('Customer')) return 'Customer'
+  if (fullName.includes('Pengguna')) return 'Akses'
   return fullName.slice(0, 8)
 }
 </script>

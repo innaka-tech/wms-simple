@@ -102,6 +102,27 @@
       <circle cx="12" cy="7" r="4"></circle>
     </g>
 
+    <!-- Users / Group -->
+    <g v-else-if="name === 'users'">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+      <circle cx="9" cy="7" r="4"></circle>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+    </g>
+
+    <!-- Warehouse / Building -->
+    <g v-else-if="name === 'warehouse'">
+      <path d="M3 21V9l9-6 9 6v12"></path>
+      <path d="M9 21v-8h6v8"></path>
+      <path d="M3 21h18"></path>
+    </g>
+
+    <!-- Plus -->
+    <g v-else-if="name === 'plus'">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </g>
+
     <!-- Shield / Audit -->
     <g v-else-if="name === 'shield' || name === 'checkpoint'">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
