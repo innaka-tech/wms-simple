@@ -53,6 +53,21 @@ checkpointRoutes.get('/by-number/:number', async (c) => {
     }
   }
 
+  // Sertakan PROSES SEBELUMNYA & PROSES BERIKUTNYA di tiap baris
+  // agar arah alur terbaca jelas di setiap checkpoint (bukan cuma prev-link)
+  const timeline = rows.map((row, i) => ({
+    ...row,
+    seq: i + 1,
+    prev_step_code: i > 0 ? rows[i - 1].step_code : null,
+    prev_step_label: i > 0 ? rows[i - 1].step_label : null,
+    prev_actor_name: i > 0 ? rows[i - 1].actor_name : null,
+    prev_at: i > 0 ? rows[i - 1].created_at : null,
+    next_step_code: i < rows.length - 1 ? rows[i + 1].step_code : null,
+    next_step_label: i < rows.length - 1 ? rows[i + 1].step_label : null,
+    next_actor_name: i < rows.length - 1 ? rows[i + 1].actor_name : null,
+    next_at: i < rows.length - 1 ? rows[i + 1].created_at : null
+  }));
+
   return c.json({
     success: true,
     data: {
@@ -61,7 +76,7 @@ checkpointRoutes.get('/by-number/:number', async (c) => {
       chain_valid: chainValid,
       broken_at_step: brokenAt === null ? null : rows[brokenAt].step_code,
       total_checkpoints: rows.length,
-      timeline: rows
+      timeline
     }
   });
 });

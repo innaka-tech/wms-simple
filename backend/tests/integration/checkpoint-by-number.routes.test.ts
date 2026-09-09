@@ -79,4 +79,23 @@ describe('GET /api/checkpoints/by-number/:number', () => {
     expect(body.data.chain_valid).toBe(true);
     expect(body.data.total_checkpoints).toBe(1);
   });
+
+  it('should embed prev/next context in each timeline row', async () => {
+    vi.mocked(db.query).mockResolvedValueOnce(chainRows());
+    const res = await app.request('/api/checkpoints/by-number/PO-123');
+    const body = await res.json();
+    const t = body.data.timeline;
+    // Baris pertama: tanpa prev, ada next
+    expect(t[0].prev_step_code).toBeNull();
+    expect(t[0].next_step_code).toBe('PO_RECEIVED');
+    expect(t[0].next_actor_name).toBe('Joko');
+    // Baris tengah: dua-duanya ada
+    expect(t[1].prev_step_code).toBe('PO_CREATED');
+    expect(t[1].prev_actor_name).toBe('Siti');
+    expect(t[1].next_step_code).toBe('PUTAWAY_COMPLETED');
+    // Baris terakhir: tanpa next
+    expect(t[2].next_step_code).toBeNull();
+    expect(t[2].prev_step_code).toBe('PO_RECEIVED');
+    expect(t[2].seq).toBe(3);
+  });
 });

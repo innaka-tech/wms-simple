@@ -1,97 +1,84 @@
 <template>
-  <div class="space-y-6">
+  <div class="max-w-3xl mx-auto space-y-4">
     <!-- Feedback -->
-    <div v-if="errorMessage" class="p-3.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-xs md:text-sm text-rose-600 dark:text-rose-400 flex justify-between items-center shadow-2xs">
-      <div class="flex items-center space-x-2">
-        <AppIcon name="alert" custom-class="w-4 h-4 shrink-0" />
-        <span class="font-medium">{{ errorMessage }}</span>
-      </div>
-      <button type="button" @click="errorMessage = ''" class="font-bold ml-2 hover:opacity-80">✕</button>
+    <div v-if="errorMessage" class="p-3 rounded-md bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400">
+      {{ errorMessage }}
     </div>
 
-    <!-- Header + Pencarian -->
-    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
-      <div>
-        <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-0.5">Pemantauan • Rantai Immutable</p>
-        <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-          <AppIcon name="checkpoint" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <span>Riwayat Checkpoint Dokumen</span>
-        </h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Telusuri perjalanan satu dokumen: PO, MNF, SJ/RESI, XDOC, VEND-OUT, ORD, INV.</p>
+    <!-- Pencarian -->
+    <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg flex flex-col sm:flex-row sm:items-center gap-3 transition-colors">
+      <div class="flex-1">
+        <h2 class="text-sm font-bold text-slate-900 dark:text-white">Riwayat Checkpoint Dokumen</h2>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Masukkan nomor dokumen: PO-, MNF-, SJ/RESI-, XDOC-, ORD-, INV-, VEND-OUT-</p>
       </div>
-      <form class="flex gap-2 shrink-0" @submit.prevent="lookup">
+      <form class="flex gap-2" @submit.prevent="lookup">
         <input
           v-model="docNumber"
           type="text"
-          placeholder="Nomor dokumen (mis. PO-43649213)"
-          class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none w-64"
+          placeholder="PO-12345678"
+          class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none w-44"
         />
-        <button type="submit" :disabled="isLoading" class="px-3.5 py-2 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer">
-          {{ isLoading ? 'Mencari...' : 'Telusuri' }}
+        <button type="submit" :disabled="isLoading" class="px-3 py-2 rounded-md bg-slate-900 dark:bg-slate-100 hover:bg-slate-700 dark:hover:bg-white disabled:opacity-50 text-white dark:text-slate-900 text-xs font-semibold transition cursor-pointer">
+          {{ isLoading ? '...' : 'Telusuri' }}
         </button>
       </form>
     </div>
 
     <!-- Hasil -->
     <template v-if="result">
-      <!-- Ringkasan + integritas rantai -->
-      <div class="p-4 rounded-lg border shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors"
-           :class="result.chain_valid ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-rose-500/5 border-rose-500/20'">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-md flex items-center justify-center shrink-0"
-               :class="result.chain_valid ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'">
-            <AppIcon :name="result.chain_valid ? 'check' : 'alert'" custom-class="w-5 h-5" />
-          </div>
-          <div>
-            <p class="text-sm font-bold text-slate-900 dark:text-white font-mono">{{ result.document_number }}</p>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400">
-              {{ result.entity_type }} • {{ result.total_checkpoints }} checkpoint
-            </p>
-          </div>
+      <!-- Header dokumen: identitas + status rantai, satu baris -->
+      <div class="px-4 py-3 rounded-lg border flex items-center justify-between gap-3 transition-colors"
+           :class="result.chain_valid ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-rose-500/5 border-rose-500/30'">
+        <div class="min-w-0">
+          <p class="text-sm font-bold text-slate-900 dark:text-white font-mono truncate">{{ result.document_number }}</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">{{ result.entity_type.replace(/_/g, ' ') }} • {{ result.total_checkpoints }} checkpoint</p>
         </div>
-        <span class="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold border w-fit"
+        <span class="px-2 py-1 rounded text-[10px] font-mono font-bold border shrink-0"
               :class="result.chain_valid
                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                 : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'">
-          {{ result.chain_valid ? '✓ Rantai Integritas Valid' : '✕ RANTAI PUTUS di ' + result.broken_at_step }}
+          {{ result.chain_valid ? 'Rantai valid' : 'Rantai putus' }}
         </span>
       </div>
 
-      <!-- Timeline visual -->
-      <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-colors">
-        <div class="relative">
-          <div class="absolute left-[15px] top-2 bottom-2 w-0.5" :class="result.chain_valid ? 'bg-blue-200 dark:bg-blue-900' : 'bg-rose-200 dark:bg-rose-900'"></div>
-          <div v-for="(cp, idx) in result.timeline" :key="cp.id" class="relative flex gap-4 pb-6 last:pb-0">
-            <!-- Node -->
-            <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 bg-white dark:bg-slate-900 z-10"
-                 :class="isBrokenNode(idx) ? 'border-rose-500' : 'border-blue-500'">
-              <span class="text-[10px] font-mono font-bold" :class="isBrokenNode(idx) ? 'text-rose-500' : 'text-blue-600 dark:text-blue-400'">{{ idx + 1 }}</span>
+      <!-- Timeline ramping -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden transition-colors">
+        <div v-for="(cp, idx) in result.timeline" :key="cp.id">
+          <!-- Garis + node -->
+          <div class="flex gap-3 px-4" :class="idx === 0 ? 'pt-4' : ''">
+            <div class="flex flex-col items-center">
+              <span class="w-2.5 h-2.5 rounded-full ring-4 shrink-0 my-1" :class="[cpDot(cp.step_code), result.chain_valid ? 'ring-blue-50 dark:ring-blue-950' : 'ring-transparent']"></span>
+              <span v-if="idx < result.timeline.length - 1" class="w-px flex-1 bg-slate-200 dark:bg-slate-800"></span>
             </div>
-            <!-- Konten -->
-            <div class="flex-1 min-w-0 pt-0.5">
-              <div class="flex flex-wrap items-center gap-2">
-                <p class="text-xs font-bold text-slate-900 dark:text-white">{{ cp.step_label || cp.step_code }}</p>
-                <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border" :class="phaseChip(cp.step_code)">{{ phaseOf(cp.step_code) }}</span>
+            <!-- Konten step -->
+            <div class="flex-1 min-w-0" :class="idx < result.timeline.length - 1 ? 'pb-5' : 'pb-4'">
+              <div class="flex items-baseline justify-between gap-2 flex-wrap">
+                <p class="text-xs font-bold text-slate-900 dark:text-white leading-snug">{{ cp.step_label }}</p>
+                <span class="text-[10px] font-mono text-slate-400 shrink-0">{{ formatTime(cp.created_at) }}</span>
               </div>
-              <p class="text-[11px] font-mono text-slate-400 mt-0.5">{{ cp.step_code }}</p>
+              <!-- Baris proses sebelum / sesudah -->
+              <p v-if="cp.next_step_code" class="text-[10px] text-slate-400 mt-1">
+                Selanjutnya: <span class="text-slate-500 dark:text-slate-300 font-medium">{{ cp.next_step_label }}</span>
+                <span v-if="cp.next_actor_name"> oleh {{ cp.next_actor_name }}</span>
+                <span class="font-mono"> · {{ shortTime(cp.next_at) }}</span>
+              </p>
+              <p v-else class="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+                Checkpoint terakhir — menunggu proses berikutnya
+              </p>
+              <p v-if="cp.prev_step_code" class="text-[10px] text-slate-400">
+                Sebelumnya: {{ cp.prev_step_label }} oleh {{ cp.prev_actor_name }}
+              </p>
+              <p class="text-[10px] font-mono text-slate-400 mt-1">{{ cp.actor_name }} <span v-if="cp.actor_role" class="text-slate-300 dark:text-slate-600">· {{ cp.actor_role }}</span></p>
               <p v-if="cp.notes" class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{{ cp.notes }}</p>
-              <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-[10px] font-mono text-slate-400">
-                <span class="flex items-center gap-1">
-                  <AppIcon name="user" custom-class="w-3 h-3" />
-                  {{ cp.actor_name }}<span v-if="cp.actor_role" class="text-slate-300 dark:text-slate-600"> • {{ cp.actor_role }}</span>
-                </span>
-                <span>{{ formatTime(cp.created_at) }}</span>
-                <span v-if="cp.photo_urls && parsePhotos(cp.photo_urls).length" class="text-blue-500">{{ parsePhotos(cp.photo_urls).length }} foto</span>
-              </div>
             </div>
           </div>
         </div>
       </div>
     </template>
 
-    <!-- Empty state -->
-    <div v-else-if="!isLoading" class="p-8 text-center text-xs text-slate-400 font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-      Masukkan nomor dokumen untuk melihat rantai checkpoint-nya.
+    <!-- Empty -->
+    <div v-else-if="!isLoading" class="p-6 text-center text-[11px] text-slate-400 font-mono bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+      Belum ada dokumen ditelusuri.
     </div>
   </div>
 </template>
@@ -100,7 +87,6 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useWmsApi } from '~/composables/useWmsApi'
-import AppIcon from '~/components/AppIcon.vue'
 
 const { apiFetch } = useWmsApi()
 const route = useRoute()
@@ -110,42 +96,26 @@ const isLoading = ref(false)
 const errorMessage = ref('')
 const result = ref(null)
 
-onMounted(() => {
-  const q = route.query.doc
-  if (q) {
-    docNumber.value = String(q)
-    lookup()
-  }
-})
-
-const STEP_PHASE = [
-  { keys: ['PO_CREATED', 'PO_RECEIVED', 'PUTAWAY', 'INBOUND'], phase: 'F1', chip: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
-  { keys: ['DEBULKING', 'CONVERSION'], phase: 'F2', chip: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-  { keys: ['MANIFEST', 'LOADED', 'PICK', 'PACK', 'SHIP', 'WAYBILL', 'DEPART', 'GATE', 'VENDOR_EXIT', 'RECEIVED_AT_DEST'], phase: 'F3', chip: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
-  { keys: ['POD', 'INVOICE', 'PAYMENT', 'PAID', 'CROSS_DOC', 'LUNAS'], phase: 'F4', chip: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20' }
+const CP_COLORS = [
+  { keys: ['PO_', 'PUTAWAY', 'INBOUND'], color: 'bg-emerald-500' },
+  { keys: ['DEBULK', 'CONVERSION'], color: 'bg-amber-500' },
+  { keys: ['MANIFEST', 'LOADED', 'PICK', 'PACK', 'SHIP', 'WAYBILL', 'DEPART', 'GATE', 'VENDOR', 'RECEIVED'], color: 'bg-blue-500' },
+  { keys: ['POD', 'INVOICE', 'PAYMENT', 'PAID', 'CROSS_DOC'], color: 'bg-cyan-500' }
 ]
 
-function phaseOf(stepCode) {
-  const match = STEP_PHASE.find(p => p.keys.some(k => (stepCode || '').includes(k)))
-  return match ? match.phase : 'F?'
-}
-
-function phaseChip(stepCode) {
-  const match = STEP_PHASE.find(p => p.keys.some(k => (stepCode || '').includes(k)))
-  return match ? match.chip : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
-}
-
-function isBrokenNode(idx) {
-  return result.value && !result.value.chain_valid && idx === (result.value.total_checkpoints - 1) && result.value.broken_at_step === result.value.timeline[idx].step_code
-}
-
-function parsePhotos(v) {
-  try { return typeof v === 'string' ? JSON.parse(v) : (v || []) } catch { return [] }
+function cpDot(code) {
+  const m = CP_COLORS.find(p => p.keys.some(k => (code || '').includes(k)))
+  return m ? m.color : 'bg-slate-400'
 }
 
 function formatTime(v) {
   if (!v) return '-'
-  try { return new Date(v).toLocaleString('id-ID') } catch { return v }
+  try { return new Date(v).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) } catch { return v }
+}
+
+function shortTime(v) {
+  if (!v) return ''
+  try { return new Date(v).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) } catch { return '' }
 }
 
 async function lookup() {
@@ -170,4 +140,12 @@ async function lookup() {
     isLoading.value = false
   }
 }
+
+onMounted(() => {
+  const q = route.query.doc
+  if (q) {
+    docNumber.value = String(q)
+    lookup()
+  }
+})
 </script>
