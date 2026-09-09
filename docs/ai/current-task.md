@@ -213,3 +213,12 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 4. [x] **Dev server permanen via tmux:** sesi `wms-be` (3000) & `wms-fe` (3001) — backend login 200, halaman frontend 200.
 
 **Next (sisa backlog):** #5 — e2e rantai checkpoint inbound/crossdock (outbound pool + vendor sudah tertutup suite e2e), atau push `ans` bila diminta.
+
+---
+
+## Sesi 2026-09-09 — Backlog #5 selesai + Review UI
+
+- E2E rantai inbound → putaway → cross-dock → cross-doc di PostgreSQL nyata (4 test, tanpa mock): LULUS.
+- Bug ditemukan & diperbaiki: receive-dest tidak mengosongkan qty_in_transit gudang asal (fix: clear_transit_warehouse_id + log ledger CROSS_DOCK_TRANSIT_CLEAR); vendor-exit menolak reference_id null (Zod nullish); load/receive product_id kini dari DB.
+- Suite penuh: 121/121 test (20 file), TSC bersih. Login page branding → PostgreSQL 16.
+- Review UI: kartu dashboard "Trip Antar-Hub" salah sumber data (diganti jumlah armada pool tersedia), fallback SKU palsu dihapus, feedback sukses outbound kini tampil.
