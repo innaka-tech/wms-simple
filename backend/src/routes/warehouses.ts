@@ -5,7 +5,12 @@ export const warehouseRoutes = new Hono();
 
 // List all warehouses
 warehouseRoutes.get('/', async (c) => {
-  const result = await query(`SELECT * FROM warehouses ORDER BY type ASC, name ASC`);
+  const result = await query(
+    `SELECT w.*, wt.name AS type
+     FROM warehouses w
+     LEFT JOIN master_warehouse_types wt ON w.warehouse_type_id = wt.id
+     ORDER BY wt.name ASC, w.name ASC`
+  );
   return c.json({ success: true, data: result.rows });
 });
 

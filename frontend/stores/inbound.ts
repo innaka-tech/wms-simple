@@ -24,6 +24,39 @@ export const useInboundStore = defineStore('inbound', {
   }),
 
   actions: {
+    async createOrder(payload: {
+      customer_id: string;
+      warehouse_id: string;
+      items: Array<{ product_id: string; ordered_qty: number }>;
+      actor_name: string;
+      sender_info?: string;
+      eta?: string;
+      notes?: string;
+    }) {
+      this.isLoading = true;
+      this.errorMessage = '';
+      this.successMessage = '';
+      const { apiFetch } = useWmsApi();
+
+      try {
+        const res = await apiFetch('/inbound', {
+          method: 'POST',
+          body: payload
+        });
+        if (res.success) {
+          this.successMessage = `PO ${res.data.po_number} dibuat`;
+          await this.fetchOrders();
+          return res.data;
+        }
+        return null;
+      } catch (err: any) {
+        this.errorMessage = err.detail || err.message || 'Gagal membuat PO inbound';
+        return null;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
     async fetchOrders(warehouseId?: string, status?: string) {
       this.isLoading = true;
       const { apiFetch } = useWmsApi();

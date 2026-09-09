@@ -3,6 +3,12 @@ import { query } from '../db.js';
 
 export const masterRoutes = new Hono();
 
+// Customers (pengirim/penerima untuk dropdown PO, order, manifest)
+masterRoutes.get('/customers', async (c) => {
+  const result = await query(`SELECT id, code, name, type, contact_name, contact_phone FROM customers WHERE is_active = true ORDER BY name ASC`);
+  return c.json({ success: true, data: result.rows });
+});
+
 // 1. Cargo Types (Bulky, Curah Kering, Curah Cair, Packaged)
 masterRoutes.get('/cargo-types', async (c) => {
   const result = await query(`SELECT * FROM master_cargo_types WHERE is_active = true ORDER BY name ASC`);
