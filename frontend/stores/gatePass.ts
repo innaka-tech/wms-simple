@@ -41,7 +41,9 @@ export const useGatePassStore = defineStore('gatePass', {
   }),
 
   getters: {
-    gatePassList: (state) => state.logs || []
+    gatePassList: (state) => state.logs || [],
+    /** Kendaraan pool yang boleh dipilih gate pass: aktif & status AVAILABLE */
+    availableVehicles: (state) => (state.vehicles || []).filter(v => v.status === 'AVAILABLE' && v.is_active !== false)
   },
 
   actions: {

@@ -55,6 +55,58 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
     expect(body.message).toContain('wajib diisi');
   });
 
+  it('POST /api/fleet/departure should reject inactive/retired vehicle', async () => {
+    vi.mocked(db.query).mockResolvedValueOnce({ rows: [{ ok: 1 }] } as any); // resi valid
+
+    mockClient.query
+      .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({   // SELECT vehicle FOR UPDATE -> inactive
+        rows: [{ id: 'v-2', plate_number: 'B 7777 XYZ', status: 'AVAILABLE', is_active: false }]
+      });
+
+    const res = await app.request('/api/fleet/departure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vehicle_id: 'v-2',
+        driver_name: 'Pak Bambang',
+        warehouse_id: 'wh-jakarta',
+        odometer_out: 1000,
+        waybill_number: 'SJ-VALID001',
+        departure_security_officer: 'Satpam Slamet'
+      })
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.message).toContain('dinonaktifkan');
+  });
+
+  it('POST /api/fleet/departure should reject vehicle under MAINTENANCE', async () => {
+    vi.mocked(db.query).mockResolvedValueOnce({ rows: [{ ok: 1 }] } as any); // resi valid
+
+    mockClient.query
+      .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({
+        rows: [{ id: 'v-3', plate_number: 'B 8888 XYZ', status: 'MAINTENANCE', is_active: true }]
+      });
+
+    const res = await app.request('/api/fleet/departure', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vehicle_id: 'v-3',
+        driver_name: 'Pak Bambang',
+        warehouse_id: 'wh-jakarta',
+        odometer_out: 1000,
+        waybill_number: 'SJ-VALID001',
+        departure_security_officer: 'Satpam Slamet'
+      })
+    });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.message).toContain('perawatan');
+  });
+
   it('POST /api/fleet/departure should reject if vehicle is already IN_USE', async () => {
     vi.mocked(db.query).mockResolvedValueOnce({ rows: [{ ok: 1 }] } as any); // resi/SJ valid
 
@@ -78,7 +130,7 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
       })
     });
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.message).toContain('sedang berstatus IN_USE');
   });

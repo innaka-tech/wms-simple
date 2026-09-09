@@ -4,6 +4,7 @@ import { query, pool } from '../db.js';
 import { recordCheckpoint } from '../services/checkpoint.js';
 import { optionalAuth, authenticate, requireRole, UserTokenPayload } from '../middlewares/auth.js';
 import { generateDocumentNumber } from '../utils/waybill.js';
+import { AppError } from '../utils/errors.js';
 
 export const fleetRoutes = new Hono();
 
@@ -341,7 +342,13 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
       throw new Error('Kendaraan tidak ditemukan');
     }
     if (vehRes.rows[0].status === 'IN_USE') {
-      throw new Error(`Kendaraan plat ${vehRes.rows[0].plate_number} sedang berstatus IN_USE (belum tercatat kembali)`);
+      throw new AppError(`Kendaraan plat ${vehRes.rows[0].plate_number} sedang berstatus IN_USE (belum tercatat kembali)`, 400, 'VEHICLE_IN_USE');
+    }
+    if (vehRes.rows[0].is_active === false || vehRes.rows[0].status === 'RETIRED') {
+      throw new AppError(`Kendaraan plat ${vehRes.rows[0].plate_number} sudah dinonaktifkan/dipensiunkan — perbarui master armada dulu`, 400, 'VEHICLE_INACTIVE');
+    }
+    if (vehRes.rows[0].status === 'MAINTENANCE') {
+      throw new AppError(`Kendaraan plat ${vehRes.rows[0].plate_number} sedang perawatan (MAINTENANCE) — ubah status ke AVAILABLE di master armada setelah selesai`, 400, 'VEHICLE_MAINTENANCE');
     }
 
     // Nomor gate pass unik (acak + cek database) — bukan timestamp yang collision-prone
@@ -422,6 +429,9 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
     return c.json({ success: true, data: exitLog }, 201);
   } catch (err: any) {
     await client.query('ROLLBACK');
+    if (err instanceof AppError) {
+      return c.json({ success: false, message: err.message, code: err.code }, err.status);
+    }
     return c.json({ success: false, message: err.message }, 500);
   } finally {
     client.release();

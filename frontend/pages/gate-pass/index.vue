@@ -82,14 +82,17 @@
             >
               <option value="" disabled>-- Pilih Nomor Polisi Truk --</option>
               <option 
-                v-for="veh in gatePassStore.vehicles" 
+                v-for="veh in gatePassStore.availableVehicles" 
                 :key="veh.id" 
                 :value="veh.id"
-                :disabled="veh.status === 'IN_USE'"
               >
-                {{ veh.plate_number }} ({{ veh.brand || veh.type }}) - {{ veh.status }}
+                {{ veh.plate_number }} ({{ veh.brand || veh.vehicle_type_name || veh.type }})
               </option>
+              <option v-if="!gatePassStore.availableVehicles.length" value="" disabled>Tidak ada armada tersedia — cek Master Armada</option>
             </select>
+            <p v-if="!gatePassStore.availableVehicles.length" class="text-[11px] text-amber-600 dark:text-amber-400">
+              Semua armada sedang dipakai/perawatan/nonaktif. Kelola di menu <span class="font-semibold">Master & Pengaturan → Master Armada Pool</span>.
+            </p>
           </div>
 
           <!-- 2. Driver & Purpose -->
@@ -460,8 +463,8 @@ onMounted(async () => {
   await waybillStore.fetchWaybills()
   await outboundStore.fetchOrders()
 
-  if (gatePassStore.vehicles.length > 0 && !formOut.value.vehicle_id) {
-    const available = gatePassStore.vehicles.find(v => v.status === 'AVAILABLE')
+  if (gatePassStore.availableVehicles.length > 0 && !formOut.value.vehicle_id) {
+    const available = gatePassStore.availableVehicles[0]
     if (available) {
       formOut.value.vehicle_id = available.id
       if (available.last_odometer_km) {
