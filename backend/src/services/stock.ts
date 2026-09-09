@@ -28,6 +28,11 @@ export interface RecordStockMovementParams {
    * pada koneksi SQLite bersama.
    */
   txClient?: any;
+  /**
+   * Gudang asal yang qty_in_transit-nya harus dikosongkan (penerimaan manifest cross-dock
+   * di spoke tujuan). Wajib agar stok in-transit sumber tidak menggantung selamanya.
+   */
+  clear_transit_warehouse_id?: string;
 }
 
 export async function adjustStock(params: RecordStockMovementParams) {
@@ -92,6 +97,38 @@ export async function adjustStock(params: RecordStockMovementParams) {
              last_updated = CURRENT_TIMESTAMP
          WHERE warehouse_id = $1 AND product_id = $2`,
         [params.warehouse_id, params.product_id, params.qty_change]
+      );
+    }
+
+    // 2b. Kosongkan in-transit di gudang asal (barang sudah diterima fisik di tujuan)
+    if (params.clear_transit_warehouse_id) {
+      const transitQty = Math.abs(params.qty_change);
+      await client.query(
+        `UPDATE stock_levels 
+         SET qty_in_transit = qty_in_transit - $3,
+             last_updated = CURRENT_TIMESTAMP
+         WHERE warehouse_id = $1 AND product_id = $2`,
+        [params.clear_transit_warehouse_id, params.product_id, transitQty]
+      );
+      // Log ledger: transit sumber berkurang (on_hand tidak berubah)
+      await client.query(
+        `INSERT INTO stock_movements (
+          id, warehouse_id, product_id, movement_type, reference_type, reference_id,
+          qty_change, qty_before, qty_after, location_id, notes,
+          performed_by_id, performed_by_name
+        ) VALUES (uuid_generate_v4(), $1, $2, 'CROSS_DOCK_TRANSIT_CLEAR', $3, $4, $5, $6, $6, $7, $8, $9, $10)`,
+        [
+          params.clear_transit_warehouse_id,
+          params.product_id,
+          params.reference_type,
+          params.reference_id,
+          -transitQty,
+          qtyBefore,
+          params.location_id || null,
+          `In-transit dikosongkan di gudang asal: ${params.notes || ''}`.trim(),
+          params.performed_by_id || null,
+          params.performed_by_name.trim()
+        ]
       );
     }
 

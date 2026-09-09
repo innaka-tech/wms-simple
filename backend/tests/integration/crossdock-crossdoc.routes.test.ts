@@ -81,6 +81,7 @@ describe('Cross-Dock and Cross-Document API Routes Integration Tests', () => {
       mockClient.query
         .mockResolvedValueOnce({}) // BEGIN
         .mockResolvedValueOnce({}) // UPDATE cross_dock_items
+        .mockResolvedValueOnce({ rows: [{ product_id: 'p-chiller' }] } as any) // SELECT product_id item dari DB
         .mockResolvedValueOnce({}) // UPDATE cross_dock_manifests status LOADED
         .mockResolvedValueOnce({}); // COMMIT
 
@@ -117,6 +118,7 @@ describe('Cross-Dock and Cross-Document API Routes Integration Tests', () => {
       mockClient.query
         .mockResolvedValueOnce({}) // BEGIN
         .mockResolvedValueOnce({}) // UPDATE cross_dock_items
+        .mockResolvedValueOnce({ rows: [{ product_id: 'p-chiller' }] } as any) // SELECT product_id item dari DB
         .mockResolvedValueOnce({}) // UPDATE cross_dock_manifests status RECEIVED_DEST
         .mockResolvedValueOnce({}); // COMMIT
 

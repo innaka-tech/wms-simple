@@ -122,10 +122,14 @@ crossDocRoutes.post('/', async (c) => {
     const crossDoc = insertRes.rows[0];
 
     for (const item of items) {
+      // uom_id wajib (schema): pakai payload atau UOM default produk
+      const uomRes = await client.query(`SELECT default_uom_id FROM products WHERE id = $1`, [item.product_id]);
+      const uomId = item.uom_id || uomRes.rows[0]?.default_uom_id;
+      if (!uomId) throw new Error(`Produk ${item.product_id} tidak memiliki UOM default`);
       await client.query(
         `INSERT INTO cross_document_items (id, cross_doc_id, product_id, original_qty, reissued_qty, uom_id, remarks)
          VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6)`,
-        [crossDoc.id, item.product_id, item.original_qty, item.reissued_qty, item.uom_id, item.remarks || null]
+        [crossDoc.id, item.product_id, item.original_qty, item.reissued_qty, uomId, item.remarks || null]
       );
     }
 

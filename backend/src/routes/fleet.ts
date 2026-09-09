@@ -139,6 +139,25 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
       }, 409);
     }
   }
+  // docs/05: keberangkatan manifest cross-dock — nomor manifest wajib dicatat & divalidasi
+  if (reference_type === 'CROSS_DOCK_MANIFEST' && reference_id) {
+    if (!reference_number || String(reference_number).trim().length < 4) {
+      return c.json({
+        success: false,
+        message: 'Nomor manifest yang dibawa wajib dicatat untuk keberangkatan cross-dock'
+      }, 400);
+    }
+    const mnfRes = await query(
+      `SELECT 1 FROM cross_dock_manifests WHERE id = $1 AND manifest_number = $2`,
+      [reference_id, String(reference_number).trim()]
+    );
+    if (mnfRes.rows.length === 0) {
+      return c.json({
+        success: false,
+        message: `Manifest "${reference_number}" tidak dikenal — keberangkatan tanpa dokumen sah ditolak (docs/05)`
+      }, 409);
+    }
+  }
 
   const client = await pool.connect();
   try {
@@ -349,7 +368,7 @@ const vendorExitSchema = z.object({
   vehicle_type: z.string().optional(),
   driver_name: z.string().optional(),
   reference_type: z.enum(['OUTBOUND_ORDER', 'CROSS_DOCK_MANIFEST', 'NONE']).optional(),
-  reference_id: z.string().optional(),
+  reference_id: z.string().nullish(),
   destination_note: z.string().max(300).optional(),
   departure_photo_url: z.string().optional(),
   notes: z.string().max(500).optional(),

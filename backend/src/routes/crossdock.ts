@@ -178,10 +178,15 @@ crossdockRoutes.post('/:id/load', async (c) => {
         [item.id, item.loaded_qty]
       );
 
+      // product_id diambil dari baris DB (payload client tidak selalu menyertakannya)
+      const rowRes = await client.query(`SELECT product_id FROM cross_dock_items WHERE id = $1`, [item.id]);
+      const productId = rowRes.rows[0]?.product_id;
+      if (!productId) throw new Error(`Item manifest ${item.id} tidak ditemukan`);
+
       // Deduct on_hand from source warehouse and add to in_transit
       await adjustStock({
         warehouse_id: manifest.source_warehouse_id,
-        product_id: item.product_id,
+        product_id: productId,
         movement_type: 'CROSS_DOCK_OUT',
         txClient: client,
         reference_type: 'CROSS_DOCK_MANIFEST',
@@ -249,15 +254,21 @@ crossdockRoutes.post('/:id/receive-dest', async (c) => {
         [item.id, item.received_qty]
       );
 
-      // Increase on_hand at destination warehouse and clear in_transit
+      // product_id diambil dari baris DB (payload client tidak selalu menyertakannya)
+      const rowRes = await client.query(`SELECT product_id FROM cross_dock_items WHERE id = $1`, [item.id]);
+      const productId = rowRes.rows[0]?.product_id;
+      if (!productId) throw new Error(`Item manifest ${item.id} tidak ditemukan`);
+
+      // Increase on_hand at destination warehouse and clear in_transit at source warehouse
       await adjustStock({
         warehouse_id: manifest.destination_warehouse_id,
-        product_id: item.product_id,
+        product_id: productId,
         movement_type: 'CROSS_DOCK_IN',
         txClient: client,
         reference_type: 'CROSS_DOCK_MANIFEST',
         reference_id: manifest.id,
         qty_change: item.received_qty,
+        clear_transit_warehouse_id: manifest.source_warehouse_id,
         notes: `Diterima di Gudang Transit dari Manifest ${manifest.manifest_number}`,
         performed_by_id: actor_id || null,
         performed_by_name: actor_name

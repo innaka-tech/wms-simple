@@ -200,6 +200,7 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({}) // UPDATE cross_dock_items
+      .mockResolvedValueOnce({ rows: [{ product_id: 'prod-sugar-jumbo-1t' }] } as any) // SELECT product_id item dari DB
       .mockResolvedValueOnce({}) // UPDATE cross_dock_manifests status LOADED
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -252,6 +253,8 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
     // =========================================================================
     // PHASE 4: SECURITY GATE PASS (FLEET DEPARTURE)
     // =========================================================================
+    vi.mocked(db.query).mockResolvedValueOnce({ rows: [{ id: 'mnf-e2e-001' }] } as any); // validasi manifest (docs/05)
+
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({   // SELECT vehicle FOR UPDATE -> status AVAILABLE
@@ -296,6 +299,7 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({}) // UPDATE cross_dock_items
+      .mockResolvedValueOnce({ rows: [{ product_id: 'prod-sugar-jumbo-1t' }] } as any) // SELECT product_id item dari DB
       .mockResolvedValueOnce({}) // UPDATE cross_dock_manifests status RECEIVED_DEST
       .mockResolvedValueOnce({}); // COMMIT
 

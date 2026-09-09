@@ -15,7 +15,7 @@
       <div class="flex items-center space-x-3">
         <div class="hidden sm:flex items-center space-x-2 text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-2xs">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Core API: 3000 (SQLite Active)</span>
+          <span>Core API: 3000 (PostgreSQL Active)</span>
         </div>
         <ThemeToggle />
       </div>
@@ -59,7 +59,7 @@
             <div class="grid grid-cols-2 gap-2 text-center text-xs">
               <div class="p-2.5 rounded-md bg-slate-900 border border-slate-800">
                 <p class="text-[10px] text-slate-500 uppercase font-mono">Database</p>
-                <p class="font-semibold text-slate-200 mt-0.5 font-mono text-xs">SQLite (WAL)</p>
+                <p class="font-semibold text-slate-200 mt-0.5 font-mono text-xs">PostgreSQL 16</p>
               </div>
               <div class="p-2.5 rounded-md bg-slate-900 border border-slate-800">
                 <p class="text-[10px] text-slate-500 uppercase font-mono">Audit Chain</p>
