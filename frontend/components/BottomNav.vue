@@ -29,6 +29,7 @@ function getShortName(fullName) {
   if (fullName.includes('e-POD')) return 'POD'
   if (fullName.includes('Faktur')) return 'Tagihan'
   if (fullName.includes('Posisi Stok')) return 'Stok'
+  if (fullName.includes('Checkpoint')) return 'Audit'
   return fullName.slice(0, 8)
 }
 </script>

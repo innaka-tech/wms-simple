@@ -18,7 +18,7 @@ export interface NavItem {
   name: string;
   path: string;
   icon: string;
-  code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing';
+  code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing' | 'checkpoints';
   badge?: string;
   roles: UserRole[];
   /** Fase alur operasional: 1=Masuk 2=Gudang 3=Keluar 4=Bukti&Tagihan 5=Pemantauan */
@@ -53,7 +53,8 @@ const MASTER_NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Ringkasan & Pemantauan',
     items: [
       { name: 'Dashboard Operasional', path: '/', icon: 'home', code: 'dashboard', roles: ALL_ROLES },
-      { name: 'Posisi Stok & Mutasi', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'], phase: 5, accent: 'bg-slate-400' }
+      { name: 'Posisi Stok & Mutasi', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'], phase: 5, accent: 'bg-slate-400' },
+      { name: 'Riwayat Checkpoint Dokumen', path: '/checkpoints', icon: 'checkpoint', code: 'checkpoints', roles: ALL_ROLES, phase: 5, accent: 'bg-slate-400' }
     ]
   },
   {
@@ -221,6 +222,9 @@ export const useAuthStore = defineStore('auth', {
       }
       if (path.startsWith('/stock')) {
         return ['ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'].includes(currentRole);
+      }
+      if (path.startsWith('/checkpoints')) {
+        return true; // audit terbuka untuk semua role internal
       }
 
       return true;

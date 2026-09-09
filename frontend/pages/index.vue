@@ -72,21 +72,21 @@
     <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
       <div class="flex items-center justify-between mb-2.5">
         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">Checkpoint Audit Terakhir</h3>
-        <span class="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+        <NuxtLink to="/checkpoints" class="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-600 dark:text-emerald-400 hover:underline">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          Rantai Immutable
-        </span>
+          Rantai Immutable • Telusuri Dokumen →
+        </NuxtLink>
       </div>
       <div v-if="recentCheckpoints.length === 0" class="p-3 text-center text-[11px] text-slate-400 font-mono">Belum ada aktivitas checkpoint.</div>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5">
-        <div v-for="cp in recentCheckpoints" :key="cp.id" class="flex items-center gap-2.5 py-1 border-b border-slate-100 dark:border-slate-800/60 last:border-0">
+        <NuxtLink v-for="cp in recentCheckpoints" :key="cp.id" :to="'/checkpoints?doc=' + (cp.entity_number || '')" class="flex items-center gap-2.5 py-1 border-b border-slate-100 dark:border-slate-800/60 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-950/40 transition-colors rounded px-1 -mx-1">
           <span class="w-2 h-2 rounded-full shrink-0" :class="cpDot(cp.step_code)"></span>
           <div class="flex-1 min-w-0">
             <p class="text-[11px] font-semibold text-slate-800 dark:text-slate-200 truncate">{{ cp.step_label || cp.step_code }}</p>
             <p class="text-[10px] font-mono text-slate-400 truncate">{{ cp.entity_number || cp.entity_type }} • {{ cp.actor_name }}</p>
           </div>
           <span class="text-[10px] font-mono text-slate-400 shrink-0">{{ shortTime(cp.created_at) }}</span>
-        </div>
+        </NuxtLink>
       </div>
     </div>
 
