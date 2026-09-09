@@ -21,9 +21,15 @@
     </template>
   </nav>
 
-  <!-- FULL MODE: accordion dua tingkat -->
-  <nav class="space-y-0.5" aria-label="Navigasi utama">
-    <template v-for="parent in parents" :key="parent.name">
+  <!-- FULL MODE: accordion dua tingkat dengan ritme band -->
+  <nav class="space-y-1" aria-label="Navigasi utama">
+    <template v-for="(parent, pi) in parents" :key="parent.name">
+      <!-- Pemisah antar band: main | flow | admin -->
+      <div
+        v-if="pi > 0 && parent.band && parent.band !== parents[pi - 1].band"
+        class="mx-3 my-2 border-t border-slate-200/80 dark:border-slate-800"
+        aria-hidden="true"
+      ></div>
       <!-- Parent tanpa anak (Beranda): link langsung -->
       <NuxtLink
         v-if="parent.children.length <= 1"
@@ -61,19 +67,27 @@
           </svg>
         </button>
 
-        <div v-if="isOpen(parent.name)" class="mt-0.5 mb-1 ml-[19px] pl-3 border-l-2 border-slate-200 dark:border-slate-800 space-y-0.5">
-          <NuxtLink
-            v-for="item in parent.children"
-            :key="item.path"
-            :to="item.path"
-            class="flex items-center py-1.5 px-2 rounded-md text-xs transition"
-            :class="isActive(item.path)
-              ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
-            @click="$emit('navigate')"
-          >
-            <span class="truncate">{{ item.name }}</span>
-          </NuxtLink>
+        <!-- Animasi expand via CSS grid rows (0fr → 1fr), tanpa JS height hack -->
+        <div
+          class="submenu-grid grid transition-[grid-template-rows] duration-200 ease-out"
+          :class="isOpen(parent.name) ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
+        >
+          <div class="min-h-0 overflow-hidden">
+            <div class="mt-0.5 mb-1 ml-[19px] pl-3 border-l-2 border-slate-200 dark:border-slate-800 space-y-0.5">
+              <NuxtLink
+                v-for="item in parent.children"
+                :key="item.path"
+                :to="item.path"
+                class="flex items-center min-h-[32px] lg:min-h-0 lg:py-1.5 px-2 rounded-md text-xs transition focus-visible:ring-2 focus-visible:ring-slate-400/50 focus-visible:outline-none"
+                :class="isActive(item.path)
+                  ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+                @click="$emit('navigate')"
+              >
+                <span class="truncate">{{ item.name }}</span>
+              </NuxtLink>
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -125,3 +139,19 @@ watch(() => route.path, () => {
   }
 }, { immediate: true })
 </script>
+
+<style scoped>
+/* Touch target & hover nyaman di drawer mobile; rapat elegan di desktop */
+.nav-parent {
+  min-height: 36px;
+}
+@media (min-width: 1024px) {
+  .nav-parent {
+    min-height: 32px;
+  }
+}
+.nav-parent:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.5);
+}
+</style>

@@ -34,6 +34,8 @@ export interface NavParent {
   icon: string;
   phase?: 1 | 2 | 3 | 4 | 5;
   accent?: string;
+  /** Band visual untuk ritme sidebar: main (ringkasan) | flow (alur barang) | admin (master) */
+  band?: 'main' | 'flow' | 'admin';
   roles: UserRole[];
   children: NavItem[];
 }
@@ -64,6 +66,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     name: 'Beranda',
     path: '/',
     icon: 'home',
+    band: 'main',
     roles: ALL_ROLES,
     children: []
   },
@@ -72,6 +75,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     path: '/stock',
     icon: 'stock',
     phase: 5,
+    band: 'main',
     accent: 'bg-slate-400',
     roles: ALL_ROLES.filter(r => r !== 'DRIVER'),
     children: [
@@ -84,6 +88,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     path: '/inbound/receive',
     icon: 'inbound',
     phase: 1,
+    band: 'flow',
     accent: 'bg-emerald-500',
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'],
     children: [
@@ -95,6 +100,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     path: '/debulking',
     icon: 'debulking',
     phase: 2,
+    band: 'flow',
     accent: 'bg-amber-500',
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'],
     children: [
@@ -106,6 +112,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     path: '/outbound',
     icon: 'package',
     phase: 3,
+    band: 'flow',
     accent: 'bg-blue-500',
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'],
     children: [
@@ -119,6 +126,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     path: '/outbound/pod',
     icon: 'pod',
     phase: 4,
+    band: 'flow',
     accent: 'bg-cyan-500',
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'],
     children: [
@@ -131,6 +139,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     path: '/master/products',
     icon: 'box',
     accent: 'bg-violet-500',
+    band: 'admin',
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'],
     children: [
       { name: 'Barang (SKU)', path: '/master/products', icon: 'box', code: 'master_products', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
