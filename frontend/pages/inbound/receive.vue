@@ -23,6 +23,7 @@
       <div class="lg:col-span-7 space-y-4">
         <!-- PO Header Info -->
         <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-2 shadow-sm transition-colors">
+          <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Fase 1 — Barang Masuk</p>
           <div class="flex justify-between items-center">
             <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800">PO-20260901-001</span>
             <span class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">DOCK RECEIVING</span>

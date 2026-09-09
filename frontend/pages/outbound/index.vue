@@ -19,11 +19,14 @@
     <!-- Header -->
     <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
       <div>
-        <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-          <AppIcon name="package" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <span>Pengiriman (Outbound) — SJ &amp; Resi</span>
-        </h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Satu titik penerbitan Surat Jalan + Nomor Resi untuk semua jenis pengiriman.</p>
+        <div>
+          <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-0.5">Fase 3 — Barang Keluar</p>
+          <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+            <AppIcon name="package" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <span>Order &amp; Terbitkan Surat Jalan</span>
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Satu titik penerbitan Surat Jalan + Nomor Resi untuk semua jenis pengiriman.</p>
+        </div>
       </div>
       <div class="flex gap-2">
         <NuxtLink to="/waybills" class="px-3.5 py-2 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition flex items-center space-x-1.5">

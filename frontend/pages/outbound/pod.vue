@@ -18,6 +18,7 @@
 
     <!-- Header & Order Destination -->
     <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-2 transition-colors">
+      <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Fase 4 — Bukti Kirim & Penagihan</p>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex items-center space-x-2 flex-wrap">
           <input

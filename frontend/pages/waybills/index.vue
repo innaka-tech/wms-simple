@@ -12,11 +12,14 @@
     <!-- Header + Filter -->
     <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
       <div>
-        <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-          <AppIcon name="printer" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <span>Surat Jalan &amp; Nomor Resi</span>
-        </h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Daftar dokumen pengiriman resmi (SJ-XXXXXXXX / RESI-XXXXXXXX) — semua jalur.</p>
+        <div>
+          <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-0.5">Fase 3 — Barang Keluar</p>
+          <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+            <AppIcon name="printer" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <span>Daftar Surat Jalan &amp; Resi</span>
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Dokumen pengiriman resmi (SJ-XXXXXXXX / RESI-XXXXXXXX) — semua jalur.</p>
+        </div>
       </div>
       <select
         v-model="statusFilter"

@@ -21,11 +21,14 @@ const authStore = useAuthStore()
 
 function getShortName(fullName) {
   if (fullName.includes('Dashboard')) return 'Home'
-  if (fullName.includes('Gate Pass')) return 'Gate Pass'
-  if (fullName.includes('Inbound')) return 'Inbound'
-  if (fullName.includes('De-bulking') || fullName.includes('Repacking')) return 'De-bulk'
-  if (fullName.includes('POD') || fullName.includes('Bukti')) return 'e-POD'
-  if (fullName.includes('Stok') || fullName.includes('Ledger')) return 'Stok'
-  return fullName
+  if (fullName.includes('Terima Kiriman')) return 'Terima'
+  if (fullName.includes('Bongkar')) return 'Repack'
+  if (fullName.includes('Surat Jalan') && fullName.includes('Daftar')) return 'Resi'
+  if (fullName.includes('Surat Jalan')) return 'Kirim'
+  if (fullName.includes('Pos Satpam')) return 'Gerbang'
+  if (fullName.includes('e-POD')) return 'POD'
+  if (fullName.includes('Faktur')) return 'Tagihan'
+  if (fullName.includes('Posisi Stok')) return 'Stok'
+  return fullName.slice(0, 8)
 }
 </script>

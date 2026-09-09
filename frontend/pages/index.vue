@@ -42,6 +42,33 @@
       </div>
     </div>
 
+    <!-- Peta Alur Operasional (Operational Flow Map) -->
+    <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">Alur Operasional Barang</h3>
+        <span class="text-[10px] font-mono text-slate-400">klik fase untuk membuka modul</span>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        <NuxtLink
+          v-for="fase in alurOperasional"
+          :key="fase.no"
+          v-show="!fase.roles || fase.roles.includes(authStore.userRole)"
+          :to="fase.to"
+          class="p-3 rounded-md border transition group hover:border-slate-400 dark:hover:border-slate-600"
+          :class="fase.kritis ? 'bg-slate-900 dark:bg-slate-100 border-slate-900 dark:border-slate-100' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-mono font-bold" :class="fase.kritis ? 'text-slate-400' : 'text-slate-400'">FASE {{ fase.no }}</span>
+            <span v-if="fase.kritis" class="text-[9px] font-mono px-1 py-0.5 rounded bg-rose-500 text-white font-bold" title="Titik kritis audit">!</span>
+          </div>
+          <p class="text-xs font-bold mt-1 leading-snug" :class="fase.kritis ? 'text-white dark:text-slate-900' : 'text-slate-900 dark:text-white'">{{ fase.label }}</p>
+          <p class="text-[10px] mt-0.5 leading-snug" :class="fase.kritis ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'">{{ fase.sub }}</p>
+          <p class="text-lg font-mono font-bold mt-2" :class="fase.kritis ? 'text-white' : 'text-slate-900 dark:text-white'">{{ fase.count }}</p>
+          <p class="text-[9px] font-mono mt-0.5" :class="fase.kritis ? 'text-slate-400' : 'text-slate-400'">{{ fase.metric }}</p>
+        </NuxtLink>
+  </div>
+    </div>
+
     <!-- Operational Telemetry Bar (4 Key Metrics) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
       <div class="p-3.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
@@ -109,42 +136,14 @@
     <div>
       <div class="flex items-center justify-between mb-2 px-1">
         <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
-          Modul Operasional Lapangan
+          Modul Operasional — Urut Alur Kerja
         </h3>
-        <span class="text-[11px] text-slate-400 font-mono">Akses Role: {{ authStore.roleLabel }}</span>
+        <span class="text-[11px] text-slate-400 font-mono">Akses: {{ authStore.roleLabel }}</span>
       </div>
       
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         
-        <!-- 1. Pos Satpam Gate Pass -->
-        <NuxtLink 
-          v-if="authStore.canAccess('gate_pass')"
-          to="/gate-pass" 
-          class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition shadow-xs flex flex-col justify-between h-36 group cursor-pointer"
-        >
-          <div class="flex justify-between items-start">
-            <div class="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition">
-              <AppIcon name="truck" custom-class="w-4 h-4" />
-            </div>
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-              GATE-01
-            </span>
-          </div>
-          <div>
-            <h4 class="font-semibold text-slate-900 dark:text-white text-xs group-hover:underline">
-              Pemeriksaan Pos Satpam
-            </h4>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-              Catat odometer keluar/masuk & level solar
-            </p>
-          </div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 font-mono flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
-            <span>Buka Modul</span>
-            <span>→</span>
-          </div>
-        </NuxtLink>
-
-        <!-- 2. Inbound Receiving -->
+        <!-- FASE 1: Terima Kiriman -->
         <NuxtLink 
           v-if="authStore.canAccess('inbound')"
           to="/inbound/receive" 
@@ -154,25 +153,25 @@
             <div class="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition">
               <AppIcon name="inbound" custom-class="w-4 h-4" />
             </div>
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-              DOCK-IN
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900">
+              FASE 1
             </span>
           </div>
           <div>
             <h4 class="font-semibold text-slate-900 dark:text-white text-xs group-hover:underline">
-              Penerimaan Barang Dock
+              Terima Kiriman di Dock
             </h4>
             <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
               Scan serial number & tally fisik kedatangan
             </p>
           </div>
           <div class="text-[11px] text-slate-400 dark:text-slate-500 font-mono flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
-            <span>Buka Modul</span>
+            <span>{{ inboundAktif }} kiriman aktif</span>
             <span>→</span>
           </div>
         </NuxtLink>
 
-        <!-- 3. De-bulking Work Order -->
+        <!-- FASE 2: Bongkar Ulang & Repacking -->
         <NuxtLink 
           v-if="authStore.canAccess('debulking')"
           to="/debulking" 
@@ -182,25 +181,81 @@
             <div class="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition">
               <AppIcon name="debulking" custom-class="w-4 h-4" />
             </div>
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-              BULK-01
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900">
+              FASE 2
             </span>
           </div>
           <div>
             <h4 class="font-semibold text-slate-900 dark:text-white text-xs group-hover:underline">
-              De-bulking & Repacking Curah
+              Bongkar Ulang & Repacking
             </h4>
             <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
               Konversi kemasan jumbo & kalkulasi susut
             </p>
           </div>
           <div class="text-[11px] text-slate-400 dark:text-slate-500 font-mono flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
-            <span>Buka Modul</span>
+            <span>{{ repackAktif }} work order aktif</span>
             <span>→</span>
           </div>
         </NuxtLink>
 
-        <!-- 4. Driver POD -->
+        <!-- FASE 3: Order & Surat Jalan -->
+        <NuxtLink 
+          v-if="authStore.canAccess('outbound_orders')"
+          to="/outbound" 
+          class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition shadow-xs flex flex-col justify-between h-36 group cursor-pointer"
+        >
+          <div class="flex justify-between items-start">
+            <div class="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition">
+              <AppIcon name="package" custom-class="w-4 h-4" />
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900">
+              FASE 3
+            </span>
+          </div>
+          <div>
+            <h4 class="font-semibold text-slate-900 dark:text-white text-xs group-hover:underline">
+              Order & Terbitkan Surat Jalan
+            </h4>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+              SJ + nomor resi untuk semua jenis pengiriman
+            </p>
+          </div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500 font-mono flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
+            <span>{{ siapKirim }} order siap proses</span>
+            <span>→</span>
+          </div>
+        </NuxtLink>
+
+        <!-- FASE 3: Pos Satpam Gerbang -->
+        <NuxtLink 
+          v-if="authStore.canAccess('gate_pass')"
+          to="/gate-pass" 
+          class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition shadow-xs flex flex-col justify-between h-36 group cursor-pointer"
+        >
+          <div class="flex justify-between items-start">
+            <div class="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition">
+              <AppIcon name="truck" custom-class="w-4 h-4" />
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900">
+              FASE 3
+            </span>
+          </div>
+          <div>
+            <h4 class="font-semibold text-slate-900 dark:text-white text-xs group-hover:underline">
+              Pos Satpam: Keluar-Masuk Truk
+            </h4>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+              Cek dokumen, odometer & level solar
+            </p>
+          </div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500 font-mono flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
+            <span>{{ departedVehiclesCount }} truk di luar</span>
+            <span>→</span>
+          </div>
+        </NuxtLink>
+
+        <!-- FASE 4: e-POD -->
         <NuxtLink 
           v-if="authStore.canAccess('outbound_pod')"
           to="/outbound/pod" 
@@ -210,20 +265,48 @@
             <div class="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition">
               <AppIcon name="pod" custom-class="w-4 h-4" />
             </div>
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-              E-POD
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900">
+              FASE 4
             </span>
           </div>
           <div>
             <h4 class="font-semibold text-slate-900 dark:text-white text-xs group-hover:underline">
-              Bukti Kirim Digital (e-POD)
+              Pengiriman & e-POD
             </h4>
             <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
               Foto penyerahan barang & TTD BAST Desa
             </p>
           </div>
           <div class="text-[11px] text-slate-400 dark:text-slate-500 font-mono flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
-            <span>Buka Modul</span>
+            <span>{{ menungguPod }} menunggu POD</span>
+            <span>→</span>
+          </div>
+        </NuxtLink>
+
+        <!-- FASE 4: Faktur & Pembayaran -->
+        <NuxtLink 
+          v-if="authStore.canAccess('billing')"
+          to="/billing" 
+          class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition shadow-xs flex flex-col justify-between h-36 group cursor-pointer"
+        >
+          <div class="flex justify-between items-start">
+            <div class="w-8 h-8 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition">
+              <AppIcon name="chart" custom-class="w-4 h-4" />
+            </div>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900">
+              FASE 4
+            </span>
+          </div>
+          <div>
+            <h4 class="font-semibold text-slate-900 dark:text-white text-xs group-hover:underline">
+              Faktur & Pembayaran
+            </h4>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+              e-POD terverifikasi → faktur → LUNAS
+            </p>
+          </div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500 font-mono flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80 pt-2">
+            <span>{{ belumLunas }} faktur belum lunas</span>
             <span>→</span>
           </div>
         </NuxtLink>
@@ -314,18 +397,33 @@ import { computed, onMounted } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 import { useStockStore } from '~/stores/stock'
 import { useGatePassStore } from '~/stores/gatePass'
+import { useInboundStore } from '~/stores/inbound'
+import { useDebulkingStore } from '~/stores/debulking'
+import { useOutboundStore } from '~/stores/outbound'
+import { useWaybillStore } from '~/stores/waybill'
+import { useBillingStore } from '~/stores/billing'
 import AppIcon from '~/components/AppIcon.vue'
 
 const authStore = useAuthStore()
 const stockStore = useStockStore()
 const gatePassStore = useGatePassStore()
+const inboundStore = useInboundStore()
+const debulkingStore = useDebulkingStore()
+const outboundStore = useOutboundStore()
+const waybillStore = useWaybillStore()
+const billingStore = useBillingStore()
 
 onMounted(async () => {
   try {
     await Promise.all([
       stockStore.fetchStockLevels(),
       gatePassStore.fetchLogs(),
-      gatePassStore.fetchVehicles()
+      gatePassStore.fetchVehicles(),
+      inboundStore.fetchOrders(),
+      debulkingStore.fetchWorkOrders(),
+      outboundStore.fetchOrders(),
+      waybillStore.fetchWaybills(),
+      billingStore.fetchInvoices()
     ])
   } catch (err) {
     console.error('Failed to load dashboard telemetry:', err)
@@ -339,4 +437,29 @@ const departedVehiclesCount = computed(() => {
 const availableVehiclesCount = computed(() => {
   return (gatePassStore.vehicles || []).filter(v => v.status === 'AVAILABLE').length
 })
+
+const inboundAktif = computed(() =>
+  (inboundStore.orders || []).filter(o => !['PUTAWAY_COMPLETED', 'COMPLETED', 'CANCELLED'].includes(o.status)).length
+)
+const repackAktif = computed(() =>
+  (debulkingStore.workOrders || []).filter(o => !['COMPLETED', 'CANCELLED'].includes(o.status)).length
+)
+const siapKirim = computed(() =>
+  (outboundStore.orders || []).filter(o => ['CREATED', 'PICKED', 'PACKED'].includes(o.status)).length
+)
+const menungguPod = computed(() =>
+  (waybillStore.waybills || []).filter(w => ['ISSUED', 'PRINTED', 'IN_TRANSIT'].includes(w.status)).length
+)
+const belumLunas = computed(() =>
+  (billingStore.invoices || []).filter(i => i.status === 'ISSUED').length
+)
+
+/** Peta alur operasional — mirror dari struktur menu sidebar (fase 1-5) */
+const alurOperasional = computed(() => [
+  { no: 1, label: 'Barang Masuk', sub: 'Terima di dock & simpan ke rak', to: '/inbound/receive', count: inboundAktif.value, metric: 'kiriman aktif' },
+  { no: 2, label: 'Pekerjaan Gudang', sub: 'Bongkar ulang & repacking curah', to: '/debulking', count: repackAktif.value, metric: 'work order aktif' },
+  { no: 3, label: 'Barang Keluar', sub: 'Order, SJ + resi, gerbang', to: '/outbound', count: siapKirim.value, metric: 'order siap proses', kritis: true },
+  { no: 4, label: 'Bukti & Tagihan', sub: 'e-POD → faktur → LUNAS', to: '/outbound/pod', count: menungguPod.value + belumLunas.value, metric: 'menunggu POD / bayar' },
+  { no: 5, label: 'Pemantauan', sub: 'Posisi stok & mutasi real-time', to: '/stock', count: stockStore.stockLevels.length, metric: 'SKU terpantau' }
+])
 </script>

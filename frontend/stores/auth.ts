@@ -21,6 +21,8 @@ export interface NavItem {
   code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing';
   badge?: string;
   roles: UserRole[];
+  /** Fase alur operasional: 1=Masuk 2=Gudang 3=Keluar 4=Bukti&Tagihan 5=Pemantauan */
+  phase?: 1 | 2 | 3 | 4 | 5;
 }
 
 export interface NavSection {
@@ -30,34 +32,44 @@ export interface NavSection {
 
 const ALL_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'DRIVER', 'GATE_OFFICER'];
 
+/**
+ * Grup menu mengikuti alur operasional lapangan (docs/05 & docs/06):
+ * Barang Masuk → Pekerjaan Gudang → Barang Keluar → Bukti Kirim & Penagihan.
+ * Stok & dashboard = pemantauan (di atas, terpisah dari alur).
+ */
 const MASTER_NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
-    title: 'Utama & Ringkasan',
+    title: 'Ringkasan & Pemantauan',
     items: [
-      { name: 'Dashboard Utama', path: '/', icon: 'home', code: 'dashboard', roles: ALL_ROLES },
-      { name: 'Kartu Stok & Ledger', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'] }
+      { name: 'Dashboard Operasional', path: '/', icon: 'home', code: 'dashboard', roles: ALL_ROLES },
+      { name: 'Posisi Stok & Mutasi', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'], phase: 5 }
     ]
   },
   {
-    title: 'Pintu & Gerbang',
+    title: '1. Barang Masuk',
     items: [
-      { name: 'Pos Satpam (Gate Pass)', path: '/gate-pass', icon: 'truck', code: 'gate_pass', badge: 'Satpam', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'] },
-      { name: 'Penerimaan (Inbound)', path: '/inbound/receive', icon: 'inbound', code: 'inbound', badge: 'Dock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
+      { name: 'Terima Kiriman di Dock', path: '/inbound/receive', icon: 'inbound', code: 'inbound', badge: 'Dock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 1 }
     ]
   },
   {
-    title: 'Operasional Gudang',
+    title: '2. Pekerjaan Gudang',
     items: [
-      { name: 'Repacking (De-bulking)', path: '/debulking', icon: 'debulking', code: 'debulking', badge: 'Curah', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
-      { name: 'Surat Jalan & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
+      { name: 'Bongkar Ulang & Repacking', path: '/debulking', icon: 'debulking', code: 'debulking', badge: 'Curah', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 2 }
     ]
   },
   {
-    title: 'Distribusi & Pengiriman',
+    title: '3. Barang Keluar',
     items: [
-      { name: 'Pengiriman (Outbound)', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
-      { name: 'Bukti Kirim (e-POD / BAST)', path: '/outbound/pod', icon: 'pod', code: 'outbound_pod', badge: 'KDMP', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'] },
-      { name: 'Penagihan & Pembayaran', path: '/billing', icon: 'stock', code: 'billing', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] }
+      { name: 'Order & Terbitkan Surat Jalan', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 3 },
+      { name: 'Daftar Surat Jalan & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 3 },
+      { name: 'Pos Satpam: Keluar-Masuk Truk', path: '/gate-pass', icon: 'truck', code: 'gate_pass', badge: 'Gerbang', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'], phase: 3 }
+    ]
+  },
+  {
+    title: '4. Bukti Kirim & Penagihan',
+    items: [
+      { name: 'Pengiriman & e-POD', path: '/outbound/pod', icon: 'pod', code: 'outbound_pod', badge: 'KDMP', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'], phase: 4 },
+      { name: 'Faktur & Pembayaran', path: '/billing', icon: 'chart', code: 'billing', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'], phase: 4 }
     ]
   }
 ];
@@ -111,7 +123,8 @@ export const useAuthStore = defineStore('auth', {
       }).filter(section => section.items.length > 0);
     },
 
-    // Dynamic bottom navigation items (flat list for mobile)
+    // Dynamic bottom navigation items (flat list for mobile).
+    // Mobile = sempit: maksimal 5 item paling sering dipakai, urut fase operasional.
     allowedBottomNavItems: (state): NavItem[] => {
       const currentRole: UserRole = state.user?.role || 'SUPER_ADMIN';
       const items: NavItem[] = [];
@@ -123,7 +136,9 @@ export const useAuthStore = defineStore('auth', {
           }
         }
       }
-      return items;
+
+      const phaseOf = (i: NavItem) => (i.path === '/' ? 0 : (i.phase ?? 9));
+      return items.sort((a, b) => phaseOf(a) - phaseOf(b)).slice(0, 5);
     }
   },
 

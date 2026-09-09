@@ -21,7 +21,7 @@
       <div>
         <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
           <AppIcon name="truck" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <span>Pos Satpam — Pemeriksaan & Gate Pass Armada</span>
+          <span>Pos Satpam: Keluar-Masuk Truk</span>
         </h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pencatatan Odometer awal/akhir, level BBM solar, dan validasi Surat Jalan sah.</p>
       </div>

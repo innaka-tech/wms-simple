@@ -18,9 +18,10 @@
 
     <!-- Header -->
     <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-colors">
+      <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-0.5">Fase 4 — Bukti Kirim & Penagihan</p>
       <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
         <AppIcon name="stock" custom-class="w-5 h-5 text-purple-600 dark:text-purple-400" />
-        <span>Penagihan &amp; Pembayaran (Billing)</span>
+        <span>Faktur &amp; Pembayaran</span>
       </h2>
       <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">POD terverifikasi → faktur (Rupiah) → pembayaran diterima = LUNAS. Akhir tunggal transaksi.</p>
       <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">

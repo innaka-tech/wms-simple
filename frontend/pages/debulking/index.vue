@@ -18,6 +18,7 @@
 
     <!-- Header & WO Info -->
     <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-2 transition-colors">
+      <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Fase 2 — Pekerjaan Gudang</p>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div class="flex items-center space-x-2">
           <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-md border border-blue-200 dark:border-blue-800">

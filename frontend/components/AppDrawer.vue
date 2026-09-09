@@ -78,6 +78,9 @@
               >
                 <AppIcon :name="item.icon" custom-class="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
                 <span class="flex-1 truncate">{{ item.name }}</span>
+                <span v-if="item.phase" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900">
+                  {{ item.phase }}
+                </span>
                 <span v-if="item.badge" class="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                   {{ item.badge }}
                 </span>
