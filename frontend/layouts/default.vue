@@ -62,7 +62,7 @@
       <!-- Nav (shared component, rail mode when collapsed) -->
       <div class="flex-1 overflow-y-auto py-3" :class="uiStore.sidebarCollapsed ? 'px-1.5' : 'px-2.5'">
         <AppNavList
-          :sections="authStore.allowedNavSections"
+          :parents="authStore.allowedNavParents"
           :rail="uiStore.sidebarCollapsed"
         />
       </div>

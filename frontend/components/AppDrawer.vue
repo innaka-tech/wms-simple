@@ -64,7 +64,7 @@
 
       <!-- Shared nav -->
       <div class="flex-1 overflow-y-auto py-2.5 px-2.5">
-        <AppNavList :sections="authStore.allowedNavSections" @navigate="$emit('close')" />
+        <AppNavList :parents="authStore.allowedNavParents" @navigate="$emit('close')" />
       </div>
 
       <!-- Footer -->

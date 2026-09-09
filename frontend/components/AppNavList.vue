@@ -1,21 +1,19 @@
 <template>
-  <!-- RAIL MODE: icon-only (sidebar collapsed) -->
+  <!-- RAIL MODE: icon-only parent (sidebar collapsed) -->
   <nav v-if="rail" class="flex flex-col items-center py-2 gap-1" aria-label="Navigasi ringkas">
-    <template v-for="(section, si) in sections" :key="section.title">
-      <div v-if="si > 0" class="w-6 border-t border-slate-200 dark:border-slate-800 my-1.5"></div>
-      <p class="sr-only">{{ section.title }}</p>
+    <template v-for="(parent, pi) in parents" :key="parent.name">
+      <div v-if="pi > 0" class="w-6 border-t border-slate-200 dark:border-slate-800 my-1.5"></div>
       <NuxtLink
-        v-for="item in section.items"
-        :key="item.path"
+        v-for="item in railItems(parent)"
+        :key="item.path + parent.name"
         :to="item.path"
         class="group relative w-9 h-9 flex items-center justify-center rounded-md transition"
         :class="isActive(item.path)
           ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'
           : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'"
       >
-        <span v-if="item.accent" class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" :class="item.accent"></span>
+        <span v-if="parent.accent && parent.children.length > 1" class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" :class="parent.accent"></span>
         <AppIcon :name="item.icon" custom-class="w-4 h-4" />
-        <!-- Tooltip -->
         <span class="pointer-events-none absolute left-full ml-2 px-2 py-1 rounded-md bg-slate-900 dark:bg-slate-700 text-white text-[11px] font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition z-50 shadow-lg">
           {{ item.name }}
         </span>
@@ -23,55 +21,107 @@
     </template>
   </nav>
 
-  <!-- FULL MODE: sectioned list (sidebar expanded + drawer) -->
-  <nav v-else class="space-y-4" aria-label="Navigasi utama">
-    <div v-for="section in sections" :key="section.title">
-      <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-2 mb-1">{{ section.title }}</p>
-      <div class="space-y-0.5">
-        <NuxtLink
-          v-for="item in section.items"
-          :key="item.path"
-          :to="item.path"
-          class="nav-item flex items-center space-x-2.5 px-2.5 py-2 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition text-xs"
-          :class="isActive(item.path) ? 'active bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold border-l-2 border-slate-900 dark:border-white rounded-l-none pl-2' : ''"
+  <!-- FULL MODE: accordion dua tingkat -->
+  <nav class="space-y-0.5" aria-label="Navigasi utama">
+    <template v-for="parent in parents" :key="parent.name">
+      <!-- Parent tanpa anak (Beranda): link langsung -->
+      <NuxtLink
+        v-if="parent.children.length <= 1"
+        :to="parent.path"
+        class="nav-parent flex items-center space-x-2.5 px-2.5 py-2 rounded-md transition text-xs"
+        :class="isActive(parent.path)
+          ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold'
+          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'"
+        @click="$emit('navigate')"
+      >
+        <span v-if="parent.accent" class="w-1.5 h-1.5 rounded-full shrink-0" :class="parent.accent"></span>
+        <AppIcon :name="parent.icon" custom-class="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
+        <span class="flex-1 truncate">{{ parent.name }}</span>
+      </NuxtLink>
+
+      <!-- Parent dengan anak: accordion -->
+      <div v-else>
+        <button
+          type="button"
+          class="nav-parent w-full flex items-center space-x-2.5 px-2.5 py-2 rounded-md transition text-xs cursor-pointer"
+          :class="parentActive(parent)
+            ? 'text-slate-900 dark:text-white font-semibold'
+            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'"
+          @click="toggle(parent.name)"
         >
-          <span v-if="item.accent" class="w-1.5 h-1.5 rounded-full shrink-0" :class="item.accent" :title="'Fase ' + item.phase + ' alur operasional'"></span>
-          <AppIcon :name="item.icon" custom-class="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
-          <span class="flex-1 truncate">{{ item.name }}</span>
-          <span v-if="item.phase" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border" :class="phaseAccent(item.phase).chip" :title="'Fase ' + item.phase + ' alur operasional'">
-            F{{ item.phase }}
-          </span>
-          <span v-if="item.badge" class="text-[9px] font-mono font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-            {{ item.badge }}
-          </span>
-        </NuxtLink>
+          <span v-if="parent.accent" class="w-1.5 h-1.5 rounded-full shrink-0" :class="parent.accent"></span>
+          <AppIcon :name="parent.icon" custom-class="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
+          <span class="flex-1 text-left truncate">{{ parent.name }}</span>
+          <svg
+            class="w-3 h-3 shrink-0 text-slate-400 transition-transform duration-200"
+            :class="isOpen(parent.name) ? 'rotate-90' : ''"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        <div v-if="isOpen(parent.name)" class="mt-0.5 mb-1 ml-[19px] pl-3 border-l-2 border-slate-200 dark:border-slate-800 space-y-0.5">
+          <NuxtLink
+            v-for="item in parent.children"
+            :key="item.path"
+            :to="item.path"
+            class="flex items-center py-1.5 px-2 rounded-md text-xs transition"
+            :class="isActive(item.path)
+              ? 'text-slate-900 dark:text-white font-semibold bg-slate-100 dark:bg-slate-800'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
+            @click="$emit('navigate')"
+          >
+            <span class="truncate">{{ item.name }}</span>
+          </NuxtLink>
+        </div>
       </div>
-    </div>
+    </template>
   </nav>
 </template>
 
 <script setup>
-import { useAuthStore, PHASE_ACCENT } from '~/stores/auth'
-
 const props = defineProps({
-  sections: { type: Array, required: true },
+  parents: { type: Array, required: true },
   rail: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['navigate'])
 
 const route = useRoute()
-const authStore = useAuthStore()
 
-const phaseAccent = (p) => PHASE_ACCENT[p || 5] || PHASE_ACCENT[5]
+// Auto-buka grup yang sedang aktif; user bisa tutup/buka manual
+const openGroups = ref([])
+
+function isOpen(name) {
+  return openGroups.value.includes(name)
+}
+
+function toggle(name) {
+  openGroups.value = isOpen(name)
+    ? openGroups.value.filter(n => n !== name)
+    : [...openGroups.value, name]
+}
+
+function parentActive(parent) {
+  return parent.children.some((item) => isActive(item.path))
+}
 
 function isActive(path) {
   return route.path === path || (path !== '/' && route.path.startsWith(path))
 }
-</script>
 
-<style scoped>
-.nav-item {
-  cursor: pointer;
+// Rail: parent multi-anak direpresentasikan modul pertamanya; single = dirinya
+function railItems(parent) {
+  return parent.children.length > 0 ? [parent.children[0]] : [{ path: parent.path, icon: parent.icon, name: parent.name }]
 }
-</style>
+
+// Saat pindah halaman, pastikan grup halaman aktif terbuka
+watch(() => route.path, () => {
+  for (const parent of props.parents) {
+    if (parent.children.length > 1 && parentActive(parent) && !isOpen(parent.name)) {
+      openGroups.value = [...openGroups.value, parent.name]
+    }
+  }
+}, { immediate: true })
+</script>

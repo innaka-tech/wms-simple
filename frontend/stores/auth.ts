@@ -19,12 +19,23 @@ export interface NavItem {
   path: string;
   icon: string;
   code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing' | 'checkpoints' | 'master_products' | 'master_warehouses' | 'master_customers' | 'master_users' | 'master_fleet';
-  badge?: string;
   roles: UserRole[];
-  /** Fase alur operasional: 1=Masuk 2=Gudang 3=Keluar 4=Bukti&Tagihan 5=Pemantauan */
+}
+
+/**
+ * Parent menu = tahapan operasional (berisi submenu modul).
+ * Sengaja dua tingkat: parent selalu terlihat (konteks), modul baru muncul saat dibuka —
+ * sidebar tetap pendek & tenang meski modul bertambah.
+ */
+export interface NavParent {
+  name: string;
+  /** Path tujuan saat parent diklik = modul pertamanya */
+  path: string;
+  icon: string;
   phase?: 1 | 2 | 3 | 4 | 5;
-  /** Kelas warna aksen fase (dot + badge) untuk penandaan visual cepat */
   accent?: string;
+  roles: UserRole[];
+  children: NavItem[];
 }
 
 /** Warna koding fase — konsisten di sidebar, drawer, dashboard & kicker halaman */
@@ -36,11 +47,6 @@ export const PHASE_ACCENT: Record<number, { dot: string; chip: string; text: str
   5: { dot: 'bg-slate-400', chip: 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/20', text: 'text-slate-500 dark:text-slate-400' }
 };
 
-export interface NavSection {
-  title: string;
-  items: NavItem[];
-}
-
 const ALL_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'DRIVER', 'GATE_OFFICER'];
 
 /**
@@ -48,57 +54,100 @@ const ALL_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STA
  * Barang Masuk → Pekerjaan Gudang → Barang Keluar → Bukti Kirim & Penagihan.
  * Stok & dashboard = pemantauan (di atas, terpisah dari alur).
  */
-const MASTER_NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
+/**
+ * Menu dua tingkat — parent = tahapan operasional (selalu terlihat),
+ * anak = modul di tahap itu (muncul saat parent dibuka). Urutan = alur barang:
+ * Masuk → Gudang → Keluar → Bukti/Tagihan. Dashboard & Pemantauan di atas, Master di bawah.
+ */
+const MASTER_NAV_PARENTS: NavParent[] = [
   {
-    title: 'Ringkasan & Pemantauan',
-    items: [
-      { name: 'Dashboard Operasional', path: '/', icon: 'home', code: 'dashboard', roles: ALL_ROLES },
-      { name: 'Posisi Stok & Mutasi', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'], phase: 5, accent: 'bg-slate-400' },
-      { name: 'Riwayat Checkpoint Dokumen', path: '/checkpoints', icon: 'checkpoint', code: 'checkpoints', roles: ALL_ROLES, phase: 5, accent: 'bg-slate-400' }
+    name: 'Beranda',
+    path: '/',
+    icon: 'home',
+    roles: ALL_ROLES,
+    children: []
+  },
+  {
+    name: 'Pemantauan',
+    path: '/stock',
+    icon: 'stock',
+    phase: 5,
+    accent: 'bg-slate-400',
+    roles: ALL_ROLES.filter(r => r !== 'DRIVER'),
+    children: [
+      { name: 'Posisi Stok & Mutasi', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'] },
+      { name: 'Riwayat Checkpoint Dokumen', path: '/checkpoints', icon: 'checkpoint', code: 'checkpoints', roles: ALL_ROLES }
     ]
   },
   {
-    title: '1. Barang Masuk',
-    items: [
-      { name: 'Terima Kiriman di Dock', path: '/inbound/receive', icon: 'inbound', code: 'inbound', badge: 'Dock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 1, accent: 'bg-emerald-500' }
+    name: 'Barang Masuk',
+    path: '/inbound/receive',
+    icon: 'inbound',
+    phase: 1,
+    accent: 'bg-emerald-500',
+    roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'],
+    children: [
+      { name: 'Terima Kiriman di Dock', path: '/inbound/receive', icon: 'inbound', code: 'inbound', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
     ]
   },
   {
-    title: '2. Pekerjaan Gudang',
-    items: [
-      { name: 'Bongkar Ulang & Repacking', path: '/debulking', icon: 'debulking', code: 'debulking', badge: 'Curah', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 2, accent: 'bg-amber-500' }
+    name: 'Pekerjaan Gudang',
+    path: '/debulking',
+    icon: 'debulking',
+    phase: 2,
+    accent: 'bg-amber-500',
+    roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'],
+    children: [
+      { name: 'Bongkar Ulang & Repacking', path: '/debulking', icon: 'debulking', code: 'debulking', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
     ]
   },
   {
-    title: '3. Barang Keluar',
-    items: [
-      { name: 'Order & Terbitkan Surat Jalan', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 3, accent: 'bg-blue-500' },
-      { name: 'Daftar Surat Jalan & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'], phase: 3, accent: 'bg-blue-500' },
-      { name: 'Pos Satpam: Keluar-Masuk Truk', path: '/gate-pass', icon: 'truck', code: 'gate_pass', badge: 'Gerbang', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'], phase: 3, accent: 'bg-blue-500' }
+    name: 'Barang Keluar',
+    path: '/outbound',
+    icon: 'package',
+    phase: 3,
+    accent: 'bg-blue-500',
+    roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'],
+    children: [
+      { name: 'Order & Surat Jalan', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Daftar SJ & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Pos Satpam (Gerbang)', path: '/gate-pass', icon: 'truck', code: 'gate_pass', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'] }
     ]
   },
   {
-    title: '4. Bukti Kirim & Penagihan',
-    items: [
-      { name: 'Pengiriman & e-POD', path: '/outbound/pod', icon: 'pod', code: 'outbound_pod', badge: 'KDMP', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'], phase: 4, accent: 'bg-cyan-500' },
-      { name: 'Faktur & Pembayaran', path: '/billing', icon: 'chart', code: 'billing', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'], phase: 4, accent: 'bg-cyan-500' }
+    name: 'Bukti Kirim & Tagihan',
+    path: '/outbound/pod',
+    icon: 'pod',
+    phase: 4,
+    accent: 'bg-cyan-500',
+    roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'],
+    children: [
+      { name: 'Pengiriman & e-POD', path: '/outbound/pod', icon: 'pod', code: 'outbound_pod', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'] },
+      { name: 'Faktur & Pembayaran', path: '/billing', icon: 'chart', code: 'billing', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] }
     ]
   },
   {
-    title: 'Master & Pengaturan',
-    items: [
-      { name: 'Master Barang (SKU)', path: '/master/products', icon: 'box', code: 'master_products', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'], accent: 'bg-violet-500' },
-      { name: 'Master Gudang & Rak', path: '/master/warehouses', icon: 'warehouse', code: 'master_warehouses', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'], accent: 'bg-violet-500' },
-      { name: 'Master Customer & Vendor', path: '/master/customers', icon: 'users', code: 'master_customers', roles: ['SUPER_ADMIN', 'ADMIN_ADM'], accent: 'bg-violet-500' },
-      { name: 'Pengguna & Hak Akses', path: '/master/users', icon: 'shield', code: 'master_users', roles: ['SUPER_ADMIN', 'ADMIN_ADM'], accent: 'bg-violet-500' },
-      { name: 'Master Armada Pool', path: '/master/fleet', icon: 'truck', code: 'master_fleet', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'], accent: 'bg-violet-500' }
+    name: 'Master Data',
+    path: '/master/products',
+    icon: 'box',
+    accent: 'bg-violet-500',
+    roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'],
+    children: [
+      { name: 'Barang (SKU)', path: '/master/products', icon: 'box', code: 'master_products', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
+      { name: 'Gudang & Rak', path: '/master/warehouses', icon: 'warehouse', code: 'master_warehouses', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
+      { name: 'Customer & Vendor', path: '/master/customers', icon: 'users', code: 'master_customers', roles: ['SUPER_ADMIN', 'ADMIN_ADM'] },
+      { name: 'Armada Pool', path: '/master/fleet', icon: 'truck', code: 'master_fleet', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
+      { name: 'Pengguna & Hak Akses', path: '/master/users', icon: 'shield', code: 'master_users', roles: ['SUPER_ADMIN', 'ADMIN_ADM'] }
     ]
   }
 ];
 
 /** Metadata path → nama & fase (untuk breadcrumb shell, tanpa hardcode per halaman) */
 export const NAV_META: Record<string, { name: string; phase?: 1 | 2 | 3 | 4 | 5 }> = Object.fromEntries(
-  MASTER_NAV_SECTIONS.flatMap(section => section.items.map(item => [item.path, { name: item.name, phase: item.phase }]))
+  MASTER_NAV_PARENTS.flatMap(p => [
+    [p.path, { name: p.name, phase: p.phase }] as [string, { name: string; phase?: 1 | 2 | 3 | 4 | 5 }],
+    ...p.children.map(item => [item.path, { name: item.name, phase: p.phase }] as [string, { name: string; phase?: 1 | 2 | 3 | 4 | 5 }])
+  ])
 );
 
 export const useAuthStore = defineStore('auth', {
@@ -137,35 +186,43 @@ export const useAuthStore = defineStore('auth', {
       }
     },
     
-    // Dynamic filtered menu sections according to the active user role
-    allowedNavSections: (state): NavSection[] => {
+    // Menu dua tingkat per role: parent selalu tampil, anak cuma dari role yang berhak.
+    // Parent dengan semua anak ter-filter tetap hilang (tidak ada parent mati).
+    allowedNavParents: (state): NavParent[] => {
       const currentRole: UserRole = state.user?.role || 'SUPER_ADMIN';
-      
-      return MASTER_NAV_SECTIONS.map(section => {
-        const allowedItems = section.items.filter(item => item.roles.includes(currentRole));
-        return {
-          title: section.title,
-          items: allowedItems
-        };
-      }).filter(section => section.items.length > 0);
+
+      return MASTER_NAV_PARENTS
+        .map(parent => {
+          if (parent.name === 'Beranda') {
+            return parent.roles.includes(currentRole) ? parent : null;
+          }
+          const children = parent.children.filter(item => item.roles.includes(currentRole));
+          if (children.length === 0) return null;
+          return { ...parent, children };
+        })
+        .filter((p): p is NavParent => p !== null);
     },
 
-    // Dynamic bottom navigation items (flat list for mobile).
-    // Mobile = sempit: maksimal 5 item paling sering dipakai, urut fase operasional.
+    // Bottom nav mobile: parent operasional urut alur barang, maksimal 5.
+    // Prioritas: Beranda → fase 1-4 → Pemantauan → Master (yang jarang dibuka dari HP).
     allowedBottomNavItems: (state): NavItem[] => {
       const currentRole: UserRole = state.user?.role || 'SUPER_ADMIN';
-      const items: NavItem[] = [];
-
-      for (const section of MASTER_NAV_SECTIONS) {
-        for (const item of section.items) {
-          if (item.roles.includes(currentRole)) {
-            items.push(item);
-          }
-        }
-      }
-
-      const phaseOf = (i: NavItem) => (i.path === '/' ? 0 : (i.phase ?? 9));
-      return items.sort((a, b) => phaseOf(a) - phaseOf(b)).slice(0, 5);
+      const priority = (p: NavParent) => {
+        if (p.name === 'Beranda') return 0;
+        if (p.phase && p.phase <= 4) return p.phase;
+        if (p.phase === 5) return 5;
+        return 6;
+      };
+      return MASTER_NAV_PARENTS
+        .filter(p => p.roles.includes(currentRole))
+        .sort((a, b) => priority(a) - priority(b))
+        .slice(0, 5)
+        .map(p => ({
+          name: p.name,
+          path: p.path,
+          icon: p.icon,
+          code: 'dashboard'
+        } as NavItem));
     }
   },
 
