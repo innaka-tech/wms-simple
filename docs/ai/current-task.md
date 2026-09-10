@@ -233,7 +233,7 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 3. **POD kirim bukti mock** — frontend POST `pod_photo_url: 'uploaded://pod-photo-capture'` (string palsu) & `delivered_qty: 1` hardcoded.
 4. **Filter `/billing` salah tipe** — `Number(o.billing_ready) === 1` padahal kolom PG `boolean` → order siap tagih tak pernah tampil.
 5. **Fallback stok palsu `/stock`** — data contoh (Gula/TV) muncul saat API gagal — pelanggaran anti-halusinasi.
-6. **Cross-dock & cross-document tanpa UI** — backend `crossdock.ts`/`crossdoc.ts` ada, frontend tidak ada halaman/store (ditunda, butuh desain alur). [Open]
+6. **Cross-dock & cross-document tanpa UI** — SELESAI v4.3.0: halaman `/crossdock` (manifest: buat → muat → terima tujuan) & `/crossdoc` (terbitkan swap dengan tipe dokumen) + store + nav. E2e rantai nyata terverifikasi (MNF-50063918, XDOC-50167044). [Closed]
 7. **Checkpoints verify-POD tanpa UI verifikasi** — admin tak bisa ACC/tolak POD dari UI (billing terhenti di `DELIVERED`). [Open]
 8. **Thermal printer Web Bluetooth hanya Chromium desktop/Android** — fallback cetak belum ada. [Open, low]
 
@@ -244,4 +244,4 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 - [x] Gap 5: fallback dihapus → empty state jujur.
 - [x] `backend/vitest.config.ts` (serial e2e) di-commit; CHANGELOG 4.2.0.
 
-**Next:** Gap 6 (halaman cross-dock) & Gap 7 (verifikasi POD di UI) — atau push `ans` bila diminta.
+**Next:** Gap 7 (verifikasi POD di UI — ACC/tolak POD sebelum billing) — atau push `ans` bila diminta.
