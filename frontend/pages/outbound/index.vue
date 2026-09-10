@@ -10,7 +10,7 @@
     <!-- Header ramping -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
       <div>
-        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Order &amp; Surat Jalan</h2>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Delivery Order &amp; Surat Jalan</h2>
         <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Fase 3 · terbitkan SJ + resi, lalu truk keluar lewat gerbang</p>
       </div>
       <div class="flex gap-2 shrink-0">

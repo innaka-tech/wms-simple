@@ -50,12 +50,12 @@
         <ThemeToggle />
         <button
           type="button"
-          aria-label="Ringkas menu navigasi"
+          :aria-label="collapsed ? 'Tampilkan sidebar' : 'Ringkas sidebar'"
           class="hidden lg:flex w-8 h-8 items-center justify-center rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
           @click="$emit('toggle-collapse')"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path v-if="collapsed" stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l-4 3 4 3m-4-6v12" />
+            <path v-if="collapsed" stroke-linecap="round" stroke-linejoin="round" d="M4 9l4 3-4 3m8-6l-4 3 4 3m-4-6v12" />
             <path v-else stroke-linecap="round" stroke-linejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
           </svg>
         </button>

@@ -71,7 +71,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     children: []
   },
   {
-    name: 'Pemantauan',
+    name: 'Monitoring',
     path: '/stock',
     icon: 'stock',
     phase: 5,
@@ -79,12 +79,12 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     accent: 'bg-slate-400',
     roles: ALL_ROLES.filter(r => r !== 'DRIVER'),
     children: [
-      { name: 'Posisi Stok & Mutasi', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'] },
-      { name: 'Riwayat Checkpoint Dokumen', path: '/checkpoints', icon: 'checkpoint', code: 'checkpoints', roles: ALL_ROLES }
+      { name: 'Stock on Hand', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'] },
+      { name: 'Audit Trail Dokumen', path: '/checkpoints', icon: 'checkpoint', code: 'checkpoints', roles: ALL_ROLES }
     ]
   },
   {
-    name: 'Barang Masuk',
+    name: 'Inbound (Barang Masuk)',
     path: '/inbound/receive',
     icon: 'inbound',
     phase: 1,
@@ -92,11 +92,11 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     accent: 'bg-emerald-500',
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'],
     children: [
-      { name: 'Terima Kiriman di Dock', path: '/inbound/receive', icon: 'inbound', code: 'inbound', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
+      { name: 'Receiving (Penerimaan Dock)', path: '/inbound/receive', icon: 'inbound', code: 'inbound', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
     ]
   },
   {
-    name: 'Pekerjaan Gudang',
+    name: 'Warehouse Operation',
     path: '/debulking',
     icon: 'debulking',
     phase: 2,
@@ -104,11 +104,11 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     accent: 'bg-amber-500',
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'],
     children: [
-      { name: 'Bongkar Ulang & Repacking', path: '/debulking', icon: 'debulking', code: 'debulking', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
+      { name: 'Debulking & Repacking', path: '/debulking', icon: 'debulking', code: 'debulking', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
     ]
   },
   {
-    name: 'Barang Keluar',
+    name: 'Outbound (Barang Keluar)',
     path: '/outbound',
     icon: 'package',
     phase: 3,
@@ -116,13 +116,13 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     accent: 'bg-blue-500',
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'],
     children: [
-      { name: 'Order & Surat Jalan', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
-      { name: 'Daftar SJ & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
-      { name: 'Pos Satpam (Gerbang)', path: '/gate-pass', icon: 'truck', code: 'gate_pass', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'] }
+      { name: 'Delivery Order & SJ', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Surat Jalan & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Gate Pass (Pos Jaga)', path: '/gate-pass', icon: 'truck', code: 'gate_pass', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'] }
     ]
   },
   {
-    name: 'Bukti Kirim & Tagihan',
+    name: 'Delivery & Billing',
     path: '/outbound/pod',
     icon: 'pod',
     phase: 4,
@@ -130,7 +130,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     accent: 'bg-cyan-500',
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'],
     children: [
-      { name: 'Pengiriman & e-POD', path: '/outbound/pod', icon: 'pod', code: 'outbound_pod', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'] },
+      { name: 'Delivery & POD', path: '/outbound/pod', icon: 'pod', code: 'outbound_pod', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'] },
       { name: 'Faktur & Pembayaran', path: '/billing', icon: 'chart', code: 'billing', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] }
     ]
   },

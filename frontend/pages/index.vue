@@ -178,22 +178,22 @@ function shortTime(v) {
 
 // Lima fase — kartu metrik sekaligus pintu modul
 const alurOperasional = computed(() => [
-  { no: 1, label: 'Barang Masuk', count: inboundAktif.value, metric: 'kiriman aktif', to: '/inbound/receive', topBorder: 'border-t-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
-  { no: 2, label: 'Pekerjaan Gudang', count: repackAktif.value, metric: 'work order aktif', to: '/debulking', topBorder: 'border-t-amber-500', text: 'text-amber-600 dark:text-amber-400' },
-  { no: 3, label: 'Barang Keluar', count: siapKirim.value, metric: 'order siap proses', to: '/outbound', topBorder: 'border-t-blue-500', text: 'text-blue-600 dark:text-blue-400' },
-  { no: 4, label: 'Bukti & Tagihan', count: menungguPod.value + belumLunas.value, metric: 'menunggu POD / bayar', to: '/outbound/pod', topBorder: 'border-t-cyan-500', text: 'text-cyan-600 dark:text-cyan-400' },
-  { no: 5, label: 'Pemantauan', count: stockStore.stockLevels.length, metric: 'SKU terpantau', to: '/stock', topBorder: 'border-t-slate-400', text: 'text-slate-500 dark:text-slate-400' }
+  { no: 1, label: 'Inbound', count: inboundAktif.value, metric: 'kiriman aktif', to: '/inbound/receive', topBorder: 'border-t-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
+  { no: 2, label: 'Warehouse Operation', count: repackAktif.value, metric: 'work order aktif', to: '/debulking', topBorder: 'border-t-amber-500', text: 'text-amber-600 dark:text-amber-400' },
+  { no: 3, label: 'Outbound', count: siapKirim.value, metric: 'order siap proses', to: '/outbound', topBorder: 'border-t-blue-500', text: 'text-blue-600 dark:text-blue-400' },
+  { no: 4, label: 'Delivery & Billing', count: menungguPod.value + belumLunas.value, metric: 'menunggu POD / bayar', to: '/outbound/pod', topBorder: 'border-t-cyan-500', text: 'text-cyan-600 dark:text-cyan-400' },
+  { no: 5, label: 'Monitoring', count: stockStore.stockLevels.length, metric: 'SKU terpantau', to: '/stock', topBorder: 'border-t-slate-400', text: 'text-slate-500 dark:text-slate-400' }
 ])
 
 // Daftar modul — hanya yang punya akses per role aktif
 const daftarModul = computed(() => {
   const all = [
-    { to: '/inbound/receive', label: 'Terima Kiriman di Dock', hint: 'Fase 1 · scan & tally kedatangan', dot: 'bg-emerald-500', badge: inboundAktif.value || '', access: 'inbound' },
-    { to: '/debulking', label: 'Bongkar Ulang & Repacking', hint: 'Fase 2 · konversi kemasan curah', dot: 'bg-amber-500', badge: repackAktif.value || '', access: 'debulking' },
-    { to: '/outbound', label: 'Order & Terbitkan Surat Jalan', hint: 'Fase 3 · SJ + resi semua jalur', dot: 'bg-blue-500', badge: siapKirim.value || '', access: 'outbound_orders' },
-    { to: '/waybills', label: 'Daftar Surat Jalan & Resi', hint: 'Fase 3 · semua dokumen keluar', dot: 'bg-blue-500', badge: '', access: 'waybills' },
-    { to: '/gate-pass', label: 'Pos Satpam: Keluar-Masuk Truk', hint: 'Fase 3 · dokumen, odometer, solar', dot: 'bg-blue-500', badge: departedVehiclesCount.value || '', access: 'gate_pass' },
-    { to: '/outbound/pod', label: 'Pengiriman & e-POD', hint: 'Fase 4 · foto serah terima + TTD', dot: 'bg-cyan-500', badge: menungguPod.value || '', access: 'outbound_pod' },
+    { to: '/inbound/receive', label: 'Receiving (Penerimaan Dock)', hint: 'Fase 1 · scan & tally kedatangan', dot: 'bg-emerald-500', badge: inboundAktif.value || '', access: 'inbound' },
+    { to: '/debulking', label: 'Debulking & Repacking', hint: 'Fase 2 · konversi kemasan curah', dot: 'bg-amber-500', badge: repackAktif.value || '', access: 'debulking' },
+    { to: '/outbound', label: 'Delivery Order & Surat Jalan', hint: 'Fase 3 · DO, SJ + resi semua jalur', dot: 'bg-blue-500', badge: siapKirim.value || '', access: 'outbound_orders' },
+    { to: '/waybills', label: 'Surat Jalan & Resi', hint: 'Fase 3 · semua dokumen keluar', dot: 'bg-blue-500', badge: '', access: 'waybills' },
+    { to: '/gate-pass', label: 'Gate Pass (Pos Jaga)', hint: 'Fase 3 · dokumen, odometer, solar', dot: 'bg-blue-500', badge: departedVehiclesCount.value || '', access: 'gate_pass' },
+    { to: '/outbound/pod', label: 'Delivery & POD', hint: 'Fase 4 · foto serah terima + TTD', dot: 'bg-cyan-500', badge: menungguPod.value || '', access: 'outbound_pod' },
     { to: '/billing', label: 'Faktur & Pembayaran', hint: 'Fase 4 · sampai LUNAS', dot: 'bg-cyan-500', badge: belumLunas.value || '', access: 'billing' }
   ]
   return all.filter(m => authStore.canAccess(m.access))

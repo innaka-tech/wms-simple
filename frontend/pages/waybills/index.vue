@@ -6,7 +6,7 @@
         <p class="kicker">Fase 3 — Barang Keluar • Dokumen Resmi</p>
         <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
           <AppIcon name="printer" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <span>Daftar Surat Jalan &amp; Resi</span>
+          <span>Surat Jalan &amp; Resi</span>
         </h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Semua dokumen pengiriman keluar (SJ-XXXXXXXX / RESI-XXXXXXXX).</p>
       </div>

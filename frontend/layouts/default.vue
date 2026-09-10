@@ -90,8 +90,18 @@
           </NuxtLink>
         </div>
       </div>
-      <!-- Collapsed: logout icon at bottom -->
+      <!-- Collapsed: show-sidebar + logout di rail footer -->
       <div v-else class="p-2 border-t border-slate-200 dark:border-slate-800 flex flex-col items-center gap-1.5">
+        <button
+          type="button"
+          aria-label="Tampilkan sidebar"
+          class="w-9 h-9 flex items-center justify-center rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition"
+          @click="uiStore.toggleSidebar()"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 9l4 3-4 3m8-6l-4 3 4 3m-4-6v12" />
+          </svg>
+        </button>
         <ThemeToggle />
         <button
           v-if="authStore.isAuthenticated"

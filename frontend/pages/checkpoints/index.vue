@@ -8,7 +8,7 @@
     <!-- Pencarian -->
     <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg flex flex-col sm:flex-row sm:items-center gap-3 transition-colors">
       <div class="flex-1">
-        <h2 class="text-sm font-bold text-slate-900 dark:text-white">Riwayat Checkpoint Dokumen</h2>
+        <h2 class="text-sm font-bold text-slate-900 dark:text-white">Audit Trail Dokumen</h2>
         <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Masukkan nomor dokumen: PO-, MNF-, SJ/RESI-, XDOC-, ORD-, INV-, VEND-OUT-</p>
       </div>
       <form class="flex gap-2" @submit.prevent="lookup">

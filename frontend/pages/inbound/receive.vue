@@ -13,7 +13,7 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
       <div>
-        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Terima Kiriman di Dock</h2>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Receiving (Penerimaan Dock)</h2>
         <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Fase 1 · buat PO → terima fisik (tally) → simpan ke rak. Stok baru bertambah saat putaway.</p>
       </div>
       <button type="button" @click="showCreate = !showCreate"
