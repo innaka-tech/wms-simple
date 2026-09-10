@@ -5,6 +5,24 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.4.0] - 2026-09-10
+
+### Added (Verifikasi POD di UI — ACC/Tolak sebelum Penagihan)
+
+- **Panel Verifikasi Admin di `/outbound/pod`:** setelah cari nomor order, panel BAST Digital menampilkan bukti foto, tanda tangan penerima, consignee, qty, status verifikasi, dan nama verifikator. Admin dapat **ACC POD (POD_VERIFIED)** atau **Tolak POD** (alasan wajib, maks 500 karakter → order CANCELLED, `billing_ready` tetap false).
+- **Store `verifyPod`:** action baru di `stores/outbound.ts` memanggil `POST /api/outbound/:id/verify-pod` (Zod-validated).
+- Ini menutup rantai terakhir yang sebelumnya hanya bisa lewat API: DELIVERED → **POD_VERIFIED** → billing_ready=true → INVOICE → LUNAS, semuanya kini dapat dijalankan dari aplikasi.
+
+### Fixed
+
+- **`pickOrder` mengirim POST tanpa body:** endpoint `/outbound/:id/pick` butuh `items` (id, product_id, picked_qty) + `actor_name` — sekarang store memuat detail order lalu memetakan items otomatis (fallback `picked_qty = ordered_qty`). Sebelumnya tombol Proses Picking selalu gagal "items is not iterable".
+- **`packOrder` tanpa `actor_name`:** kini selalu mengirim nama petugas dari sesi (audit trail wajib).
+
+### Verified (e2e rantai nyata)
+
+- `ORD-NSAYFV79`: ORDER_CREATED → PICKING_COMPLETED → PACKING_COMPLETED → WAYBILL_ISSUED (SJ-BRK0S1S0 + RESI-DA07UCNJ) → DELIVERED → **POD_VERIFIED** (ACC via API) → **INVOICE_ISSUED** (INV-K6D7BW85, currency **IDR**), `chain_valid: true`, 7 checkpoint.
+- Jalur tolak teruji: REJECTED dengan alasan → order CANCELLED, `billing_ready=false`.
+
 ## [4.3.0] - 2026-09-10
 
 ### Added (Halaman Cross-Dock & Cross-Document)

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { useWmsApi } from '~/composables/useWmsApi';
+import { useAuthStore } from '~/stores/auth';
 
 export interface OutboundOrder {
   id: string;
@@ -100,8 +101,21 @@ export const useOutboundStore = defineStore('outbound', {
       this.errorMessage = '';
       this.successMessage = '';
       const { apiFetch } = useWmsApi();
+      const authStore = useAuthStore();
       try {
-        const res = await apiFetch(`/outbound/${orderId}/pick`, { method: 'POST' });
+        // Backend pick butuh items per baris (id, product_id, picked_qty) + actor_name
+        const detailRes = await apiFetch(`/outbound/${orderId}`);
+        if (!detailRes.success) throw new Error('Gagal memuat detail order untuk picking');
+        const items = (detailRes.data.items || []).map((it: any) => ({
+          id: it.id,
+          product_id: it.product_id,
+          picked_qty: it.picked_qty != null ? Number(it.picked_qty) : Number(it.ordered_qty)
+        }));
+        if (!items.length) throw new Error('Order tidak memiliki item untuk dipick');
+        const res = await apiFetch(`/outbound/${orderId}/pick`, {
+          method: 'POST',
+          body: { items, actor_name: authStore.user?.full_name || 'Petugas Gudang' }
+        });
         if (res.success) {
           this.successMessage = 'Picking selesai — barang diambil dari rak';
           await this.fetchOrders();
@@ -121,8 +135,13 @@ export const useOutboundStore = defineStore('outbound', {
       this.errorMessage = '';
       this.successMessage = '';
       const { apiFetch } = useWmsApi();
+      const authStore = useAuthStore();
       try {
-        const res = await apiFetch(`/outbound/${orderId}/pack`, { method: 'POST' });
+        // Packing: packages opsional, actor_name wajib
+        const res = await apiFetch(`/outbound/${orderId}/pack`, {
+          method: 'POST',
+          body: { actor_name: authStore.user?.full_name || 'Petugas Gudang' }
+        });
         if (res.success) {
           this.successMessage = 'Packing selesai — siap terbitkan Surat Jalan';
           await this.fetchOrders();
@@ -165,6 +184,37 @@ export const useOutboundStore = defineStore('outbound', {
         return false;
       } catch (err: any) {
         this.errorMessage = err.detail || err.message || 'Gagal menyimpan POD';
+        return false;
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    // ACC / Tolak POD (admin) — gateway ke modul penagihan (billing_ready=true saat diterima)
+    async verifyPod(orderId: string, decision: 'ACCEPTED' | 'REJECTED', rejectionReason?: string): Promise<boolean> {
+      this.isLoading = true;
+      this.errorMessage = '';
+      this.successMessage = '';
+      const { apiFetch } = useWmsApi();
+      try {
+        const res = await apiFetch(`/outbound/${orderId}/verify-pod`, {
+          method: 'POST',
+          body: {
+            status: decision,
+            rejection_reason: decision === 'REJECTED' ? (rejectionReason || '').trim() || undefined : undefined
+          }
+        });
+        if (res.success) {
+          this.successMessage = decision === 'ACCEPTED'
+            ? 'POD diterima — order siap ditagih (terbitkan faktur di menu Faktur & Pembayaran)'
+            : 'POD ditolak — order dibatalkan, penagihan tidak dapat dilanjutkan';
+          await this.fetchOrders();
+          await this.fetchOrderDetail(orderId);
+          return true;
+        }
+        return false;
+      } catch (err: any) {
+        this.errorMessage = err.detail || err.message || 'Gagal verifikasi POD';
         return false;
       } finally {
         this.isLoading = false;

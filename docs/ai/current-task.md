@@ -234,7 +234,7 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 4. **Filter `/billing` salah tipe** — `Number(o.billing_ready) === 1` padahal kolom PG `boolean` → order siap tagih tak pernah tampil.
 5. **Fallback stok palsu `/stock`** — data contoh (Gula/TV) muncul saat API gagal — pelanggaran anti-halusinasi.
 6. **Cross-dock & cross-document tanpa UI** — SELESAI v4.3.0: halaman `/crossdock` (manifest: buat → muat → terima tujuan) & `/crossdoc` (terbitkan swap dengan tipe dokumen) + store + nav. E2e rantai nyata terverifikasi (MNF-50063918, XDOC-50167044). [Closed]
-7. **Checkpoints verify-POD tanpa UI verifikasi** — admin tak bisa ACC/tolak POD dari UI (billing terhenti di `DELIVERED`). [Open]
+7. **Checkpoints verify-POD tanpa UI verifikasi** — SELESAI v4.4.0: panel Verifikasi Admin di `/outbound/pod` (ACC POD → POD_VERIFIED + billing_ready, atau Tolak dengan alasan → CANCELLED) + store `verifyPod`. E2e terverifikasi (ORD-NSAYFV79 → INV-K6D7BW85 IDR). [Closed]
 8. **Thermal printer Web Bluetooth hanya Chromium desktop/Android** — fallback cetak belum ada. [Open, low]
 
 **Ditutup sesi ini (v4.2.0):**
@@ -244,4 +244,4 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 - [x] Gap 5: fallback dihapus → empty state jujur.
 - [x] `backend/vitest.config.ts` (serial e2e) di-commit; CHANGELOG 4.2.0.
 
-**Next:** Gap 7 (verifikasi POD di UI — ACC/tolak POD sebelum billing) — atau push `ans` bila diminta.
+**Next:** Semua gap UI utama tertutup. Verifikasi POD (Gap 7) SELESAI v4.4.0: panel ACC/Tolak BAST di `/outbound/pod` + store `verifyPod`; bug `pickOrder`/`packOrder` tanpa body ikut diperbaiki. Sisa backlog minor: fallback cetak thermal printer (low priority) — atau push `ans` bila diminta.
