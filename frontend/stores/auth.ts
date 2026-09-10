@@ -18,7 +18,7 @@ export interface NavItem {
   name: string;
   path: string;
   icon: string;
-  code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing' | 'checkpoints' | 'master_products' | 'master_warehouses' | 'master_customers' | 'master_users' | 'master_fleet';
+  code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing' | 'checkpoints' | 'crossdock' | 'crossdoc' | 'master_products' | 'master_warehouses' | 'master_customers' | 'master_users' | 'master_fleet';
   roles: UserRole[];
 }
 
@@ -118,6 +118,8 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     children: [
       { name: 'Delivery Order & SJ', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
       { name: 'Surat Jalan & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Cross-Dock Antar-Gudang', path: '/crossdock', icon: 'debulking', code: 'crossdock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Cross-Doc (Swap Dokumen)', path: '/crossdoc', icon: 'checkpoint', code: 'crossdoc', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
       { name: 'Gate Pass (Pos Jaga)', path: '/gate-pass', icon: 'truck', code: 'gate_pass', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'] }
     ]
   },
@@ -268,7 +270,10 @@ export const useAuthStore = defineStore('auth', {
           return ['ADMIN_ADM', 'WH_MANAGER', 'DRIVER'].includes(currentRole);
         case 'outbound_orders':
         case 'waybills':
+        case 'crossdock':
           return ['ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'].includes(currentRole);
+        case 'crossdoc':
+          return ['ADMIN_ADM', 'WH_MANAGER'].includes(currentRole);
         case 'billing':
           return ['ADMIN_ADM', 'WH_MANAGER'].includes(currentRole);
         case 'stock':
@@ -295,8 +300,11 @@ export const useAuthStore = defineStore('auth', {
       if (path.startsWith('/outbound/pod')) {
         return ['ADMIN_ADM', 'WH_MANAGER', 'DRIVER'].includes(currentRole);
       }
-      if (path.startsWith('/outbound') || path.startsWith('/waybills')) {
+      if (path.startsWith('/outbound') || path.startsWith('/waybills') || path.startsWith('/crossdock')) {
         return ['ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'].includes(currentRole);
+      }
+      if (path.startsWith('/crossdoc')) {
+        return ['ADMIN_ADM', 'WH_MANAGER'].includes(currentRole);
       }
       if (path.startsWith('/billing')) {
         return ['ADMIN_ADM', 'WH_MANAGER'].includes(currentRole);
