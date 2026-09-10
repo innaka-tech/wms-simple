@@ -24,7 +24,7 @@
           <AppIcon name="warehouse" custom-class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           <span>Master Gudang &amp; Lokasi Rak</span>
         </h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Jaringan gudang (hub &amp; spoke) beserta zona/rak tempat barang disimpan.</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Jaringan gudang (hub &amp; spoke) beserta lokasi penyimpanan: zone, aisle, rack, bin.</p>
       </div>
       <button
         v-if="canManage"
@@ -33,7 +33,7 @@
         class="self-start md:self-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-md transition flex items-center space-x-1.5"
       >
         <AppIcon name="plus" custom-class="w-4 h-4" />
-        <span>Gudang Baru</span>
+        <span>Registrasi Gudang</span>
       </button>
     </div>
 
@@ -65,14 +65,14 @@
         <!-- Locations -->
         <div v-if="openLocations === w.id" class="p-4 bg-slate-50 dark:bg-slate-950/40">
           <div class="flex items-center justify-between mb-2.5">
-            <h4 class="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Lokasi Penyimpanan</h4>
+            <h4 class="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Storage Location (Zone / Aisle / Rack / Bin)</h4>
             <button v-if="canManage" type="button" @click="openLocationForm(w)" class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">+ Tambah Rak</button>
           </div>
           <div v-if="!locations[w.id]?.length" class="text-[11px] text-slate-400">Belum ada lokasi terdaftar.</div>
           <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-2">
             <div v-for="loc in locations[w.id]" :key="loc.id" class="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md">
               <div class="font-mono text-[11px] font-bold text-slate-800 dark:text-slate-200">{{ loc.zone }}/{{ loc.aisle }}/{{ loc.rack }}/{{ loc.bin }}</div>
-              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{{ loc.location_type }} • kap {{ loc.max_weight_capacity_kg }} kg</div>
+              <div class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{{ loc.location_type }} • kapasitas {{ loc.max_weight_capacity_kg }} kg</div>
             </div>
           </div>
 
@@ -103,14 +103,14 @@
     <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-slate-950/50" @click="showForm = false"></div>
       <form @submit.prevent="submit" class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl w-full max-w-lg p-5 space-y-3.5">
-        <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ editing ? 'Ubah Gudang' : 'Gudang Baru' }}</h3>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ editing ? 'Ubah Gudang' : 'Registrasi Gudang Baru' }}</h3>
         <div class="grid grid-cols-2 gap-3">
           <label class="block">
             <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kode *</span>
             <input v-model="form.code" required :disabled="editing" class="mt-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs" placeholder="WH-CGK-01" />
           </label>
           <label class="block">
-            <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Tipe Gudang *</span>
+            <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Warehouse Type *</span>
             <select v-model="form.warehouse_type_id" required class="mt-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs">
               <option value="" disabled>Pilih tipe</option>
               <option v-for="t in warehouseTypes" :key="t.id" :value="t.id">{{ t.name }}</option>

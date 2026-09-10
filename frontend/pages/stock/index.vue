@@ -51,11 +51,11 @@
         <p class="text-xl md:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{{ totalOnHand }} <span class="text-xs font-normal text-slate-400">Unit/Kg</span></p>
       </div>
       <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-[10px] uppercase font-semibold text-slate-400">Total Alokasi Reserved</p>
+        <p class="text-[10px] uppercase font-semibold text-slate-400">Qty Reserved</p>
         <p class="text-xl md:text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">{{ totalReserved }} <span class="text-xs font-normal text-slate-400">Unit</span></p>
       </div>
       <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-[10px] uppercase font-semibold text-slate-400">Total In-Transit</p>
+        <p class="text-[10px] uppercase font-semibold text-slate-400">Qty In-Transit</p>
         <p class="text-xl md:text-2xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-1">{{ totalInTransit }} <span class="text-xs font-normal text-slate-400">Unit</span></p>
       </div>
     </div>
@@ -72,10 +72,10 @@
         <thead>
           <tr class="bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             <th class="py-3.5 px-4">Kode SKU</th>
-            <th class="py-3.5 px-4">Nama Produk / Spesifikasi</th>
-            <th class="py-3.5 px-4">Satuan (UoM)</th>
-            <th class="py-3.5 px-4 text-right">On-Hand Fisik</th>
-            <th class="py-3.5 px-4 text-right">Alokasi Reserved</th>
+            <th class="py-3.5 px-4">Nama Item / Spesifikasi</th>
+            <th class="py-3.5 px-4">UoM</th>
+            <th class="py-3.5 px-4 text-right">On-Hand</th>
+            <th class="py-3.5 px-4 text-right">Reserved</th>
             <th class="py-3.5 px-4 text-right">In-Transit</th>
             <th class="py-3.5 px-4 text-center">Status Stok</th>
           </tr>
@@ -112,7 +112,7 @@
                 class="inline-block text-[10px] font-bold px-2.5 py-1 rounded-md border"
                 :class="item.is_low_stock ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'"
               >
-                {{ item.is_low_stock ? 'MINIMUM' : 'TERSEDIA' }}
+                {{ item.is_low_stock ? 'BELOW MIN' : 'AVAILABLE' }}
               </span>
             </td>
           </tr>
@@ -139,7 +139,7 @@
             class="text-[10px] font-bold px-2 py-0.5 rounded border" 
             :class="item.is_low_stock ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'"
           >
-            {{ item.is_low_stock ? 'MIN' : 'AMAN' }}
+            {{ item.is_low_stock ? 'LOW' : 'OK' }}
           </span>
         </div>
 

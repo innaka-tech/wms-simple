@@ -24,7 +24,7 @@
           <AppIcon name="shield" custom-class="w-5 h-5 text-slate-700 dark:text-slate-300" />
           <span>Pengguna &amp; Hak Akses</span>
         </h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Akun petugas, peran (RBAC), dan gudang tempat tugasnya. Setiap mutasi stok tercatat atas nama akun ini.</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Akun operator, peran (RBAC), dan gudang tugasnya. Setiap mutasi stok tercatat atas nama akun ini (audit trail).</p>
       </div>
       <button
         v-if="canManage"
@@ -33,7 +33,7 @@
         class="self-start md:self-auto bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-xs font-semibold px-4 py-2.5 rounded-md transition flex items-center space-x-1.5"
       >
         <AppIcon name="plus" custom-class="w-4 h-4" />
-        <span>Akun Baru</span>
+        <span>Buat Akun Operator</span>
       </button>
     </div>
 
@@ -45,7 +45,7 @@
         <thead class="bg-slate-50 dark:bg-slate-950/60 text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px]">
           <tr>
             <th class="px-4 py-3 font-semibold">Nama / Username</th>
-            <th class="px-4 py-3 font-semibold">Peran</th>
+            <th class="px-4 py-3 font-semibold">Role (RBAC)</th>
             <th class="px-4 py-3 font-semibold">Gudang</th>
             <th class="px-4 py-3 font-semibold">Status</th>
             <th class="px-4 py-3 font-semibold text-right">Aksi</th>
@@ -85,7 +85,7 @@
     <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-slate-950/50" @click="showForm = false"></div>
       <form @submit.prevent="submit" class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl w-full max-w-lg p-5 space-y-3.5">
-        <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ editing ? `Ubah Akun @${editing.username}` : 'Akun Baru' }}</h3>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ editing ? `Ubah Akun @${editing.username}` : 'Buat Akun Operator Baru' }}</h3>
         <div class="grid grid-cols-2 gap-3">
           <template v-if="!editing">
             <label class="block">
@@ -143,10 +143,10 @@ const canManage = computed(() => ['SUPER_ADMIN', 'ADMIN_ADM'].includes(authStore
 const ROLES = [
   { value: 'SUPER_ADMIN', label: 'Super Admin (penuh)' },
   { value: 'ADMIN_ADM', label: 'Admin Administrasi' },
-  { value: 'WH_MANAGER', label: 'Manajer Gudang' },
-  { value: 'WH_STAFF', label: 'Petugas Gudang' },
-  { value: 'GATE_OFFICER', label: 'Petugas Gerbang' },
-  { value: 'DRIVER', label: 'Pengemudi' },
+  { value: 'WH_MANAGER', label: 'WH Manager (Kepala Gudang)' },
+  { value: 'WH_STAFF', label: 'WH Staff (Petugas Gudang)' },
+  { value: 'GATE_OFFICER', label: 'Gate Officer (Petugas Pos Jaga)' },
+  { value: 'DRIVER', label: 'Driver (Pengemudi)' },
   { value: 'CUSTOMER', label: 'Customer' }
 ];
 

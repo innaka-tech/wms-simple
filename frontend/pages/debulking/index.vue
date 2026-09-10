@@ -25,13 +25,13 @@
             WO-DEBULK-20260901
           </span>
           <span class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-            PENCURAHAN & REPACKING
+            DEBULKING & REPACKING
           </span>
         </div>
         <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Toleransi Susut: &le; 1.00%</span>
       </div>
       <div>
-        <h3 class="font-bold text-slate-900 dark:text-slate-100 text-base">Konversi Kargo Bulky Parent ke Kemasan Retail</h3>
+        <h3 class="font-bold text-slate-900 dark:text-slate-100 text-base">Konversi Kargo Bulky (Parent) ke Kemasan Retail (Child)</h3>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Jumbo Bag Gula Pasir Rafinasi 1 Ton &rarr; Karung 25 KG (Double-Entry Stock Ledger Balancing)</p>
       </div>
     </div>
@@ -43,7 +43,7 @@
       <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm flex flex-col justify-between">
         <div>
           <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Input Barang Bulky (Parent)</h4>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Input Kargo Bulky (Parent SKU)</h4>
             <span class="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">BULK-SUGAR-1T</span>
           </div>
 
@@ -74,7 +74,7 @@
       <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm flex flex-col justify-between">
         <div>
           <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
-            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Output Hasil Karung (Child)</h4>
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Output Hasil Konversi (Child SKU)</h4>
             <span class="text-xs font-mono font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">SUGAR-SACK-25KG</span>
           </div>
 
@@ -107,7 +107,7 @@
     <div class="p-5 md:p-6 rounded-lg border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 space-y-3 shadow-sm transition-colors">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
         <span class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-          Kalkulasi Susut Otomatis (Shrinkage Loss Formula):
+          Kalkulasi Susut Otomatis (Shrinkage):
         </span>
         <div class="flex items-center space-x-2 font-mono font-bold text-base md:text-lg" :class="isShrinkageHigh ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'">
           <span>Susut: {{ shrinkageKg }} KG</span>
@@ -124,7 +124,7 @@
     <!-- Supervisor Name & Action -->
     <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-4 transition-colors">
       <div class="space-y-1.5">
-        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Petugas Pengawas De-bulking (Wajib Sesuai Audit)</label>
+        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Supervisor Debulking (Wajib — Tercatat di Audit Trail)</label>
         <input 
           v-model="actorName" 
           type="text" 
@@ -142,7 +142,7 @@
         class="w-full py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 font-semibold rounded-md shadow-xs transition flex items-center justify-center space-x-2 disabled:opacity-50 text-xs sm:text-sm cursor-pointer"
       >
         <AppIcon name="debulking" custom-class="w-4 h-4" />
-        <span>{{ debulkingStore.isLoading ? 'Memproses...' : 'Selesaikan De-bulking & Rekam Mutasi Stok' }}</span>
+        <span>{{ debulkingStore.isLoading ? 'Memproses...' : 'Selesaikan Debulking & Rekam Stock Movement' }}</span>
       </button>
     </div>
   </div>

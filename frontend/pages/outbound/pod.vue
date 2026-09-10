@@ -29,7 +29,7 @@
             class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none w-56"
           />
           <button type="button" @click="lookupWaybill" class="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition cursor-pointer">
-            Cari Resi
+            Cari SJ / Resi
           </button>
         </div>
         <span class="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center space-x-1.5">
@@ -56,7 +56,7 @@
       <!-- 1. Photo Capture Panel -->
       <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm transition-colors">
         <div class="border-b border-slate-100 dark:border-slate-800 pb-2 flex justify-between items-center">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Foto Serah Terima Fisik Barang</h4>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Bukti Foto Serah Terima (Proof of Delivery)</h4>
           <span class="text-xs font-mono" :class="photoPreview ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'">
             {{ photoPreview ? 'Foto Terlampir' : 'Wajib Diambil' }}
           </span>
@@ -97,7 +97,7 @@
       <!-- 2. Signature Pad & Sign-off Panel -->
       <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm transition-colors">
         <div class="border-b border-slate-100 dark:border-slate-800 pb-2 flex justify-between items-center">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Tanda Tangan Digital Penerima</h4>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Tanda Tangan Digital Penerima (e-POD)</h4>
           <span class="text-xs font-mono text-slate-500 dark:text-slate-400 font-semibold">BAST Digital</span>
         </div>
 
@@ -105,7 +105,7 @@
         <SignaturePad @update:signature="sig => signatureData = sig" />
 
         <div class="space-y-1.5 pt-1">
-          <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Jelas Penerima / Pengurus Koperasi KDMP:</label>
+          <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Penerima (Consignee):</label>
           <input 
             v-model="recipientName" 
             type="text" 
@@ -123,7 +123,7 @@
           class="w-full py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 font-semibold rounded-md shadow-xs transition flex items-center justify-center space-x-2 disabled:opacity-50 text-xs sm:text-sm cursor-pointer"
         >
           <AppIcon name="check" custom-class="w-4 h-4" />
-          <span>{{ outboundStore.isLoading ? 'Menyimpan BAST...' : 'Konfirmasi POD & Terbitkan BAST Digital' }}</span>
+          <span>{{ outboundStore.isLoading ? 'Menyimpan BAST...' : 'Submit POD & Terbitkan BAST Digital' }}</span>
         </button>
       </div>
 
@@ -172,7 +172,7 @@ async function lookupWaybill() {
     matchedWaybill.value = found
     playAudioFeedback('SUCCESS')
   } else {
-    lookupMessage.value = 'Waybill untuk nomor order itu tidak ditemukan — pastikan SJ + resi sudah diterbitkan.'
+    lookupMessage.value = 'Surat Jalan untuk nomor order itu tidak ditemukan — pastikan SJ + resi sudah terbit.'
     playAudioFeedback('ERROR')
   }
 }

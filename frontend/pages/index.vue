@@ -16,12 +16,12 @@
           v-if="authStore.canAccess('stock')"
           to="/stock"
           class="px-3 py-2 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-medium transition border border-slate-200 dark:border-slate-800"
-        >Posisi Stok</NuxtLink>
+        >Stock on Hand</NuxtLink>
         <NuxtLink
           v-if="authStore.canAccess('gate_pass')"
           to="/gate-pass"
           class="px-3 py-2 rounded-md bg-slate-900 dark:bg-slate-100 hover:bg-slate-700 dark:hover:bg-white text-white dark:text-slate-900 text-xs font-medium transition"
-        >Pos Gerbang</NuxtLink>
+        >Gate Pass</NuxtLink>
       </div>
     </div>
 
@@ -46,7 +46,7 @@
       <!-- Strip audit terakhir (ringkas) -->
       <div class="lg:col-span-2 p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
         <div class="flex items-center justify-between mb-2">
-          <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Checkpoint Terakhir</h3>
+          <h3 class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Audit Trail Terakhir</h3>
           <NuxtLink to="/checkpoints" class="text-[10px] font-mono text-blue-600 dark:text-blue-400 hover:underline">Semua →</NuxtLink>
         </div>
         <div v-if="recentCheckpoints.length === 0" class="py-4 text-center text-[11px] text-slate-400">Belum ada aktivitas hari ini.</div>

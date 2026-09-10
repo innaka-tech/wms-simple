@@ -31,13 +31,13 @@
            :class="result.chain_valid ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-rose-500/5 border-rose-500/30'">
         <div class="min-w-0">
           <p class="text-sm font-bold text-slate-900 dark:text-white font-mono truncate">{{ result.document_number }}</p>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">{{ result.entity_type.replace(/_/g, ' ') }} • {{ result.total_checkpoints }} checkpoint</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">{{ result.entity_type.replace(/_/g, ' ') }} • {{ result.total_checkpoints }} checkpoint tercatat</p>
         </div>
         <span class="px-2 py-1 rounded text-[10px] font-mono font-bold border shrink-0"
               :class="result.chain_valid
                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                 : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'">
-          {{ result.chain_valid ? 'Rantai valid' : 'Rantai putus' }}
+          {{ result.chain_valid ? 'Chain Valid' : 'Chain Broken' }}
         </span>
       </div>
 

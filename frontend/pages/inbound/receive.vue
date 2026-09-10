@@ -28,7 +28,7 @@
       <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Buat PO Inbound</h3>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label class="space-y-1">
-          <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Pengirim (Customer)</span>
+          <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Pengirim / Shipper</span>
           <select v-model="form.customer_id" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none">
             <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
@@ -41,12 +41,12 @@
         </label>
       </div>
       <div class="space-y-2">
-        <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Barang</span>
+        <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Item Barang (SKU)</span>
         <div v-for="(it, idx) in form.items" :key="idx" class="flex gap-2 items-center">
           <select v-model="it.product_id" class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none">
             <option v-for="p in products" :key="p.id" :value="p.id">{{ p.sku_code }} — {{ p.name }}</option>
           </select>
-          <input v-model.number="it.ordered_qty" type="number" min="1" placeholder="Qty"
+          <input v-model.number="it.ordered_qty" type="number" min="1" placeholder="Qty Order"
                  class="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
           <button v-if="form.items.length > 1" type="button" @click="form.items.splice(idx, 1)" class="text-slate-400 hover:text-rose-500 text-sm px-1">✕</button>
         </div>
@@ -61,7 +61,7 @@
     <!-- Daftar PO -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden transition-colors">
       <div v-if="inboundStore.isLoading && inboundStore.orders.length === 0" class="p-8 text-center text-xs text-slate-400">Memuat PO...</div>
-      <div v-else-if="inboundStore.orders.length === 0" class="p-8 text-center text-xs text-slate-400">Belum ada PO. Buat PO Masuk Baru dulu.</div>
+      <div v-else-if="inboundStore.orders.length === 0" class="p-8 text-center text-xs text-slate-400">Belum ada PO Inbound. Buat PO terlebih dulu.</div>
       <div v-else class="divide-y divide-slate-100 dark:divide-slate-800">
         <div v-for="po in inboundStore.orders" :key="po.id" class="px-4 py-3">
           <div class="flex flex-col lg:flex-row lg:items-center gap-2.5">
@@ -79,7 +79,7 @@
                       class="px-3 py-1.5 rounded-md text-[11px] font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
                 {{ expandedId === po.id ? 'Tutup' : 'Proses' }}
               </button>
-              <NuxtLink :to="'/checkpoints?doc=' + po.po_number" class="text-[11px] text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition">Riwayat</NuxtLink>
+              <NuxtLink :to="'/checkpoints?doc=' + po.po_number" class="text-[11px] text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition">Audit Trail</NuxtLink>
             </div>
           </div>
 
@@ -90,25 +90,25 @@
               <div class="flex items-center justify-between flex-wrap gap-1">
                 <p class="text-xs font-bold text-slate-800 dark:text-slate-100">{{ item.sku_code || item.product_name || item.product_id }}</p>
                 <p class="text-[10px] font-mono text-slate-400">
-                  Order {{ item.ordered_qty }}<template v-if="item.received_qty > 0"> · Terima {{ item.received_qty }}</template><template v-if="item.storage_qty > 0"> · Rak {{ item.storage_qty }}</template>
+                  Order {{ item.ordered_qty }}<template v-if="item.received_qty > 0"> · Diterima {{ item.received_qty }}</template><template v-if="item.storage_qty > 0"> · Di Rak {{ item.storage_qty }}</template>
                 </p>
               </div>
 
               <!-- Step 2: terima fisik -->
               <div v-if="po.status === 'CREATED'" class="flex flex-wrap items-center gap-2">
-                <input v-model.number="receiveDraft[item.id]" type="number" min="0" :max="item.ordered_qty" placeholder="Qty terima"
+                <input v-model.number="receiveDraft[item.id]" type="number" min="0" :max="item.ordered_qty" placeholder="Qty terima (tally)"
                        class="w-28 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
                 <select v-model="conditionDraft[item.id]" class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2 py-1.5 text-[11px] text-slate-900 dark:text-white focus:outline-none">
-                  <option value="GOOD">Baik</option>
-                  <option value="DAMAGED">Rusak</option>
+                  <option value="GOOD">Good (Baik)</option>
+                  <option value="DAMAGED">Damaged (Rusak)</option>
                 </select>
               </div>
 
               <!-- Step 3: putaway -->
               <div v-else-if="po.status === 'RECEIVED'" class="flex flex-wrap items-center gap-2">
-                <input v-model.number="putawayDraft[item.id].storage_qty" type="number" min="0" :max="item.received_qty" placeholder="Ke rak"
+                <input v-model.number="putawayDraft[item.id].storage_qty" type="number" min="0" :max="item.received_qty" placeholder="Qty ke rak"
                        class="w-24 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
-                <input v-model.number="putawayDraft[item.id].cross_dock_qty" type="number" min="0" :max="item.received_qty" placeholder="Cross-dock"
+                <input v-model.number="putawayDraft[item.id].cross_dock_qty" type="number" min="0" :max="item.received_qty" placeholder="Qty cross-dock"
                        class="w-28 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
                 <span class="text-[10px] text-slate-400">rak + cross-dock = {{ item.received_qty }} (wajib)</span>
               </div>
@@ -116,14 +116,14 @@
 
             <!-- Info truk (step 2) -->
             <div v-if="po.status === 'CREATED'" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <input v-model="truckPlate" placeholder="Plat truk pengangkut" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none" />
-              <input v-model="driverName" placeholder="Nama sopir" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none" />
+              <input v-model="truckPlate" placeholder="No. Polisi truk pengangkut" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none" />
+              <input v-model="driverName" placeholder="Nama pengemudi (driver)" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none" />
             </div>
 
             <button type="button" :disabled="inboundStore.isLoading" @click="po.status === 'CREATED' ? submitReceive(po) : submitPutaway(po)"
                     class="px-4 py-2 rounded-md text-white text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
                     :class="po.status === 'CREATED' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'">
-              {{ po.status === 'CREATED' ? 'Konfirmasi Terima Fisik (PO_RECEIVED)' : 'Selesaikan Putaway (stok masuk rak)' }}
+              {{ po.status === 'CREATED' ? 'Konfirmasi Receiving Fisik (PO_RECEIVED)' : 'Selesaikan Putaway (stok masuk rak)' }}
             </button>
           </div>
         </div>
@@ -160,7 +160,7 @@ const form = ref({
 })
 
 function statusLabel(s) {
-  return { CREATED: 'Menunggu terima fisik', RECEIVED: 'Sudah diterima — perlu putaway', PUTAWAY_COMPLETED: 'Selesai — stok masuk' }[s] || s
+  return { CREATED: 'Menunggu Receiving', RECEIVED: 'Received — perlu Putaway', PUTAWAY_COMPLETED: 'Putaway Completed — stok masuk' }[s] || s
 }
 function statusClass(s) {
   return { CREATED: 'text-amber-600 dark:text-amber-400', RECEIVED: 'text-blue-600 dark:text-blue-400', PUTAWAY_COMPLETED: 'text-emerald-600 dark:text-emerald-400' }[s] || 'text-slate-400'

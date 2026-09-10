@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end justify-between">
       <div>
-        <p class="kicker">Fase 3 — Barang Keluar • Dokumen Resmi</p>
+        <p class="kicker">Fase 3 — Outbound • Dokumen Resmi</p>
         <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
           <AppIcon name="printer" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
           <span>Surat Jalan &amp; Resi</span>
@@ -32,8 +32,8 @@
       :error="tableError"
       row-key-prop="id"
       search-placeholder="Cari SJ, resi, order, tujuan…"
-      empty-title="Belum ada surat jalan diterbitkan"
-      empty-hint="Terbitkan SJ dari halaman Order & Terbitkan Surat Jalan."
+      empty-title="Belum ada Surat Jalan diterbitkan"
+      empty-hint="Terbitkan SJ dari halaman Delivery Order & Surat Jalan."
       @retry="load"
     >
       <template #empty-action>
@@ -48,7 +48,7 @@
           :to="'/checkpoints?doc=' + row.sj_number"
           class="text-xs text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition"
         >
-          Riwayat
+          Audit Trail
         </NuxtLink>
       </template>
 
@@ -58,7 +58,7 @@
           :to="'/checkpoints?doc=' + row.sj_number"
           class="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline"
         >
-          Riwayat Checkpoint
+          Audit Trail Dokumen
         </NuxtLink>
       </template>
     </AppDataTable>

@@ -36,19 +36,19 @@
         class="self-start md:self-auto bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-4 py-2.5 rounded-md transition flex items-center space-x-1.5"
       >
         <AppIcon name="plus" custom-class="w-4 h-4" />
-        <span>Kendaraan Baru</span>
+        <span>Registrasi Kendaraan</span>
       </button>
     </div>
 
     <!-- Table -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden">
       <div v-if="masterStore.isLoading && !masterStore.vehicles.length" class="p-8 text-center text-xs text-slate-400">Memuat data…</div>
-      <div v-else-if="!masterStore.vehicles.length" class="p-8 text-center text-xs text-slate-400">Belum ada kendaraan pool terdaftar.</div>
+      <div v-else-if="!masterStore.vehicles.length" class="p-8 text-center text-xs text-slate-400">Belum ada kendaraan pool terdaftar di master armada.</div>
       <table v-else class="w-full text-left text-xs">
         <thead class="bg-slate-50 dark:bg-slate-950/60 text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px]">
           <tr>
             <th class="px-4 py-3 font-semibold">Nopol / Tipe</th>
-            <th class="px-4 py-3 font-semibold">Pengemudi</th>
+            <th class="px-4 py-3 font-semibold">Driver Tetap</th>
             <th class="px-4 py-3 font-semibold">Gudang</th>
             <th class="px-4 py-3 font-semibold">Dokumen</th>
             <th class="px-4 py-3 font-semibold">Status</th>
@@ -92,7 +92,7 @@
     <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-slate-950/50" @click="showForm = false"></div>
       <form @submit.prevent="submit" class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl w-full max-w-lg p-5 space-y-3.5 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ editing ? `Ubah ${editing.plate_number}` : 'Kendaraan Pool Baru' }}</h3>
+        <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ editing ? `Ubah ${editing.plate_number}` : 'Registrasi Kendaraan Pool' }}</h3>
         <div class="grid grid-cols-2 gap-3">
           <label class="block">
             <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Nomor Polisi *</span>

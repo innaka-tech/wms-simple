@@ -324,28 +324,28 @@ const demoRoles = [
     badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
   },
   { 
-    title: 'Kepala Gudang', 
+    title: 'WH Manager (Kepala Gudang)', 
     name: 'Bambang Sudiro', 
     username: 'mgr_jkt', 
     code: 'MNGR',
     badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
   },
   { 
-    title: 'Petugas Checker', 
+    title: 'WH Staff / Checker', 
     name: 'Joko Susanto', 
     username: 'staff_jkt', 
     code: 'STAFF',
     badgeClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
   },
   { 
-    title: 'Pengemudi Armada', 
+    title: 'Driver Armada', 
     name: 'Budi Santoso', 
     username: 'driver_budi', 
     code: 'DRV',
     badgeClass: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20'
   },
   { 
-    title: 'Petugas Pos Satpam', 
+    title: 'Gate Officer (Pos Jaga)', 
     name: 'Sersan Hendro', 
     username: 'gate_officer', 
     code: 'GATE',

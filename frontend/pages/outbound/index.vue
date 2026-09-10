@@ -11,10 +11,10 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
       <div>
         <h2 class="text-lg font-bold text-slate-900 dark:text-white">Delivery Order &amp; Surat Jalan</h2>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Fase 3 · terbitkan SJ + resi, lalu truk keluar lewat gerbang</p>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Fase 3 · terbitkan Surat Jalan + resi, lalu truk keluar lewat gate</p>
       </div>
       <div class="flex gap-2 shrink-0">
-        <NuxtLink to="/waybills" class="px-3 py-2 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 transition">Daftar Resi</NuxtLink>
+        <NuxtLink to="/waybills" class="px-3 py-2 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 transition">Daftar SJ & Resi</NuxtLink>
         <button type="button" @click="printer.connectBluetoothPrinter()"
                 class="px-3 py-2 rounded-md text-xs font-medium border transition"
                 :class="printer.isConnected.value ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800'">
@@ -35,7 +35,7 @@
     <!-- Daftar order -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden transition-colors">
       <div v-if="outboundStore.isLoading" class="p-8 text-center text-xs text-slate-400">Memuat order...</div>
-      <div v-else-if="outboundStore.orders.length === 0" class="p-8 text-center text-xs text-slate-400">Belum ada order pengiriman.</div>
+      <div v-else-if="outboundStore.orders.length === 0" class="p-8 text-center text-xs text-slate-400">Belum ada Delivery Order. Buat DO baru dari data shipper.</div>
       <div v-else class="divide-y divide-slate-100 dark:divide-slate-800">
         <div v-for="order in outboundStore.orders" :key="order.id" class="px-4 py-3 flex flex-col lg:flex-row lg:items-center gap-2.5 hover:bg-slate-50/60 dark:hover:bg-slate-950/40 transition-colors">
           <div class="flex-1 min-w-0">
@@ -59,10 +59,11 @@
               @click="handleIssueWaybill(order)"
               class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] font-semibold transition cursor-pointer"
             >Terbitkan SJ + Resi</button>
+            <!-- SJ = Surat Jalan, Resi = tracking number -->
             <NuxtLink
               :to="'/checkpoints?doc=' + order.order_number"
               class="px-3 py-1.5 rounded-md text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
-            >Riwayat</NuxtLink>
+            >Audit Trail</NuxtLink>
           </div>
         </div>
       </div>
@@ -109,9 +110,9 @@ function canIssue(order) {
 // Label manusia + warna penanda ringan (dot, bukan badge kotak)
 function statusLabel(status) {
   const map = {
-    CREATED: 'Baru', PICKED: 'Sudah pick', PACKED: 'Sudah pack',
-    SHIPPED: 'Dikirim', DELIVERED: 'Sampai tujuan',
-    POD_VERIFIED: 'POD terverifikasi', CANCELLED: 'Batal'
+    CREATED: 'Baru', PICKED: 'Picked', PACKED: 'Packed',
+    SHIPPED: 'Shipped', DELIVERED: 'Delivered',
+    POD_VERIFIED: 'POD Terverifikasi', CANCELLED: 'Batal'
   }
   return map[status] || status
 }
@@ -129,10 +130,10 @@ const ringkasanStatus = computed(() => {
   const orders = outboundStore.orders || []
   const cnt = (arr) => orders.filter(o => arr.includes(o.status)).length
   return [
-    { label: 'Baru', count: cnt(['CREATED']), dot: 'bg-slate-400' },
-    { label: 'Pick/Pack', count: cnt(['PICKED', 'PACKED']), dot: 'bg-amber-500' },
-    { label: 'Sudah ada SJ', count: Object.keys(waybillByOrder.value).length, dot: 'bg-blue-500' },
-    { label: 'POD verifikasi', count: cnt(['POD_VERIFIED']), dot: 'bg-emerald-500' }
+    { label: 'DO Baru', count: cnt(['CREATED']), dot: 'bg-slate-400' },
+    { label: 'Picking & Packing', count: cnt(['PICKED', 'PACKED']), dot: 'bg-amber-500' },
+    { label: 'SJ Terbit', count: Object.keys(waybillByOrder.value).length, dot: 'bg-blue-500' },
+    { label: 'POD Terverifikasi', count: cnt(['POD_VERIFIED']), dot: 'bg-emerald-500' }
   ]
 })
 
@@ -149,7 +150,7 @@ async function handleIssueWaybill(order) {
       destination: order.destination_address || order.destination_city || '',
       issued_by: actor
     })
-    waybillStore.successMessage = `SJ ${wb.sj_number} / Resi ${wb.resi_number} terbit — struk tercetak untuk sopir.`
+    waybillStore.successMessage = `SJ ${wb.sj_number} / Resi ${wb.resi_number} terbit — struk tercetak untuk driver.`
     syncFeedback()
   }
 }
