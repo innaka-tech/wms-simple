@@ -14,6 +14,11 @@
         <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Fase 3 · terbitkan Surat Jalan + resi, lalu truk keluar lewat gate</p>
       </div>
       <div class="flex gap-2 shrink-0">
+        <button type="button" @click="showCreate = !showCreate"
+                class="px-3 py-2 rounded-md text-xs font-semibold transition"
+                :class="showCreate ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700' : 'bg-blue-600 hover:bg-blue-700 text-white'">
+          {{ showCreate ? 'Tutup Form' : '+ Buat DO Baru' }}
+        </button>
         <NuxtLink to="/waybills" class="px-3 py-2 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 transition">Daftar SJ & Resi</NuxtLink>
         <button type="button" @click="printer.connectBluetoothPrinter()"
                 class="px-3 py-2 rounded-md text-xs font-medium border transition"
@@ -21,6 +26,56 @@
           {{ printer.isConnected.value ? 'Printer siap' : 'Hubungkan printer' }}
         </button>
       </div>
+    </div>
+
+    <!-- Form Buat DO -->
+    <div v-if="showCreate" class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-3">
+      <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Buat Delivery Order</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label class="space-y-1">
+          <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Shipper / Customer</span>
+          <select v-model="createForm.customer_id" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none">
+            <option v-for="c in masterStore.customers" :key="c.id" :value="c.id">{{ c.code }} — {{ c.name }}</option>
+          </select>
+        </label>
+        <label class="space-y-1">
+          <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Gudang Asal</span>
+          <select v-model="createForm.warehouse_id" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none">
+            <option v-for="w in masterStore.warehouses" :key="w.id" :value="w.id">{{ w.code }} — {{ w.name }}</option>
+          </select>
+        </label>
+        <label class="space-y-1">
+          <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Nama Penerima (Consignee) *</span>
+          <input v-model="createForm.recipient_name" required type="text" placeholder="Nama / instansi penerima"
+                 class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none" />
+        </label>
+        <label class="space-y-1">
+          <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Telepon Penerima</span>
+          <input v-model="createForm.recipient_phone" type="tel" placeholder="08xx (opsional)"
+                 class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none" />
+        </label>
+        <label class="space-y-1 sm:col-span-2">
+          <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Alamat Tujuan *</span>
+          <input v-model="createForm.destination_address" required type="text" placeholder="Alamat lengkap pengiriman"
+                 class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none" />
+        </label>
+      </div>
+      <div class="space-y-2">
+        <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Item Barang (SKU)</span>
+        <div v-for="(it, idx) in createForm.items" :key="idx" class="flex gap-2 items-center">
+          <select v-model="it.product_id" class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none">
+            <option v-for="p in masterStore.products" :key="p.id" :value="p.id">{{ p.sku_code }} — {{ p.name }}</option>
+          </select>
+          <input v-model.number="it.ordered_qty" type="number" min="1" placeholder="Qty"
+                 class="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
+          <button v-if="createForm.items.length > 1" type="button" @click="createForm.items.splice(idx, 1)" class="text-slate-400 hover:text-rose-500 text-sm px-1">✕</button>
+        </div>
+        <button type="button" @click="createForm.items.push({ product_id: '', ordered_qty: 1 })" class="text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline">+ Tambah baris item</button>
+      </div>
+      <button type="button" :disabled="outboundStore.isLoading" @click="handleCreateOrder"
+              class="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer">
+        Simpan Delivery Order (ORDER_CREATED)
+      </button>
     </div>
 
     <!-- Ringkasan status satu baris -->
@@ -53,13 +108,26 @@
 
           <div class="flex items-center gap-2 shrink-0">
             <button
+              v-if="order.status === 'CREATED'"
+              type="button"
+              :disabled="outboundStore.isLoading"
+              @click="handlePick(order)"
+              class="px-3 py-1.5 rounded-md bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-[11px] font-semibold transition cursor-pointer"
+            >Proses Picking</button>
+            <button
+              v-else-if="order.status === 'PICKED'"
+              type="button"
+              :disabled="outboundStore.isLoading"
+              @click="handlePack(order)"
+              class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] font-semibold transition cursor-pointer"
+            >Proses Packing</button>
+            <button
               v-if="canIssue(order)"
               type="button"
               :disabled="waybillStore.isLoading"
               @click="handleIssueWaybill(order)"
               class="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-[11px] font-semibold transition cursor-pointer"
             >Terbitkan SJ + Resi</button>
-            <!-- SJ = Surat Jalan, Resi = tracking number -->
             <NuxtLink
               :to="'/checkpoints?doc=' + order.order_number"
               class="px-3 py-1.5 rounded-md text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
@@ -72,16 +140,69 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useOutboundStore } from '~/stores/outbound'
 import { useWaybillStore } from '~/stores/waybill'
 import { useAuthStore } from '~/stores/auth'
+import { useMasterStore } from '~/stores/master'
 import { useThermalPrinter } from '~/composables/useThermalPrinter'
 
 const outboundStore = useOutboundStore()
 const waybillStore = useWaybillStore()
 const authStore = useAuthStore()
+const masterStore = useMasterStore()
 const printer = useThermalPrinter()
+
+// Form Buat DO
+const showCreate = ref(false)
+const createForm = reactive({
+  customer_id: '',
+  warehouse_id: authStore.activeWarehouseId || '',
+  recipient_name: '',
+  recipient_phone: '',
+  destination_address: '',
+  items: [{ product_id: '', ordered_qty: 1 }]
+})
+
+async function handleCreateOrder() {
+  if (!createForm.customer_id || !createForm.recipient_name.trim() || !createForm.destination_address.trim()) {
+    feedback.value = { type: 'error', text: 'Shipper, nama penerima, dan alamat tujuan wajib diisi.' }
+    return
+  }
+  const validItems = createForm.items.filter(i => i.product_id && i.ordered_qty > 0)
+  if (!validItems.length) {
+    feedback.value = { type: 'error', text: 'Minimal 1 item dengan qty > 0.' }
+    return
+  }
+  const created = await outboundStore.createOrder({
+    customer_id: createForm.customer_id,
+    warehouse_id: createForm.warehouse_id || authStore.activeWarehouseId,
+    recipient_name: createForm.recipient_name.trim(),
+    recipient_phone: createForm.recipient_phone.trim() || undefined,
+    destination_address: createForm.destination_address.trim(),
+    items: validItems
+  })
+  syncFeedback()
+  if (created) {
+    showCreate.value = false
+    createForm.recipient_name = ''
+    createForm.recipient_phone = ''
+    createForm.destination_address = ''
+    createForm.items = [{ product_id: '', ordered_qty: 1 }]
+  }
+}
+
+async function handlePick(order) {
+  const ok = await outboundStore.pickOrder(order.id)
+  syncFeedback()
+  if (ok) feedback.value = { type: 'ok', text: `${order.order_number} — picking selesai, lanjut packing.` }
+}
+
+async function handlePack(order) {
+  const ok = await outboundStore.packOrder(order.id)
+  syncFeedback()
+  if (ok) feedback.value = { type: 'ok', text: `${order.order_number} — packing selesai, siap terbitkan SJ.` }
+}
 
 // Feedback terpadu: error/sukses dari kedua store jadi satu notifikasi
 const feedback = ref({ type: '', text: '' })
@@ -156,7 +277,14 @@ async function handleIssueWaybill(order) {
 }
 
 onMounted(async () => {
-  await Promise.all([outboundStore.fetchOrders(), waybillStore.fetchWaybills()])
+  await Promise.all([
+    outboundStore.fetchOrders(),
+    waybillStore.fetchWaybills(),
+    masterStore.fetchCustomers(),
+    masterStore.fetchWarehouses(),
+    masterStore.fetchProducts()
+  ])
+  if (masterStore.customers.length && !createForm.customer_id) createForm.customer_id = masterStore.customers[0].id
   syncFeedback()
 })
 </script>

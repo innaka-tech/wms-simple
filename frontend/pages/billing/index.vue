@@ -162,7 +162,7 @@ const paymentForm = reactive({ amount: '', method: 'TRANSFER' })
 
 const readyToBill = computed(() =>
   outboundStore.orders.filter(
-    (o) => o.status === 'POD_VERIFIED' && Number(o.billing_ready) === 1 && o.payment_status !== 'PAID'
+    (o) => o.status === 'POD_VERIFIED' && o.billing_ready === true && o.payment_status !== 'PAID'
   )
 )
 

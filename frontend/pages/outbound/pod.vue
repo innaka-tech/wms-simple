@@ -57,31 +57,33 @@
       <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm transition-colors">
         <div class="border-b border-slate-100 dark:border-slate-800 pb-2 flex justify-between items-center">
           <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Bukti Foto Serah Terima (Proof of Delivery)</h4>
-          <span class="text-xs font-mono" :class="photoPreview ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'">
-            {{ photoPreview ? 'Foto Terlampir' : 'Wajib Diambil' }}
+          <span class="text-xs font-mono" :class="photoDataUrl ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-slate-400'">
+            {{ photoDataUrl ? 'Foto Terlampir' : 'Wajib Diambil' }}
           </span>
         </div>
 
-        <div class="p-6 md:p-8 border-2 border-dashed rounded-lg text-center space-y-3 transition-colors" :class="photoPreview ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950'">
+        <div class="p-6 md:p-8 border-2 border-dashed rounded-lg text-center space-y-3 transition-colors" :class="photoDataUrl ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950'">
           <div class="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center mx-auto text-slate-500">
             <AppIcon name="camera" custom-class="w-6 h-6" />
           </div>
-          <div v-if="photoPreview" class="space-y-1">
-            <p class="text-xs md:text-sm text-emerald-600 dark:text-emerald-400 font-bold">Foto Fisik & Serial Number Showcase Tersimpan</p>
-            <p class="text-[11px] text-slate-400 font-mono">Timestamp: {{ new Date().toLocaleTimeString() }} • Geotag: Verified</p>
+          <img v-if="photoDataUrl" :src="photoDataUrl" alt="Bukti foto serah terima" class="max-h-56 mx-auto rounded-md border border-slate-200 dark:border-slate-700" />
+          <div v-if="photoDataUrl" class="space-y-1">
+            <p class="text-xs md:text-sm text-emerald-600 dark:text-emerald-400 font-bold">Foto Bukti Serah Terima Tersimpan</p>
+            <p class="text-[11px] text-slate-400 font-mono">Timestamp: {{ photoTakenAt }}</p>
           </div>
           <div v-else class="space-y-1">
-            <p class="text-xs md:text-sm text-slate-700 dark:text-slate-300 font-medium">Ambil foto serah terima unit chiller di balai desa / koperasi</p>
-            <p class="text-[11px] text-slate-400">Pastikan unit berdiri tegak (*Upright Only*) dan label SN terbaca</p>
+            <p class="text-xs md:text-sm text-slate-700 dark:text-slate-300 font-medium">Ambil foto serah terima barang bersama penerima</p>
+            <p class="text-[11px] text-slate-400">Pastikan barang & label terlihat jelas dalam frame</p>
           </div>
-          
+
+          <input ref="photoInput" type="file" accept="image/*" capture="environment" class="hidden" @change="onPhotoCaptured" />
           <button 
             type="button" 
-            @click="takePhoto"
+            @click="$refs.photoInput.click()"
             class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-md transition cursor-pointer shadow-2xs flex items-center justify-center space-x-1.5 mx-auto"
           >
-            <AppIcon :name="photoPreview ? 'refresh' : 'camera'" custom-class="w-3.5 h-3.5" />
-            <span>{{ photoPreview ? 'Ambil Ulang Foto' : 'Ambil Foto Serah Terima' }}</span>
+            <AppIcon :name="photoDataUrl ? 'refresh' : 'camera'" custom-class="w-3.5 h-3.5" />
+            <span>{{ photoDataUrl ? 'Ambil Ulang Foto' : 'Ambil Foto Serah Terima' }}</span>
           </button>
         </div>
 
@@ -146,19 +148,40 @@ const authStore = useAuthStore()
 const { apiFetch } = useWmsApi()
 const { playAudioFeedback } = useBarcodeScanner()
 
-const photoPreview = ref(false)
+const photoInput = ref(null)
+const photoDataUrl = ref('')
+const photoTakenAt = ref('')
 const signatureData = ref('')
-const recipientName = ref('I Made Sukarja (Ketua KDMP)')
+const recipientName = ref('')
+
+// Foto kamera/file → base64 (dikompres biar payload ringan)
+function onPhotoCaptured(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    const img = new Image()
+    img.onload = () => {
+      const maxW = 900
+      const scale = Math.min(1, maxW / img.width)
+      const canvas = document.createElement('canvas')
+      canvas.width = Math.round(img.width * scale)
+      canvas.height = Math.round(img.height * scale)
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+      photoDataUrl.value = canvas.toDataURL('image/jpeg', 0.75)
+      photoTakenAt.value = new Date().toLocaleString('id-ID')
+      playAudioFeedback('SUCCESS')
+    }
+    img.src = reader.result
+  }
+  reader.readAsDataURL(file)
+  e.target.value = ''
+}
 
 // Lookup order + waybill (resi) — nomor resi wajib tampil di halaman POD (docs/06)
 const orderNumberInput = ref('')
 const matchedWaybill = ref(null)
 const lookupMessage = ref('')
-
-function takePhoto() {
-  photoPreview.value = true
-  playAudioFeedback('SUCCESS')
-}
 
 async function lookupWaybill() {
   lookupMessage.value = ''
@@ -183,8 +206,18 @@ async function handleSubmitPod() {
     playAudioFeedback('ERROR')
     return
   }
-  if (!photoPreview.value) {
+  if (!photoDataUrl.value) {
     outboundStore.errorMessage = 'Foto serah terima fisik barang wajib diambil terlebih dahulu!'
+    playAudioFeedback('ERROR')
+    return
+  }
+  if (!signatureData.value) {
+    outboundStore.errorMessage = 'Tanda tangan penerima wajib — minta penerima tanda tangan di kotak e-POD.'
+    playAudioFeedback('ERROR')
+    return
+  }
+  if (!recipientName.value.trim()) {
+    outboundStore.errorMessage = 'Nama penerima (consignee) wajib diisi.'
     playAudioFeedback('ERROR')
     return
   }
@@ -195,16 +228,18 @@ async function handleSubmitPod() {
     await apiFetch(`/outbound/${orderId}/pod`, {
       method: 'POST',
       body: {
-        recipient_name: recipientName.value,
-        pod_photo_url: 'uploaded://pod-photo-capture',
-        signature_photo_url: signatureData.value || 'data:image/png;base64,manual',
+        recipient_name: recipientName.value.trim(),
+        pod_photo_url: photoDataUrl.value,
+        signature_photo_url: signatureData.value,
         delivered_qty: 1,
         actor_name: actor,
-        notes: `Resi ${matchedWaybill.value.resi_number} / SJ ${matchedWaybill.value.sj_number}`
+        notes: `Resi ${matchedWaybill.value.resi_number} / SJ ${matchedWaybill.value.sj_number} • Foto ${photoTakenAt.value}`
       }
     })
     playAudioFeedback('SUCCESS')
     outboundStore.successMessage = `POD Berhasil Dikirim! Diterima oleh ${recipientName.value}. Status Order DELIVERED — menunggu verifikasi admin sebelum penagihan.`
+    photoDataUrl.value = ''
+    signatureData.value = ''
   } catch (err) {
     outboundStore.errorMessage = err.detail || err.message
     playAudioFeedback('ERROR')

@@ -66,6 +66,13 @@
       Memuat saldo stok dari database...
     </div>
 
+    <!-- Empty State (jujur — tanpa data palsu) -->
+    <div v-else-if="filteredList.length === 0" class="p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+      <AppIcon name="stock" custom-class="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
+      <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-2">{{ searchQuery ? 'Tidak ada SKU yang cocok dengan pencarian.' : 'Belum ada stok tercatat di gudang ini.' }}</p>
+      <p class="text-[11px] text-slate-400 mt-1">{{ searchQuery ? 'Coba kata kunci lain.' : 'Stok muncul otomatis setelah proses Receiving & Putaway selesai.' }}</p>
+    </div>
+
     <!-- DESKTOP TABLE VIEW (Visible on md: screens and up) -->
     <div v-else class="hidden md:block bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm transition-colors">
       <table class="w-full text-left border-collapse">
@@ -172,19 +179,9 @@ const authStore = useAuthStore()
 
 const searchQuery = ref('')
 
-const fallbackList = [
-  { sku: 'BULK-SUGAR-1T', name: 'Gula Pasir Rafinasi Jumbo Bag 1 Ton (Bulky)', unit: 'JUMBO_BAG', onHand: '20', reserved: '0', inTransit: '0', is_low_stock: false },
-  { sku: 'SUGAR-SACK-25KG', name: 'Gula Pasir Rafinasi Karung 25 KG (Retail)', unit: 'SACK', onHand: '200', reserved: '0', inTransit: '0', is_low_stock: false },
-  { sku: 'KDMP-CHILLER-300L', name: 'Showcase Display Chiller 300L (KDMP)', unit: 'UNIT', onHand: '15', reserved: '2', inTransit: '5', is_low_stock: false },
-  { sku: 'ELEC-TV-43', name: 'Smart LED TV 43 Inch FHD', unit: 'PCS', onHand: '120', reserved: '10', inTransit: '0', is_low_stock: false }
-]
-
-const rawList = computed(() => {
-  if (stockStore.stockLevels && stockStore.stockLevels.length > 0) {
-    return stockStore.stockLevels
-  }
-  return fallbackList
-})
+// Fallback data contoh DIHAPUS — kalau API gagal/kosong, tampilkan empty state jujur.
+// Data palsu bikin petugas salah ambil keputusan (docs/00: anti-halusinasi).
+const rawList = computed(() => stockStore.stockLevels || [])
 
 const filteredList = computed(() => {
   if (!searchQuery.value.trim()) return rawList.value

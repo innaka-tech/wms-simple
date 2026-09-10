@@ -222,3 +222,26 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 - Bug ditemukan & diperbaiki: receive-dest tidak mengosongkan qty_in_transit gudang asal (fix: clear_transit_warehouse_id + log ledger CROSS_DOCK_TRANSIT_CLEAR); vendor-exit menolak reference_id null (Zod nullish); load/receive product_id kini dari DB.
 - Suite penuh: 121/121 test (20 file), TSC bersih. Login page branding → PostgreSQL 16.
 - Review UI: kartu dashboard "Trip Antar-Hub" salah sumber data (diganti jumlah armada pool tersedia), fallback SKU palsu dihapus, feedback sukses outbound kini tampil.
+
+---
+
+## Sesi 2026-09-10 — Audit Gap UI ↔ Backend + Penutupan Gap (v4.2.0)
+
+**Audit gap terdaftar (backend ada, UI bolong / sebaliknya):**
+1. **Picking & Packing tidak ada di UI** — endpoint `POST /outbound/:id/pick` & `/pack` ada + tested, tapi tak ada satu tombol pun di frontend → status PICKED/PACKED mustahil tercapai dari aplikasi.
+2. **Tidak ada cara Buat Delivery Order dari UI** — `POST /api/outbound` ada; halaman `/outbound` cuma daftar.
+3. **POD kirim bukti mock** — frontend POST `pod_photo_url: 'uploaded://pod-photo-capture'` (string palsu) & `delivered_qty: 1` hardcoded.
+4. **Filter `/billing` salah tipe** — `Number(o.billing_ready) === 1` padahal kolom PG `boolean` → order siap tagih tak pernah tampil.
+5. **Fallback stok palsu `/stock`** — data contoh (Gula/TV) muncul saat API gagal — pelanggaran anti-halusinasi.
+6. **Cross-dock & cross-document tanpa UI** — backend `crossdock.ts`/`crossdoc.ts` ada, frontend tidak ada halaman/store (ditunda, butuh desain alur). [Open]
+7. **Checkpoints verify-POD tanpa UI verifikasi** — admin tak bisa ACC/tolak POD dari UI (billing terhenti di `DELIVERED`). [Open]
+8. **Thermal printer Web Bluetooth hanya Chromium desktop/Android** — fallback cetak belum ada. [Open, low]
+
+**Ditutup sesi ini (v4.2.0):**
+- [x] Gap 1-2: store `createOrder`/`pickOrder`/`packOrder` + form Buat DO + tombol Picking/Packing di `/outbound`.
+- [x] Gap 3: POD kini capture foto kamera/file → JPEG base64 ≤900px + validasi TTD & consignee wajib.
+- [x] Gap 4: filter `billing_ready === true`.
+- [x] Gap 5: fallback dihapus → empty state jujur.
+- [x] `backend/vitest.config.ts` (serial e2e) di-commit; CHANGELOG 4.2.0.
+
+**Next:** Gap 6 (halaman cross-dock) & Gap 7 (verifikasi POD di UI) — atau push `ans` bila diminta.
