@@ -103,12 +103,11 @@ export const useOutboundStore = defineStore('outbound', {
       const { apiFetch } = useWmsApi();
       const authStore = useAuthStore();
       try {
-        // Backend pick butuh items per baris (id, product_id, picked_qty) + actor_name
+        // Backend pick cukup items per baris (id, picked_qty) — product_id diresolusi server dari DB
         const detailRes = await apiFetch(`/outbound/${orderId}`);
         if (!detailRes.success) throw new Error('Gagal memuat detail order untuk picking');
         const items = (detailRes.data.items || []).map((it: any) => ({
           id: it.id,
-          product_id: it.product_id,
           picked_qty: it.picked_qty != null ? Number(it.picked_qty) : Number(it.ordered_qty)
         }));
         if (!items.length) throw new Error('Order tidak memiliki item untuk dipick');
