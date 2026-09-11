@@ -1,13 +1,17 @@
 version: '3.8'
 
+# WMS Simple Enterprise — Production (server innaka, /data/docker-data/wms-simple)
+# PostgreSQL memakai global stack host (container global_postgres, exposed di host 5432).
+# Kredensial via file .env sebelah file ini (JANGAN di-commit).
+
 services:
-  # Nginx Gateway Reverse Proxy
+  # Nginx Gateway Reverse Proxy — satu-satunya port yang expose ke internet
   nginx:
     image: nginx:1.25-alpine
     container_name: wms-simple-gateway
     restart: always
     ports:
-      - "80:80"
+      - "${WMS_HTTP_PORT:-8090}:80"
     volumes:
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -21,17 +25,17 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: wms-simple-backend-prod
+    container_name: wms-simple-backend
     restart: always
     environment:
       NODE_ENV: production
       PORT: 3000
-      DB_HOST: host.docker.internal
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgrespassword
-      DB_NAME: wms_simple_db
-      JWT_SECRET: wms_simple_super_secret_jwt_key_enterprise_2026_production
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      JWT_SECRET: ${JWT_SECRET}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -41,14 +45,14 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
-  # Nuxt 3 Frontend Mobile PWA Application
+  # Nuxt 3 Frontend (SSR)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: wms-simple-frontend-prod
+    container_name: wms-simple-frontend
     restart: always
     environment:
       NODE_ENV: production
@@ -61,7 +65,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
 
 networks:
   wms_network:
