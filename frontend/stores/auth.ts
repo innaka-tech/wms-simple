@@ -92,7 +92,8 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     accent: 'bg-emerald-500',
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'],
     children: [
-      { name: 'Receiving (Penerimaan Dock)', path: '/inbound/receive', icon: 'inbound', code: 'inbound', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
+      { name: 'Receiving (Penerimaan Dock)', path: '/inbound/receive', icon: 'inbound', code: 'inbound', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Cross-Dock Antar-Gudang', path: '/crossdock', icon: 'debulking', code: 'crossdock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
     ]
   },
   {
@@ -118,7 +119,6 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     children: [
       { name: 'Delivery Order & SJ', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
       { name: 'Surat Jalan & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
-      { name: 'Cross-Dock Antar-Gudang', path: '/crossdock', icon: 'debulking', code: 'crossdock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
       { name: 'Cross-Doc (Swap Dokumen)', path: '/crossdoc', icon: 'checkpoint', code: 'crossdoc', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
       { name: 'Gate Pass (Pos Jaga)', path: '/gate-pass', icon: 'truck', code: 'gate_pass', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'] }
     ]
