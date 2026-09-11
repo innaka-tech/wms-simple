@@ -1,9 +1,19 @@
 import { Hono } from 'hono';
 import { query } from '../db.js';
 
+/**
+ * Weighbridge (Jembatan Timbang) — DEPRECATED untuk alur umum sejak docs/09 v3.2.0.
+ *
+ * Flow v3.2.0 menghapus tahap "timbang truk" dari rantai utama Inbound/Outbound.
+ * Modul ini dipertahankan NOLAKTIF (read-only list + pencatatan manual) untuk
+ * kebutuhan kargo Curah/Bulky (docs/02 masih merujuk jembatan timbang) dan audit
+ * historis. TIDAK terhubung ke UI — pemakaian hanya via API oleh petugas timbang.
+ *
+ * Jangan tambahkan endpoint baru di sini tanpa keputusan arsitektur terkait.
+ */
 export const weighbridgeRoutes = new Hono();
 
-// 1. List Weighbridge Tickets
+// 1. List Weighbridge Tickets (read-only)
 weighbridgeRoutes.get('/', async (c) => {
   const result = await query(`
     SELECT wb.*, w.name AS warehouse_name
@@ -14,7 +24,7 @@ weighbridgeRoutes.get('/', async (c) => {
   return c.json({ success: true, data: result.rows });
 });
 
-// 2. Submit Weighbridge Ticket (Gross & Tare Weight)
+// 2. Submit Weighbridge Ticket (Gross & Tare Weight) — pencatatan manual kargo curah/bulky
 weighbridgeRoutes.post('/', async (c) => {
   const body = await c.req.json();
   const {

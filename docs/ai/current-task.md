@@ -245,3 +245,18 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 - [x] `backend/vitest.config.ts` (serial e2e) di-commit; CHANGELOG 4.2.0.
 
 **Next:** Semua gap UI utama tertutup. Verifikasi POD (Gap 7) SELESAI v4.4.0: panel ACC/Tolak BAST di `/outbound/pod` + store `verifyPod`; bug `pickOrder`/`packOrder` tanpa body ikut diperbaiki. Sisa backlog minor: fallback cetak thermal printer (low priority) — atau push `ans` bila diminta.
+
+---
+
+## Sesi 2026-09-11 — Sinkronisasi Flow docs/09 v3.2.0 ↔ Aplikasi (v4.5.0)
+
+**Audit kesesuaian flow vs aplikasi:** 6 gap teridentifikasi (debulking tak tertaut order, SJ cross-dock tak terjangkau UI, ledger DALAM PERJALANAN absen, weighbridge jadi kode mati, deskripsi doc 09 di index basi, posisi nav cross-dock). Eksekusi bertahap:
+
+1. [x] **Gap 1 — Repacking on-demand (Prinsip 2):** migrasi `stock_conversions.outbound_order_id` (+FK+index, diterapkan ke `wms_simple_db`); `POST /api/debulking` validasi order ada/belum terkirim/belum punya WO lain (409); `GET /api/debulking?outbound_order_id=` + kolom `outbound_order_number`; halaman `/debulking` dirombak — pilih DO terbuka nyata, SKU parent/child dari master (UUID hardcode demo dihapus), preselect child via `parent_bulky_product_id`.
+2. [x] **Gap 2 — SJ universal cross-dock (Prinsip 3):** tombol Terbitkan SJ di manifest LOADED (row + mobile action), `issueWaybill(orderId, actor, referenceType)` kini kirim `reference_type`; list manifest join `waybills` (waybill_id/sj_number, anti-VOID).
+3. [x] **Gap 3 — Kartu stok DALAM PERJALANAN (FASE 3):** submit POD (→DELIVERED) kini mencatat mutasi `OUTBOUND_SHIP` per item (packed_qty) di ledger — tipe yang dideklarasi tapi tak pernah dipakai kini aktif; test outbound disesuaikan.
+4. [x] **Gap 4 — Weighbridge dinonaktifkan:** `/api/weighbridge` diberi header deprecated (read-only + catat manual curah/bulky via API, tanpa UI); dicatat di docs/02 & index.
+5. [x] **Gap 5 — docs/00 Index:** deskripsi doc 09 diperbarui ke v3.2.0 (POD bukan akhir, weighbridge nonaktif).
+6. [x] **Bonus:** TS error `fleet.ts:433` (`ContentfulStatusCode`) diperbaiki; TSC backend bersih.
+
+**Next:** smoke e2e rantai debulking-order & cross-dock SJ dari UI, atau push `ans` bila diminta.

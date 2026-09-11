@@ -1,5 +1,10 @@
 # 02_Bulky_Curah_and_Debulking.md
 
+> **Catatan versi 3.2.0 (docs/09):** Jembatan timbang (weighbridge) **tidak lagi menjadi tahap wajib**
+> dalam alur umum masuk/keluar gudang. Fungsi timbang kini hanya pencatatan manual opsional untuk
+> kargo curah/bulky via endpoint `/api/weighbridge` (read-only + catat tiket) — tidak ada UI khusus.
+> Debulking kini wajib tertaut ke outbound order (repacking on-demand): kolom `stock_conversions.outbound_order_id`.
+
 **Document:** Bulky, Curah (Bulk Cargo), and De-bulking Operations  
 **Scope:** Inbound, Weighbridge, Storage, Conversion / Bagging-Off, Shrinkage Management  
 **Version:** 2.0.0  

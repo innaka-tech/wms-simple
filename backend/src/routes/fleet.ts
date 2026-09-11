@@ -430,7 +430,7 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
   } catch (err: any) {
     await client.query('ROLLBACK');
     if (err instanceof AppError) {
-      return c.json({ success: false, message: err.message, code: err.code }, err.status);
+      return c.json({ success: false, message: err.message, code: err.code }, err.status as any);
     }
     return c.json({ success: false, message: err.message }, 500);
   } finally {

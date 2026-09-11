@@ -148,6 +148,7 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({ rows: [] } as any) // cek unik pod_number
       .mockResolvedValueOnce({}) // INSERT pod_documents
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-1', packed_qty: 2 }] } as any) // items utk ledger OUTBOUND_SHIP
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status DELIVERED
       .mockResolvedValueOnce({}); // COMMIT
 

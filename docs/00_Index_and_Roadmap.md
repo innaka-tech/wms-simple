@@ -14,7 +14,7 @@ Seluruh arsitektur, standar, diagram alur terpadu, dan spesifikasi sistem terdok
 
 ### 1.1 Sasaran Strategis & Diagram Terpadu (Master Blueprints)
 - [00_Strategic_Goals_and_Success_Metrics.md](00_Strategic_Goals_and_Success_Metrics.md) — **Matriks Sasaran Strategis Bisnis (GOAL-01 s/d GOAL-07), Sasaran Kualitas Teknis (TECH-01 s/d TECH-06), dan Matriks Keterlacakan (Traceability Matrix)**.
-- [09_Master_End_to_End_Flow_and_Sequence.md](09_Master_End_to_End_Flow_and_Sequence.md) — **Master Flowchart & Sequence Diagram Menyeluruh** (v3.0.0) mencakup seluruh fase operasional: Inbound, Weighbridge Masuk/Keluar, De-bulking, Cross-Doc/Cross-Dock, Terbit SJ + Resi Universal, Dual Gate-Out (Armada Pool vs Truk Vendor), Outbound POD sebagai akhir tunggal transaksi (Billing), dan Catatan Armada opsional.
+- [09_Master_End_to_End_Flow_and_Sequence.md](09_Master_End_to_End_Flow_and_Sequence.md) — **Master Flowchart & Sequence Diagram Menyeluruh** (v3.2.0) mencakup seluruh fase operasional: Inbound (Putaway dulu, cross-dock satu-satunya pengecualian), Repacking On-Demand setelah permintaan kirim, Terbit SJ + Resi Universal (semua jenis pengiriman, termasuk cross-doc), Dual Gate-Out (Armada Pool vs Truk Vendor tanpa kewajiban kembali), serta rantai berakhir di **Penerimaan Pembayaran (LUNAS)** — POD terverifikasi hanyalah dasar penagihan. Catatan: modul Weighbridge kini **nonaktif dari alur utama** (hanya pencatatan manual kargo curah/bulky via API).
 
 ### 1.2 Fondasi Strategis & Bisnis
 - [01_Strategic_Framework_and_6_Pillars.md](01_Strategic_Framework_and_6_Pillars.md) — 6 Pilar Strategis (Enabler, Accelerator, Decision Support, Protector, Business Driver, Terukur) & Analisis Teknis Kenapa Memilih Backend Hono.

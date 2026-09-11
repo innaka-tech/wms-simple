@@ -12,12 +12,15 @@ crossdockRoutes.get('/', async (c) => {
            w_src.name AS source_warehouse_name,
            w_dst.name AS destination_warehouse_name,
            cust.name AS customer_name,
-           v.plate_number AS vehicle_plate
+           v.plate_number AS vehicle_plate,
+           wb.id AS waybill_id,
+           wb.sj_number
     FROM cross_dock_manifests cdm
     JOIN warehouses w_src ON cdm.source_warehouse_id = w_src.id
     JOIN warehouses w_dst ON cdm.destination_warehouse_id = w_dst.id
     JOIN customers cust ON cdm.customer_id = cust.id
     LEFT JOIN vehicles v ON cdm.vehicle_id = v.id
+    LEFT JOIN waybills wb ON wb.reference_type = 'CROSS_DOCK_MANIFEST' AND wb.reference_id = cdm.id AND wb.status != 'VOID'
     ORDER BY cdm.created_at DESC
   `);
   return c.json({ success: true, data: result.rows });

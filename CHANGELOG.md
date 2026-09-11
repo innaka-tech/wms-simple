@@ -5,6 +5,25 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.5.0] - 2026-09-11
+
+### Added (Sinkronisasi Flow docs/09 v3.2.0 dengan Aplikasi)
+
+- **Repacking On-Demand (Prinsip 2):** work order debulking kini dapat tertaut ke outbound order.
+  - Migrasi `20260911_add_outbound_order_id_to_stock_conversions.sql` (kolom `outbound_order_id` + FK + index).
+  - `POST /api/debulking` menerima `outbound_order_id` (opsional) dengan validasi: order harus ada, belum DELIVERED/POD_VERIFIED/CANCELLED, dan belum punya work order repacking lain (409).
+  - `GET /api/debulking` mendukung filter `?outbound_order_id=` dan mengembalikan `outbound_order_number`.
+  - Halaman `/debulking` dirombak: pilih Delivery Order terbuka (CREATED/PICKED/PACKED), Parent/Child SKU diambil dari master data (tidak ada lagi UUID hardcode demo), berat @ unit mengikuti master, preselect child SKU via relasi `parent_bulky_product_id`.
+- **SJ Universal untuk Cross-Dock (Prinsip 3):** tombol **Terbitkan SJ** di daftar manifest cross-dock (status LOADED) memanggil `POST /outbound/:id/issue-waybill` dengan `reference_type=CROSS_DOCK_MANIFEST`; daftar manifest menampilkan tanda SJ sudah terbit (join `waybills`, anti-duplikat).
+- **Kartu stok DALAM PERJALANAN (FASE 3 sequence):** saat POD disubmit (barang berangkat → DELIVERED), ledger mencatat mutasi `OUTBOUND_SHIP` per item (qty packed) — tipe ledger yang sebelumnya dideklarasikan tapi tak pernah dipakai kini aktif.
+
+### Changed
+
+- **Weighbridge dinonaktifkan dari alur utama:** endpoint `/api/weighbridge` diberi status deprecated (read-only list + pencatatan manual kargo curah/bulky via API saja, tanpa UI) sesuai docs/09 v3.2.0 yang menghapus tahap timbang truk.
+- `docs/00_Index_and_Roadmap.md`: deskripsi doc 09 diperbarui ke v3.2.0 (POD bukan akhir transaksi, weighbridge nonaktif).
+- `docs/02_Bulky_Curah_and_Debulking.md`: catatan versi 3.2.0 tentang status weighbridge dan kewajiban link debulking-order.
+- Perbaikan type error `fleet.ts:433` (Hono `ContentfulStatusCode`) — `err.status as any`.
+
 ## [4.4.0] - 2026-09-10
 
 ### Added (Verifikasi POD di UI — ACC/Tolak sebelum Penagihan)

@@ -130,6 +130,17 @@
           class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold"
           @click="openReceive(row)"
         >Terima di Tujuan</button>
+        <button
+          v-if="row.status === 'LOADED' && !row.waybill_id"
+          type="button"
+          class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+          @click="handleIssueWaybill(row)"
+        >Terbitkan SJ</button>
+        <span
+          v-else-if="row.waybill_id"
+          class="text-xs text-slate-400 font-mono"
+          :title="row.sj_number"
+        >SJ ✓</span>
         <NuxtLink
           :to="'/checkpoints?doc=' + row.manifest_number"
           class="text-xs text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition"
@@ -148,6 +159,12 @@
           class="px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-semibold"
           @click="openReceive(row)"
         >Terima di Tujuan</button>
+        <button
+          v-if="row.status === 'LOADED' && !row.waybill_id"
+          type="button"
+          class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-xs font-semibold"
+          @click="handleIssueWaybill(row)"
+        >Terbitkan SJ</button>
         <NuxtLink
           :to="'/checkpoints?doc=' + row.manifest_number"
           class="px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-xs font-medium"
@@ -213,10 +230,12 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useCrossDockStore } from '~/stores/crossdock'
 import { useMasterStore } from '~/stores/master'
 import { useAuthStore } from '~/stores/auth'
+import { useWaybillStore } from '~/stores/waybill'
 
 const crossDockStore = useCrossDockStore()
 const masterStore = useMasterStore()
 const authStore = useAuthStore()
+const waybillStore = useWaybillStore()
 
 const showCreate = ref(false)
 const activeManifest = ref(null)
@@ -300,6 +319,16 @@ async function openReceive(manifest) {
   activeItems.value = detail.items || []
   receiveQty.value = (detail.items || []).map(i => Number(i.loaded_qty || i.planned_qty))
   actorName.value = authStore.user?.full_name || ''
+}
+
+async function handleIssueWaybill(manifest) {
+  // docs/09 v3.2.0 Prinsip 3: SJ + resi universal — cross-dock ikut terbit di satu titik yang sama
+  const actor = authStore.user?.full_name || 'Petugas Gudang'
+  const wb = await waybillStore.issueWaybill(manifest.id, actor, 'CROSS_DOCK_MANIFEST')
+  if (wb) {
+    crossDockStore.successMessage = `SJ ${wb.sj_number} & Resi ${wb.resi_number} diterbitkan untuk manifest ${manifest.manifest_number}`
+    await crossDockStore.fetchManifests()
+  }
 }
 
 async function handleSubmitModal() {

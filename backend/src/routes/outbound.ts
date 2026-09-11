@@ -340,6 +340,27 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
       [id, podNumber, recipient_name || order.recipient_name, pod_photo_url, signature_photo_url, delivered_qty || 1]
     );
 
+    // docs/09 v3.2.0 FASE 3: kartu stok jadi DALAM PERJALANAN saat barang berangkat.
+    // Ledger: OUTBOUND_SHIP memindahkan saldo dari qty_reserved ke in-transit (barang
+    // sudah keluar rak sejak picking, sekarang resmi dalam pengiriman).
+    const itemsShipRes = await client.query(`SELECT product_id, packed_qty FROM outbound_items WHERE outbound_order_id = $1`, [id]);
+    for (const item of itemsShipRes.rows) {
+      const shipQty = Number(item.packed_qty) > 0 ? Number(item.packed_qty) : null;
+      if (!shipQty) continue;
+      await adjustStock({
+        warehouse_id: order.warehouse_id,
+        product_id: item.product_id,
+        movement_type: 'OUTBOUND_SHIP',
+        txClient: client,
+        reference_type: 'OUTBOUND_ORDER',
+        reference_id: id as string,
+        qty_change: -shipQty,
+        notes: `Barang berangkat (DELIVERED) untuk Outbound ${order.order_number}`,
+        performed_by_id: actor_id || null,
+        performed_by_name: actor_name
+      });
+    }
+
     await client.query(
       `UPDATE outbound_orders SET status = 'DELIVERED', delivered_at = CURRENT_TIMESTAMP WHERE id = $1`,
       [id]

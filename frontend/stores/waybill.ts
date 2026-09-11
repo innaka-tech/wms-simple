@@ -56,14 +56,14 @@ export const useWaybillStore = defineStore('waybill', {
       return null;
     },
 
-    async issueWaybill(orderId: string, actorName: string): Promise<Waybill | null> {
+    async issueWaybill(orderId: string, actorName: string, referenceType: 'OUTBOUND_ORDER' | 'CROSS_DOCK_MANIFEST' = 'OUTBOUND_ORDER'): Promise<Waybill | null> {
       this.isLoading = true;
       this.errorMessage = '';
       const { apiFetch } = useWmsApi();
       try {
         const res = await apiFetch(`/outbound/${orderId}/issue-waybill`, {
           method: 'POST',
-          body: { actor_name: actorName }
+          body: { actor_name: actorName, reference_type: referenceType }
         });
         if (res.success) {
           this.successMessage = `SJ ${res.data.sj_number} & Resi ${res.data.resi_number} diterbitkan`;
