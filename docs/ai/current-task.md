@@ -1,9 +1,9 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** ACTIVE TASK — E2E Chain Verified: State Machine Outbound + Three-Bucket Stock (v4.6.0)  
+**Current Status:** ACTIVE TASK — Production Deploy innaka LIVE (v4.6.1) + Semua Gap Audit Tertutup  
 **Database:** Host PostgreSQL 16 (`wms_simple_db` on `localhost:5432` / `127.0.0.1:5432`)  
-**Version:** 4.6.0  
-**Status:** FULL CHAIN VERIFIED (PO → putaway → DO → pick → pack → SJ → gate-out → POD → ACC → invoice → LUNAS)  
+**Version:** 4.6.1  
+**Status:** FULL CHAIN VERIFIED + DEPLOYED (http://104.64.221.233:8090) — sisa: thermal fallback, HTTPS, ganti password seed  
 
 ---
 
@@ -257,6 +257,11 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 3. [x] **Gap 3 — Kartu stok DALAM PERJALANAN (FASE 3):** submit POD (→DELIVERED) kini mencatat mutasi `OUTBOUND_SHIP` per item (packed_qty) di ledger — tipe yang dideklarasi tapi tak pernah dipakai kini aktif; test outbound disesuaikan.
 4. [x] **Gap 4 — Weighbridge dinonaktifkan:** `/api/weighbridge` diberi header deprecated (read-only + catat manual curah/bulky via API, tanpa UI); dicatat di docs/02 & index.
 5. [x] **Gap 5 — docs/00 Index:** deskripsi doc 09 diperbarui ke v3.2.0 (POD bukan akhir, weighbridge nonaktif).
-6. [x] **Bonus:** TS error `fleet.ts:433` (`ContentfulStatusCode`) diperbaiki; TSC backend bersih.
+6. [x] **Gap 6 — Posisi nav cross-dock (v4.6.1):** dipindah ke parent Inbound (sesuai node 4X, cabang dari inbound sorting); duplikat di parent Outbound dihapus.
+7. [x] **Gap tambahan — pg-schema vs migrasi (v4.6.1):** `stock_conversions.outbound_order_id` kini auto-migrate idempotent saat backend startup — sebelumnya hanya via file migrasi manual, deploy fresh (innaka) melewatkannya.
+8. [x] **Recon dev (v4.6.1):** reserved orphan Smart LED TV (10 unit) dinormalisasi via ADJUSTMENT ledger; semua stock_levels dev bersih.
+9. [x] **Bonus:** TS error `fleet.ts:433` (`ContentfulStatusCode`) diperbaiki; TSC backend bersih.
 
-**Next:** smoke e2e rantai debulking-order & cross-dock SJ dari UI, atau push `ans` bila diminta.
+**Deploy produksi:** innaka `http://104.64.221.233:8090` (v4.6.1 ter-deploy, health 200). Kredensial di `/data/docker-data/wms-simple/CREDENTIALS.md` (server-side, off-repo). Panduan: `docs/DEPLOY_INNAKA.md`.
+
+**Next (sisa):** fallback cetak thermal (low priority), HTTPS gateway, ganti password seed produksi.
