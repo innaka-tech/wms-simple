@@ -76,11 +76,12 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
 
   it('POST /api/outbound/:id/pick should pick items from bins, adjust stock and record checkpoint', async () => {
     vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'out-1', order_number: 'ORD-001', warehouse_id: 'wh-jakarta' }]
+      rows: [{ id: 'out-1', order_number: 'ORD-001', warehouse_id: 'wh-jakarta', status: 'CREATED' }]
     } as any);
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-chiller-kdmp' }] } as any) // SELECT product_id item
       .mockResolvedValueOnce({}) // UPDATE outbound_items
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status PICKED
       .mockResolvedValueOnce({}); // COMMIT
@@ -111,13 +112,16 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
   });
 
   it('POST /api/outbound/:id/pack should record package boxes and checkpoint PACKING_COMPLETED', async () => {
-    vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'out-1', order_number: 'ORD-001' }]
-    } as any);
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({
+        rows: [{ id: 'out-1', order_number: 'ORD-001', status: 'PICKED' }]
+      } as any)
+      .mockResolvedValueOnce({ rows: [{ n: 0 }] } as any); // cek item belum ter-pick
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({}) // INSERT packages
+      .mockResolvedValueOnce({}) // UPDATE outbound_items packed_qty
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status PACKED
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -141,14 +145,15 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
 
   it('POST /api/outbound/:id/pod should submit digital POD evidence (photo + signature) and checkpoint DELIVERED', async () => {
     vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'out-1', order_number: 'ORD-001', recipient_name: 'Pak Kades' }]
+      rows: [{ id: 'out-1', order_number: 'ORD-001', recipient_name: 'Pak Kades', status: 'SHIPPED', warehouse_id: 'wh-jakarta' }]
     } as any);
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({ rows: [] } as any) // cek unik pod_number
       .mockResolvedValueOnce({}) // INSERT pod_documents
-      .mockResolvedValueOnce({ rows: [{ product_id: 'p-1', packed_qty: 2 }] } as any) // items utk ledger OUTBOUND_SHIP
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-1', packed_qty: 2, picked_qty: 2 }] } as any) // items utk ledger OUTBOUND_SHIP
+      .mockResolvedValueOnce({}) // UPDATE outbound_items delivered_qty
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status DELIVERED
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -175,13 +180,14 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
 
   it('POST /api/outbound/:id/verify-pod should allow admin to verify POD acceptance and record checkpoint', async () => {
     vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'out-1', order_number: 'ORD-001' }]
+      rows: [{ id: 'out-1', order_number: 'ORD-001', warehouse_id: 'wh-jakarta', status: 'DELIVERED' }]
     } as any);
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({}) // UPDATE pod_documents
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status POD_VERIFIED
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-1', total: 2 }] } as any) // items utk POD_VERIFIED_SHIP
       .mockResolvedValueOnce({}); // COMMIT
 
     const res = await app.request('/api/outbound/out-1/verify-pod', {

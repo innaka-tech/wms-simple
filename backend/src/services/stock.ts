@@ -12,6 +12,7 @@ export interface RecordStockMovementParams {
     | 'CROSS_DOCK_IN'
     | 'OUTBOUND_PICK'
     | 'OUTBOUND_SHIP'
+    | 'POD_VERIFIED_SHIP'
     | 'ADJUSTMENT'
     | 'TRANSFER'
     | string;
@@ -81,6 +82,36 @@ export async function adjustStock(params: RecordStockMovementParams) {
              last_updated = CURRENT_TIMESTAMP
          WHERE warehouse_id = $1 AND product_id = $2`,
         [params.warehouse_id, params.product_id, params.qty_change, Math.abs(params.qty_change)]
+      );
+    } else if (params.movement_type === 'OUTBOUND_PICK') {
+      // Picking: barang keluar rak → on_hand turun & masuk reserved (menunggu keberangkatan)
+      await client.query(
+        `UPDATE stock_levels 
+         SET qty_on_hand = qty_on_hand + $3,
+             qty_reserved = qty_reserved + $4,
+             last_updated = CURRENT_TIMESTAMP
+         WHERE warehouse_id = $1 AND product_id = $2`,
+        [params.warehouse_id, params.product_id, params.qty_change, Math.abs(params.qty_change)]
+      );
+    } else if (params.movement_type === 'OUTBOUND_SHIP') {
+      // Barang berangkat (DELIVERED): reserved berpindah ke in-transit.
+      // on_hand TIDAK diubah lagi (sudah berkurang sejak picking) — mencegah double deduction.
+      await client.query(
+        `UPDATE stock_levels 
+         SET qty_reserved = qty_reserved + $3,
+             qty_in_transit = qty_in_transit + $4,
+             last_updated = CURRENT_TIMESTAMP
+         WHERE warehouse_id = $1 AND product_id = $2`,
+        [params.warehouse_id, params.product_id, params.qty_change, Math.abs(params.qty_change)]
+      );
+    } else if (params.movement_type === 'POD_VERIFIED_SHIP') {
+      // POD terverifikasi: barang resmi diterima customer → keluar dari in-transit (on_hand tetap)
+      await client.query(
+        `UPDATE stock_levels 
+         SET qty_in_transit = qty_in_transit + $3,
+             last_updated = CURRENT_TIMESTAMP
+         WHERE warehouse_id = $1 AND product_id = $2`,
+        [params.warehouse_id, params.product_id, params.qty_change]
       );
     } else if (params.movement_type === 'CROSS_DOCK_IN') {
       await client.query(

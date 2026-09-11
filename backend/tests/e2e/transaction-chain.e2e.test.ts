@@ -340,9 +340,21 @@ describe('E2E Rantai Transaksi (PostgreSQL): Waybill → Gate → POD → Invoic
 
   it('Guard: issue-waybill setelah barang terkirim ditolak 409', async () => {
     const order = await createOrder('Guard Waybill Setelah Delivered');
+    // Jalur legal penuh: pick/pack → SJ → gate-out → POD → verify (POD_VERIFIED)
     await pickAndPack(order.id);
-    await submitAndVerifyPod(order.id); // DELIVERED tanpa waybill/gate (skenario sengaja)
+    const wbLegal = await req('POST', `/api/outbound/${order.id}/issue-waybill`, { actor_name: 'Siti Admin Gudang' });
+    expect(wbLegal.status).toBe(201);
+    await req('POST', '/api/fleet/vendor-exit', {
+      vendor_name: 'PT Ekspedisi Guard',
+      plate_number: 'B 3333 GUA',
+      waybill_number: wbLegal.data.sj_number,
+      reference_type: 'OUTBOUND_ORDER',
+      reference_id: order.id,
+      actor_name: 'Sersan Hendro'
+    });
+    await submitAndVerifyPod(order.id); // status akhir POD_VERIFIED
 
+    // Waybill baru ditolak: order sudah terkirim & terverifikasi
     const wb = await req('POST', `/api/outbound/${order.id}/issue-waybill`, { actor_name: 'Siti Admin Gudang' });
     expect(wb.status).toBe(409);
   });

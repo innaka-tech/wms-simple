@@ -185,11 +185,32 @@ outboundRoutes.post('/:id/pick', async (c) => {
   }
   const order = orderRes.rows[0];
 
+  // State machine: picking hanya dari CREATED (barang masih utuh di rak)
+  if (order.status !== 'CREATED') {
+    return c.json({ success: false, message: `Picking hanya valid pada status CREATED (status saat ini: ${order.status})` }, 409);
+  }
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return c.json({ success: false, message: 'Minimal 1 item wajib di-picking' }, 400);
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     for (const item of items) {
+      // Resolusi product_id dari DB — jangan percai payload client (anti-halusinasi)
+      const itemRow = await client.query(
+        `SELECT product_id FROM outbound_items WHERE id = $1 AND outbound_order_id = $2`,
+        [item.id, id]
+      );
+      if (itemRow.rows.length === 0) {
+        throw new Error(`Item ${item.id} bukan bagian dari order ini`);
+      }
+      const productId = itemRow.rows[0].product_id;
+      if (!Number(item.picked_qty) || Number(item.picked_qty) <= 0) {
+        throw new Error('picked_qty wajib lebih dari 0');
+      }
+
       await client.query(
         `UPDATE outbound_items 
          SET picked_qty = $2, location_id = $3
@@ -200,7 +221,7 @@ outboundRoutes.post('/:id/pick', async (c) => {
       // Mutasi OUTBOUND_PICK: reserve stock
       await adjustStock({
         warehouse_id: order.warehouse_id,
-        product_id: item.product_id,
+        product_id: productId,
         movement_type: 'OUTBOUND_PICK',
         txClient: client,
         reference_type: 'OUTBOUND_ORDER',
@@ -255,6 +276,18 @@ outboundRoutes.post('/:id/pack', async (c) => {
   }
   const order = orderRes.rows[0];
 
+  // State machine: packing hanya setelah picking selesai & semua item ter-pick
+  if (order.status !== 'PICKED') {
+    return c.json({ success: false, message: `Packing hanya valid pada status PICKED (status saat ini: ${order.status})` }, 409);
+  }
+  const unpickedRes = await query(
+    `SELECT count(*)::int AS n FROM outbound_items WHERE outbound_order_id = $1 AND (picked_qty IS NULL OR picked_qty = 0)`,
+    [id]
+  );
+  if (unpickedRes.rows[0].n > 0) {
+    return c.json({ success: false, message: 'Masih ada item yang belum di-picking; packing ditolak' }, 409);
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -268,6 +301,14 @@ outboundRoutes.post('/:id/pack', async (c) => {
         );
       }
     }
+
+    // Barang yang di-pick dianggap terkemas utuh (belum ada partial packing per item):
+    // packed_qty wajib terisi agar OUTBOUND_SHIP di POD route tidak pernah melompati item.
+    await client.query(
+      `UPDATE outbound_items SET packed_qty = picked_qty
+       WHERE outbound_order_id = $1 AND (packed_qty IS NULL OR packed_qty = 0)`,
+      [id]
+    );
 
     await client.query(`UPDATE outbound_orders SET status = 'PACKED' WHERE id = $1`, [id]);
     await client.query('COMMIT');
@@ -316,6 +357,11 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
   }
   const order = orderRes.rows[0];
 
+  // State machine: POD hanya setelah truk keluar gerbang (barang resmi dalam pengiriman)
+  if (order.status !== 'SHIPPED') {
+    return c.json({ success: false, message: `POD hanya dapat diisi setelah truk keluar gerbang / SHIPPED (status saat ini: ${order.status})` }, 409);
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -343,10 +389,12 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
     // docs/09 v3.2.0 FASE 3: kartu stok jadi DALAM PERJALANAN saat barang berangkat.
     // Ledger: OUTBOUND_SHIP memindahkan saldo dari qty_reserved ke in-transit (barang
     // sudah keluar rak sejak picking, sekarang resmi dalam pengiriman).
-    const itemsShipRes = await client.query(`SELECT product_id, packed_qty FROM outbound_items WHERE outbound_order_id = $1`, [id]);
+    // Fallback: tanpa packed_qty (order lama), pakai picked_qty agar ledger tetap konsisten.
+    const itemsShipRes = await client.query(`SELECT product_id, packed_qty, picked_qty FROM outbound_items WHERE outbound_order_id = $1`, [id]);
     for (const item of itemsShipRes.rows) {
-      const shipQty = Number(item.packed_qty) > 0 ? Number(item.packed_qty) : null;
+      const shipQty = Number(item.packed_qty) > 0 ? Number(item.packed_qty) : (Number(item.picked_qty) > 0 ? Number(item.picked_qty) : null);
       if (!shipQty) continue;
+      await client.query(`UPDATE outbound_items SET delivered_qty = $1 WHERE outbound_order_id = $2 AND product_id = $3 AND (delivered_qty IS NULL OR delivered_qty = 0)`, [shipQty, id, item.product_id]);
       await adjustStock({
         warehouse_id: order.warehouse_id,
         product_id: item.product_id,
@@ -423,6 +471,11 @@ outboundRoutes.post('/:id/verify-pod', optionalAuth, async (c) => {
   }
   const order = orderRes.rows[0];
 
+  // State machine: verifikasi hanya atas POD order yang sudah DELIVERED
+  if (order.status !== 'DELIVERED') {
+    return c.json({ success: false, message: `Verifikasi POD hanya valid pada status DELIVERED (status saat ini: ${order.status})` }, 409);
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -445,6 +498,32 @@ outboundRoutes.post('/:id/verify-pod', optionalAuth, async (c) => {
       nextStatus,
       nextStatus === 'POD_VERIFIED'
     ]);
+
+    // docs/09 v3.2.0: POD terverifikasi = barang resmi diterima customer.
+    // Kosongkan in-transit (dipindah ke in-transit saat OUTBOUND_SHIP di POD submit).
+    if (nextStatus === 'POD_VERIFIED') {
+      const itemsVerifyRes = await client.query(
+        `SELECT product_id, COALESCE(SUM(delivered_qty), 0) AS total
+         FROM outbound_items WHERE outbound_order_id = $1 GROUP BY product_id`,
+        [id]
+      );
+      for (const item of itemsVerifyRes.rows) {
+        const deliveredTotal = Number(item.total) || 0;
+        if (deliveredTotal <= 0) continue;
+        await adjustStock({
+          warehouse_id: order.warehouse_id,
+          product_id: item.product_id,
+          movement_type: 'POD_VERIFIED_SHIP',
+          txClient: client,
+          reference_type: 'OUTBOUND_ORDER',
+          reference_id: id as string,
+          qty_change: -deliveredTotal,
+          notes: `POD terverifikasi, in-transit dikosongkan untuk ${order.order_number}`,
+          performed_by_id: actor_id || null,
+          performed_by_name: actor_name
+        });
+      }
+    }
 
     await client.query('COMMIT');
 

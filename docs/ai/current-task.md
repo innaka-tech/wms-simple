@@ -1,9 +1,9 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** ACTIVE TASK — Flow v3.0.0 Docs-First (Universal Waybill & Dual Gate-Out)  
+**Current Status:** ACTIVE TASK — E2E Chain Verified: State Machine Outbound + Three-Bucket Stock (v4.6.0)  
 **Database:** Host PostgreSQL 16 (`wms_simple_db` on `localhost:5432` / `127.0.0.1:5432`)  
-**Version:** 3.0.0  
-**Status:** BLUEPRINT v3.0.0 FINALIZED — IMPLEMENTATION BACKLOG OPEN  
+**Version:** 4.6.0  
+**Status:** FULL CHAIN VERIFIED (PO → putaway → DO → pick → pack → SJ → gate-out → POD → ACC → invoice → LUNAS)  
 
 ---
 

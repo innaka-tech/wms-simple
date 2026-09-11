@@ -5,6 +5,27 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.6.0] - 2026-09-11
+
+### Fixed (State Machine Outbound + Model Stok Three-Bucket)
+
+- **State machine ketat di seluruh rantai outbound** (menutup lubang: pick gagal tetapi pack → SJ → POD → invoice → LUNAS tetap bisa lolos):
+  - `pick` hanya dari `CREATED`; `product_id` item kini diresolusi dari DB (payload client tidak dipercaya) + item wajib milik order tsb.
+  - `pack` hanya dari `PICKED` + semua item wajib sudah ter-pick (409 jika ada item picked_qty = 0).
+  - `issue-waybill` hanya sebelum terkirim (sudah ada, dipertahankan).
+  - `POD` hanya dari `SHIPPED` (truk sudah keluar gerbang) — jalur liar POD tanpa gate-out kini ditolak 409.
+  - `verify-pod` hanya dari `DELIVERED`.
+- **Model stok three-bucket sesuai docs/09 v3.2.0 (menghapus double deduction):**
+  - `OUTBOUND_PICK`: `on_hand` turun, `reserved` naik (barang keluar rak, menunggu keberangkatan).
+  - `OUTBOUND_SHIP`: `reserved` pindah ke `in_transit` saat barang berangkat (DELIVERED) — on_hand tidak dipotong dua kali.
+  - `POD_VERIFIED_SHIP` (baru): `in_transit` dikosongkan saat POD terverifikasi admin.
+  - Pack kini mengisi `packed_qty` (dari picked) dan POD mengisi `delivered_qty` — kolom yang semula selalu 0 kini terpelihara; fallback `picked_qty` untuk order lama.
+- Recon ledger: reserved orphan 2 unit (sisa era double deduction) dinormalisasi dengan entry `ADJUSTMENT` ber-catat eksplisit.
+
+### Changed
+
+- Test: mock integration/e2e outbound disesuaikan urutan query baru; skenario guard "issue-waybill setelah terkirim" kini lewat jalur legal penuh (SJ → gate-out → POD → verify).
+
 ## [4.5.0] - 2026-09-11
 
 ### Added (Sinkronisasi Flow docs/09 v3.2.0 dengan Aplikasi)
