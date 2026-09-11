@@ -677,13 +677,15 @@ const MIGRATION_ALTERS = [
   "ALTER TABLE invoices ADD COLUMN currency TEXT NOT NULL DEFAULT 'IDR'",
   "ALTER TABLE checkpoint_logs ADD COLUMN photo_urls TEXT DEFAULT '[]'",
   "ALTER TABLE checkpoint_logs ADD COLUMN metadata TEXT DEFAULT '{}'",
-  'ALTER TABLE checkpoint_logs ADD COLUMN prev_checkpoint_id TEXT'
+  'ALTER TABLE checkpoint_logs ADD COLUMN prev_checkpoint_id TEXT',
+  'ALTER TABLE stock_conversions ADD COLUMN outbound_order_id TEXT REFERENCES outbound_orders(id)'
 ];
 
 // Partial unique index: satu waybill aktif & satu faktur aktif per referensi (race-proof)
 const INDEX_SQL = [
   "CREATE UNIQUE INDEX IF NOT EXISTS ux_waybills_active_reference ON waybills(reference_type, reference_id) WHERE status <> 'VOID'",
-  "CREATE UNIQUE INDEX IF NOT EXISTS ux_invoices_active_order ON invoices(outbound_order_id) WHERE status <> 'VOID'"
+  "CREATE UNIQUE INDEX IF NOT EXISTS ux_invoices_active_order ON invoices(outbound_order_id) WHERE status <> 'VOID'",
+  'CREATE INDEX IF NOT EXISTS ix_stock_conversions_outbound_order ON stock_conversions(outbound_order_id)'
 ];
 
 export async function initPgSchema(pool: Pool): Promise<void> {
