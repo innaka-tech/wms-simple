@@ -20,6 +20,9 @@ import { weighbridgeRoutes } from './routes/weighbridge.js';
 import { checkpointRoutes } from './routes/checkpoints.js';
 import { alertRoutes } from './routes/alerts.js';
 
+import { Context, Next } from 'hono';
+import { authenticate } from './middlewares/auth.js';
+
 export function createApp() {
   const app = new Hono();
 
@@ -67,6 +70,21 @@ export function createApp() {
         'Immutable Checkpoint Chain Audit Trail'
       ]
     });
+  });
+
+  // ═══ Global Authentication Gate (OWASP A01: Broken Access Control) ═══
+  // Produksi: SEMUA endpoint /api/* wajib JWT kecuali health check dan login.
+  // optionalAuth di route tetap jalan setelahnya (mengekstrak user utk audit actor).
+  // Mode test/dev (NODE_ENV≠production) dibiarkan terbuka agar suite unit/integrasi
+  // yang mem-bypass JWT tetap jalan.
+  const requireGlobalAuth = process.env.NODE_ENV === 'production';
+  const isPublicPath = (path: string) =>
+    path === '/api/health' || path === '/api/auth/login';
+  app.use('/api/*', async (c: Context, next: Next) => {
+    if (!requireGlobalAuth || isPublicPath(new URL(c.req.url).pathname)) {
+      return next();
+    }
+    return authenticate(c, next);
   });
 
   // API Routes

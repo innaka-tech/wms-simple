@@ -284,7 +284,9 @@ export const useAuthStore = defineStore('auth', {
     },
 
     canAccessRoute(path: string): boolean {
-      const currentRole: UserRole = this.user?.role || 'SUPER_ADMIN';
+      // Belum login BUKAN otomatis SUPER_ADMIN — tanpa user, akses ditolak (redirect ke login)
+      if (!this.user) return false;
+      const currentRole: UserRole = this.user.role;
       if (currentRole === 'SUPER_ADMIN') return true;
       if (path === '/' || path === '/login') return true;
 

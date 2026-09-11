@@ -33,6 +33,17 @@ export function useWmsApi() {
         message: err.message || 'Gagal berkomunikasi dengan server WMS',
         code: 'NETWORK_ERROR'
       };
+
+      // Token kedaluwarsa/tidak valid → logout paksa & kembali ke login (OWASP A01)
+      const status = problem.statusCode || 0;
+      if ((status === 401 || problem.code === 'INVALID_TOKEN') && typeof window !== 'undefined') {
+        const authStore = useAuthStore();
+        if (authStore.token || authStore.user) {
+          authStore.logout();
+          window.location.href = '/login';
+        }
+      }
+
       throw problem;
     }
   }
