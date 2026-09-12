@@ -3,7 +3,7 @@ import { useAuthStore } from '~/stores/auth';
 
 export function useWmsApi() {
   const config = useRuntimeConfig();
-  const apiBase = config.public.apiBase || 'http://localhost:3000/api';
+  const apiBase = config.public.apiBase || 'http://localhost:8000/api';
 
   async function apiFetch<T = any>(endpoint: string, options: any = {}): Promise<T> {
     const authStore = useAuthStore();
@@ -25,12 +25,25 @@ export function useWmsApi() {
       });
       return response;
     } catch (err: any) {
-      // Parse RFC 7807 Problem Details or fetch error
+      // Parse RFC 7807 Problem Details or fetch error.
+      // statusCode disertakan agar peta error humanis (useApiError) bisa memetakan per HTTP code.
       const problem = err.data || {
         success: false,
+        statusCode: err.statusCode || err.status || err.response?.status || 0,
         message: err.message || 'Gagal berkomunikasi dengan server WMS',
         code: 'NETWORK_ERROR'
       };
+
+      // Token kedaluwarsa/tidak valid → logout paksa & kembali ke login (OWASP A01)
+      const status = problem.statusCode || 0;
+      if ((status === 401 || problem.code === 'INVALID_TOKEN') && typeof window !== 'undefined') {
+        const authStore = useAuthStore();
+        if (authStore.token || authStore.user) {
+          authStore.logout();
+          window.location.href = '/login';
+        }
+      }
+
       throw problem;
     }
   }

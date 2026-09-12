@@ -21,8 +21,9 @@
       <div>
         <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
           <AppIcon name="truck" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <span>Pos Satpam — Pemeriksaan & Gate Pass Armada</span>
+          <span>Gate Pass: Keluar-Masuk Truk</span>
         </h2>
+        <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Fase 3 — Outbound • Checkpoint: FLEET_DEPARTED / VENDOR_EXIT</p>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pencatatan Odometer awal/akhir, level BBM solar, dan validasi Surat Jalan sah.</p>
       </div>
 
@@ -35,7 +36,7 @@
           :class="activeTab === 'departure' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
         >
           <AppIcon name="logout" custom-class="w-3.5 h-3.5" />
-          <span>Keberangkatan (Out)</span>
+          <span>Gate Out (Keluar)</span>
         </button>
         <button 
           type="button" 
@@ -44,10 +45,19 @@
           :class="activeTab === 'return' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
         >
           <AppIcon name="inbound" custom-class="w-3.5 h-3.5" />
-          <span>Kepulangan (In)</span>
+          <span>Gate In (Kembali)</span>
           <span v-if="departedLogs.length > 0" class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
             {{ departedLogs.length }}
           </span>
+        </button>
+        <button 
+          type="button" 
+          @click="activeTab = 'vendor'"
+          class="flex-1 py-2 px-4 rounded-lg text-xs font-semibold transition text-center flex items-center justify-center space-x-1.5 cursor-pointer"
+          :class="activeTab === 'vendor' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
+        >
+          <AppIcon name="truck" custom-class="w-3.5 h-3.5" />
+          <span>Truk Vendor</span>
         </button>
       </div>
     </div>
@@ -59,7 +69,7 @@
         <!-- Left Panel: Vehicle & Driver Information -->
         <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm transition-colors">
           <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2">
-            Identitas Armada & Sopir
+            Identitas Armada & Driver
           </h3>
 
           <!-- 1. Vehicle Selection -->
@@ -72,25 +82,28 @@
             >
               <option value="" disabled>-- Pilih Nomor Polisi Truk --</option>
               <option 
-                v-for="veh in gatePassStore.vehicles" 
+                v-for="veh in gatePassStore.availableVehicles" 
                 :key="veh.id" 
                 :value="veh.id"
-                :disabled="veh.status === 'IN_USE'"
               >
-                {{ veh.plate_number }} ({{ veh.brand || veh.type }}) - {{ veh.status }}
+                {{ veh.plate_number }} ({{ veh.brand || veh.vehicle_type_name || veh.type }})
               </option>
+              <option v-if="!gatePassStore.availableVehicles.length" value="" disabled>Tidak ada armada tersedia — cek Master Armada</option>
             </select>
+            <p v-if="!gatePassStore.availableVehicles.length" class="text-[11px] text-amber-600 dark:text-amber-400">
+              Semua armada sedang dipakai/perawatan/nonaktif. Kelola di menu <span class="font-semibold">Master & Pengaturan → Master Armada Pool</span>.
+            </p>
           </div>
 
           <!-- 2. Driver & Purpose -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div class="space-y-1.5">
-              <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Sopir</label>
+              <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Pengemudi (Driver)</label>
               <input 
                 v-model="formOut.driver_name" 
                 type="text" 
                 required 
-                placeholder="Nama Sopir"
+                placeholder="Nama pengemudi"
                 class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
               />
             </div>
@@ -101,16 +114,16 @@
                 class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
               >
                 <option value="CROSS_DOCK_DELIVERY">Cross-Dock Transfer</option>
-                <option value="OUTBOUND_DELIVERY">Pengantaran Customer</option>
+                <option value="OUTBOUND_DELIVERY">Pengantaran ke Customer</option>
                 <option value="EMPTY_RETURN">Kembali Kosong</option>
-                <option value="MAINTENANCE">Servis / Bengkel</option>
+                <option value="MAINTENANCE">Perawatan / Bengkel</option>
               </select>
             </div>
           </div>
 
           <!-- 3. Surat Jalan / Document Reference -->
           <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">No. Surat Jalan / Manifest Sah</label>
+            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">No. Surat Jalan / Manifest yang Dibawa</label>
             <div class="flex space-x-2">
               <input 
                 v-model="formOut.reference_number" 
@@ -173,9 +186,9 @@
             </div>
           </div>
 
-          <!-- 6. Satpam Officer -->
+          <!-- 6. Gate Officer -->
           <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Petugas Satpam Pemeriksa (Wajib)</label>
+            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Petugas Pos Jaga (Wajib)</label>
             <input 
               v-model="formOut.departure_security_officer" 
               type="text" 
@@ -198,8 +211,61 @@
       </div>
     </form>
 
+    <!-- Mode 3: Jalur B — Log Keluar Truk Vendor (docs/05) -->
+    <form v-else-if="activeTab === 'vendor'" @submit.prevent="handleVendorExit" class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm transition-colors">
+      <div>
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800 pb-2">
+          Jalur B — Truk Vendor (Sewa / 3PL Ekspedisi)
+        </h3>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">Wajib: nama vendor, nomor polisi (manual), dan nomor resi/SJ yang dibawa. Truk vendor <span class="font-semibold">tidak wajib kembali</span> — log ditutup apa adanya.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">1. Nama Vendor</label>
+          <input v-model="formVendor.vendor_name" required type="text" placeholder="PT Ekspedisi Jaya" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-3 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">2. Nomor Polisi (Manual)</label>
+          <input v-model="formVendor.plate_number" required type="text" placeholder="B 8765 XYZ" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-3 text-sm font-mono font-bold text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">3. Resi / SJ yang Dibawa (Wajib)</label>
+          <input v-model="formVendor.waybill_number" required list="waybill-options" placeholder="SJ-... / RESI-..." class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-3 text-sm font-mono text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none" />
+          <datalist id="waybill-options">
+            <option v-for="wb in waybillStore.waybills" :key="wb.id" :value="wb.sj_number">{{ wb.resi_number }} • {{ wb.order_number || '' }}</option>
+            <option v-for="wb in waybillStore.waybills" :key="'r-' + wb.id" :value="wb.resi_number">{{ wb.sj_number }} • {{ wb.order_number || '' }}</option>
+          </datalist>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">4. Order Referensi (Opsional)</label>
+          <select v-model="formVendor.reference_id" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-3 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none">
+            <option value="">— Tanpa referensi order —</option>
+            <option v-for="order in outboundStore.orders" :key="order.id" :value="order.id">{{ order.order_number }} • {{ order.recipient_name }}</option>
+          </select>
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">5. Tujuan / Catatan</label>
+          <input v-model="formVendor.destination_note" type="text" placeholder="Gudang transit Denpasar" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-3 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none" />
+        </div>
+        <div class="space-y-1.5">
+          <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">6. Petugas Pos Jaga</label>
+          <input v-model="formVendor.actor_name" required type="text" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-3 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none" />
+        </div>
+      </div>
+
+      <button 
+        type="submit" 
+        :disabled="vendorSubmitting"
+        class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold rounded-md shadow-sm transition flex items-center justify-center space-x-2 disabled:opacity-50 text-sm cursor-pointer mt-2"
+      >
+        <AppIcon name="check" custom-class="w-4 h-4" />
+        <span>{{ vendorSubmitting ? 'Memproses...' : 'Catat Keluar & Buka Gerbang (Log Vendor)' }}</span>
+      </button>
+    </form>
+
     <!-- Mode 2: Gate-In Return Log List (Responsive Card Grid) -->
-    <div v-else class="space-y-4">
+    <div v-else-if="activeTab === 'return'" class="space-y-4">
       <div class="flex items-center justify-between">
         <h3 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
           Daftar Armada di Luar (Menunggu Kembali ke Gudang)
@@ -211,8 +277,8 @@
         <div class="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center mx-auto mb-3 text-slate-500">
           <AppIcon name="truck" custom-class="w-6 h-6" />
         </div>
-        <h4 class="text-base font-bold text-slate-800 dark:text-slate-200">Semua Armada Berada di Gudang</h4>
-        <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Tidak ada truk yang saat ini berstatus di luar gudang (DEPARTED). Seluruh armada terparkir aman di pool.</p>
+        <h4 class="text-base font-bold text-slate-800 dark:text-slate-200">Semua Armada Sudah Kembali ke Pool</h4>
+        <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Tidak ada truk berstatus keluar gerbang (DEPARTED). Seluruh armada terparkir di pool gudang.</p>
       </div>
 
       <!-- Responsive Grid for Departed Vehicles -->
@@ -226,7 +292,7 @@
             <div class="flex justify-between items-start">
               <div>
                 <h4 class="font-black text-slate-900 dark:text-slate-100 text-base font-mono tracking-tight">{{ log.plate_number }}</h4>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Sopir: <span class="font-semibold text-slate-700 dark:text-slate-300">{{ log.driver_name }}</span></p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Driver: <span class="font-semibold text-slate-700 dark:text-slate-300">{{ log.driver_name }}</span></p>
                 <p class="text-xs text-slate-500 dark:text-slate-400">Tujuan: <span class="font-semibold text-blue-600 dark:text-blue-400">{{ log.purpose }}</span></p>
               </div>
               <span class="px-2.5 py-1 rounded-md text-[10px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
@@ -260,7 +326,7 @@
             </div>
             <div class="flex justify-end">
               <ThermalPrintButton 
-                label="Cetak Struk Satpam"
+                label="Cetak Struk Gate Pass"
                 :receipt-data="{
                   log_number: log.log_number || 'GATE-OUT-LOG',
                   plate_number: log.plate_number,
@@ -284,13 +350,55 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useGatePassStore } from '~/stores/gatePass'
 import { useAuthStore } from '~/stores/auth'
+import { useWaybillStore } from '~/stores/waybill'
+import { useOutboundStore } from '~/stores/outbound'
+import { useWmsApi } from '~/composables/useWmsApi'
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner'
 
 const gatePassStore = useGatePassStore()
 const authStore = useAuthStore()
+const waybillStore = useWaybillStore()
+const outboundStore = useOutboundStore()
+const { apiFetch } = useWmsApi()
 
 const activeTab = ref('departure')
 const returnInputs = reactive({})
+const vendorSubmitting = ref(false)
+
+const formVendor = ref({
+  vendor_name: '',
+  plate_number: '',
+  waybill_number: '',
+  reference_id: '',
+  destination_note: '',
+  actor_name: 'Sersan Hendro'
+})
+
+async function handleVendorExit() {
+  vendorSubmitting.value = true
+  try {
+    await apiFetch('/fleet/vendor-exit', {
+      method: 'POST',
+      body: {
+        vendor_name: formVendor.value.vendor_name,
+        plate_number: formVendor.value.plate_number,
+        waybill_number: formVendor.value.waybill_number,
+        reference_type: formVendor.value.reference_id ? 'OUTBOUND_ORDER' : 'NONE',
+        reference_id: formVendor.value.reference_id || undefined,
+        destination_note: formVendor.value.destination_note || undefined,
+        actor_name: formVendor.value.actor_name
+      }
+    })
+    playAudioFeedback('SUCCESS')
+    gatePassStore.successMessage = `Log keluar truk vendor tercatat — ${formVendor.value.vendor_name} (${formVendor.value.plate_number}) bawa ${formVendor.value.waybill_number}. Truk vendor tidak wajib kembali.`
+    formVendor.value = { vendor_name: '', plate_number: '', waybill_number: '', reference_id: '', destination_note: '', actor_name: formVendor.value.actor_name }
+  } catch (err) {
+    gatePassStore.errorMessage = err.detail || err.message
+    playAudioFeedback('ERROR')
+  } finally {
+    vendorSubmitting.value = false
+  }
+}
 
 const formOut = ref({
   vehicle_id: '',
@@ -352,9 +460,11 @@ async function handleReturn(log) {
 onMounted(async () => {
   await gatePassStore.fetchVehicles()
   await gatePassStore.fetchLogs()
+  await waybillStore.fetchWaybills()
+  await outboundStore.fetchOrders()
 
-  if (gatePassStore.vehicles.length > 0 && !formOut.value.vehicle_id) {
-    const available = gatePassStore.vehicles.find(v => v.status === 'AVAILABLE')
+  if (gatePassStore.availableVehicles.length > 0 && !formOut.value.vehicle_id) {
+    const available = gatePassStore.availableVehicles[0]
     if (available) {
       formOut.value.vehicle_id = available.id
       if (available.last_odometer_km) {

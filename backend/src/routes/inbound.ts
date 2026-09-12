@@ -50,7 +50,7 @@ inboundRoutes.get('/:id', async (c) => {
   }
 
   const itemsRes = await query(
-    `SELECT ii.*, p.sku_code, p.name AS product_name, p.unit
+    `SELECT ii.*, p.sku_code, p.name AS product_name, p.default_uom_id AS unit
      FROM inbound_items ii
      JOIN products p ON ii.product_id = p.id
      WHERE ii.inbound_order_id = $1`,
@@ -97,17 +97,21 @@ inboundRoutes.post('/', optionalAuth, async (c) => {
     const poNumber = `PO-${Date.now().toString().slice(-8)}`;
 
     const orderRes = await client.query(
-      `INSERT INTO inbound_orders (po_number, customer_id, warehouse_id, status, eta, sender_info, notes, created_by_id, created_by_name)
-       VALUES ($1, $2, $3, 'CREATED', $4, $5, $6, $7, $8) RETURNING *`,
+      `INSERT INTO inbound_orders (id, po_number, customer_id, warehouse_id, status, eta, sender_info, notes, created_by_id, created_by_name)
+       VALUES (uuid_generate_v4(), $1, $2, $3, 'CREATED', $4, $5, $6, $7, $8) RETURNING *`,
       [poNumber, customer_id, warehouse_id, eta || null, sender_info || null, notes || null, actor_id || null, actor_name.trim()]
     );
     const order = orderRes.rows[0];
 
     for (const item of items) {
+      // uom_id wajib (schema): pakai payload atau UOM default produk
+      const uomRes = await client.query(`SELECT default_uom_id FROM products WHERE id = $1`, [item.product_id]);
+      const uomId = item.uom_id || uomRes.rows[0]?.default_uom_id;
+      if (!uomId) throw new Error(`Produk ${item.product_id} tidak memiliki UOM default`);
       await client.query(
-        `INSERT INTO inbound_items (inbound_order_id, product_id, ordered_qty, received_qty, cross_dock_qty, storage_qty)
-         VALUES ($1, $2, $3, 0, 0, 0)`,
-        [order.id, item.product_id, item.ordered_qty]
+        `INSERT INTO inbound_items (id, inbound_order_id, product_id, ordered_qty, received_qty, cross_dock_qty, storage_qty, uom_id)
+         VALUES (uuid_generate_v4(), $1, $2, $3, 0, 0, 0, $4)`,
+        [order.id, item.product_id, item.ordered_qty, uomId]
       );
     }
 
@@ -247,6 +251,7 @@ inboundRoutes.post('/:id/putaway', optionalAuth, async (c) => {
           warehouse_id: order.warehouse_id,
           product_id: item.product_id,
           movement_type: 'INBOUND_PUTAWAY',
+        txClient: client,
           reference_type: 'INBOUND_ORDER',
           reference_id: order.id,
           qty_change: item.storage_qty,

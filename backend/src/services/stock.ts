@@ -12,6 +12,7 @@ export interface RecordStockMovementParams {
     | 'CROSS_DOCK_IN'
     | 'OUTBOUND_PICK'
     | 'OUTBOUND_SHIP'
+    | 'POD_VERIFIED_SHIP'
     | 'ADJUSTMENT'
     | 'TRANSFER'
     | string;
@@ -22,6 +23,17 @@ export interface RecordStockMovementParams {
   notes?: string;
   performed_by_id?: string | null;
   performed_by_name: string; // Mandatory Petugas Name
+  /**
+   * Client transaksi pemanggil (opsional). Bila diisi, adjustStock ikut transaksi pemanggil
+   * tanpa BEGIN/COMMIT sendiri — mencegah 'cannot start a transaction within a transaction'
+   * pada koneksi SQLite bersama.
+   */
+  txClient?: any;
+  /**
+   * Gudang asal yang qty_in_transit-nya harus dikosongkan (penerimaan manifest cross-dock
+   * di spoke tujuan). Wajib agar stok in-transit sumber tidak menggantung selamanya.
+   */
+  clear_transit_warehouse_id?: string;
 }
 
 export async function adjustStock(params: RecordStockMovementParams) {
@@ -29,9 +41,10 @@ export async function adjustStock(params: RecordStockMovementParams) {
     throw new Error('Nama petugas mutasi stok wajib diisi (Mandatory petugas_name)');
   }
 
-  const client = await pool.connect();
+  const ownTx = !params.txClient;
+  const client = params.txClient ?? (await pool.connect());
   try {
-    await client.query('BEGIN');
+    if (ownTx) await client.query('BEGIN');
 
     // 1. Get or create current stock level row
     let stockRes = await client.query(
@@ -41,10 +54,14 @@ export async function adjustStock(params: RecordStockMovementParams) {
 
     let qtyBefore = 0;
     if (stockRes.rows.length === 0) {
+      // uom_id wajib (schema): pakai payload atau UOM default produk
+      const uomRes = await client.query(`SELECT default_uom_id FROM products WHERE id = $1`, [params.product_id]);
+      const uomId = (params as any).uom_id || uomRes.rows[0]?.default_uom_id;
+      if (!uomId) throw new Error(`Produk ${params.product_id} tidak memiliki UOM default`);
       const initRes = await client.query(
-        `INSERT INTO stock_levels (warehouse_id, product_id, qty_on_hand, qty_reserved, qty_in_transit)
-         VALUES ($1, $2, 0, 0, 0) RETURNING *`,
-        [params.warehouse_id, params.product_id]
+        `INSERT INTO stock_levels (id, warehouse_id, product_id, qty_on_hand, qty_reserved, qty_in_transit, uom_id)
+         VALUES (uuid_generate_v4(), $1, $2, 0, 0, 0, $3) RETURNING *`,
+        [params.warehouse_id, params.product_id, uomId]
       );
       qtyBefore = 0;
     } else {
@@ -66,6 +83,36 @@ export async function adjustStock(params: RecordStockMovementParams) {
          WHERE warehouse_id = $1 AND product_id = $2`,
         [params.warehouse_id, params.product_id, params.qty_change, Math.abs(params.qty_change)]
       );
+    } else if (params.movement_type === 'OUTBOUND_PICK') {
+      // Picking: barang keluar rak → on_hand turun & masuk reserved (menunggu keberangkatan)
+      await client.query(
+        `UPDATE stock_levels 
+         SET qty_on_hand = qty_on_hand + $3,
+             qty_reserved = qty_reserved + $4,
+             last_updated = CURRENT_TIMESTAMP
+         WHERE warehouse_id = $1 AND product_id = $2`,
+        [params.warehouse_id, params.product_id, params.qty_change, Math.abs(params.qty_change)]
+      );
+    } else if (params.movement_type === 'OUTBOUND_SHIP') {
+      // Barang berangkat (DELIVERED): reserved berpindah ke in-transit.
+      // on_hand TIDAK diubah lagi (sudah berkurang sejak picking) — mencegah double deduction.
+      await client.query(
+        `UPDATE stock_levels 
+         SET qty_reserved = qty_reserved + $3,
+             qty_in_transit = qty_in_transit + $4,
+             last_updated = CURRENT_TIMESTAMP
+         WHERE warehouse_id = $1 AND product_id = $2`,
+        [params.warehouse_id, params.product_id, params.qty_change, Math.abs(params.qty_change)]
+      );
+    } else if (params.movement_type === 'POD_VERIFIED_SHIP') {
+      // POD terverifikasi: barang resmi diterima customer → keluar dari in-transit (on_hand tetap)
+      await client.query(
+        `UPDATE stock_levels 
+         SET qty_in_transit = qty_in_transit + $3,
+             last_updated = CURRENT_TIMESTAMP
+         WHERE warehouse_id = $1 AND product_id = $2`,
+        [params.warehouse_id, params.product_id, params.qty_change]
+      );
     } else if (params.movement_type === 'CROSS_DOCK_IN') {
       await client.query(
         `UPDATE stock_levels 
@@ -84,13 +131,45 @@ export async function adjustStock(params: RecordStockMovementParams) {
       );
     }
 
+    // 2b. Kosongkan in-transit di gudang asal (barang sudah diterima fisik di tujuan)
+    if (params.clear_transit_warehouse_id) {
+      const transitQty = Math.abs(params.qty_change);
+      await client.query(
+        `UPDATE stock_levels 
+         SET qty_in_transit = qty_in_transit - $3,
+             last_updated = CURRENT_TIMESTAMP
+         WHERE warehouse_id = $1 AND product_id = $2`,
+        [params.clear_transit_warehouse_id, params.product_id, transitQty]
+      );
+      // Log ledger: transit sumber berkurang (on_hand tidak berubah)
+      await client.query(
+        `INSERT INTO stock_movements (
+          id, warehouse_id, product_id, movement_type, reference_type, reference_id,
+          qty_change, qty_before, qty_after, location_id, notes,
+          performed_by_id, performed_by_name
+        ) VALUES (uuid_generate_v4(), $1, $2, 'CROSS_DOCK_TRANSIT_CLEAR', $3, $4, $5, $6, $6, $7, $8, $9, $10)`,
+        [
+          params.clear_transit_warehouse_id,
+          params.product_id,
+          params.reference_type,
+          params.reference_id,
+          -transitQty,
+          qtyBefore,
+          params.location_id || null,
+          `In-transit dikosongkan di gudang asal: ${params.notes || ''}`.trim(),
+          params.performed_by_id || null,
+          params.performed_by_name.trim()
+        ]
+      );
+    }
+
     // 3. Write immutable log into stock_movements
     const logRes = await client.query(
       `INSERT INTO stock_movements (
-        warehouse_id, product_id, movement_type, reference_type, reference_id,
+        id, warehouse_id, product_id, movement_type, reference_type, reference_id,
         qty_change, qty_before, qty_after, location_id, notes,
         performed_by_id, performed_by_name
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *`,
       [
         params.warehouse_id,
@@ -108,12 +187,12 @@ export async function adjustStock(params: RecordStockMovementParams) {
       ]
     );
 
-    await client.query('COMMIT');
+    if (ownTx) await client.query('COMMIT');
     return logRes.rows[0];
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (ownTx) await client.query('ROLLBACK');
     throw err;
   } finally {
-    client.release();
+    if (ownTx) client.release();
   }
 }

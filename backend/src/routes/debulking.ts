@@ -9,16 +9,23 @@ export const debulkingRoutes = new Hono();
 // 1. List De-bulking & Conversion Work Orders
 debulkingRoutes.get('/', async (c) => {
   const warehouse_id = c.req.query('warehouse_id');
+  const outbound_order_id = c.req.query('outbound_order_id');
   let sql = `
-    SELECT sc.*, w.name AS warehouse_name
+    SELECT sc.*, w.name AS warehouse_name,
+           oo.order_number AS outbound_order_number
     FROM stock_conversions sc
     JOIN warehouses w ON sc.warehouse_id = w.id
+    LEFT JOIN outbound_orders oo ON sc.outbound_order_id = oo.id
     WHERE 1=1
   `;
   const params: any[] = [];
   if (warehouse_id) {
     params.push(warehouse_id);
     sql += ` AND sc.warehouse_id = $${params.length}`;
+  }
+  if (outbound_order_id) {
+    params.push(outbound_order_id);
+    sql += ` AND sc.outbound_order_id = $${params.length}`;
   }
   sql += ` ORDER BY sc.created_at DESC`;
 
@@ -84,6 +91,7 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
   const {
     warehouse_id,
     conversion_type, // BULKY_TO_BULK_DRY, BULKY_TO_PACKAGED, TANK_DECANTING
+    outbound_order_id, // docs/09 v3.2.0: repacking on-demand — wajib saat dipicu permintaan kirim
     inputs, // [{ product_id, qty_used, uom_id, weight_kg, location_id }]
     outputs, // [{ product_id, qty_produced, uom_id, weight_kg, destination_location_id }]
     allowable_shrinkage_percentage,
@@ -107,6 +115,34 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
   try {
     await client.query('BEGIN');
 
+    // docs/09 v3.2.0 Prinsip 2: repacking hanya setelah ada permintaan kirim.
+    // Bila work order dikaitkan ke order, validasi: order ada, masih terbuka (belum
+    // dikirim/dibatalkan), dan satu order hanya boleh punya satu work order repacking.
+    if (outbound_order_id) {
+      const orderRes = await client.query(`SELECT id, status, order_number FROM outbound_orders WHERE id = $1`, [outbound_order_id]);
+      if (orderRes.rows.length === 0) {
+        return c.json({ success: false, message: 'Outbound order tidak ditemukan' }, 404);
+      }
+      const orderStatus = orderRes.rows[0].status;
+      const blockedStatuses = ['DELIVERED', 'POD_VERIFIED', 'CANCELLED'];
+      if (blockedStatuses.includes(orderStatus)) {
+        return c.json(
+          { success: false, message: `Repacking tidak dapat ditautkan ke order berstatus ${orderStatus}` },
+          409
+        );
+      }
+      const dupRes = await client.query(
+        `SELECT id, conversion_number FROM stock_conversions WHERE outbound_order_id = $1`,
+        [outbound_order_id]
+      );
+      if (dupRes.rows.length > 0) {
+        return c.json(
+          { success: false, message: `Repacking sudah ada untuk order ini (WO: ${dupRes.rows[0].conversion_number})` },
+          409
+        );
+      }
+    }
+
     const conversionNumber = `DEBULK-${Date.now().toString().slice(-8)}`;
     const totalInWeight = inputs.reduce((sum: number, item: any) => sum + parseFloat(item.weight_kg), 0);
     const totalOutWeight = outputs.reduce((sum: number, item: any) => sum + parseFloat(item.weight_kg), 0);
@@ -115,16 +151,16 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
 
     const convRes = await client.query(
       `INSERT INTO stock_conversions (
-        conversion_number, warehouse_id, conversion_type, status, started_at, completed_at,
+        id, conversion_number, warehouse_id, conversion_type, status, started_at, completed_at,
         total_input_weight_kg, total_output_weight_kg, shrinkage_percentage,
-        allowable_shrinkage_percentage, notes, supervised_by_id, supervised_by_name
-      ) VALUES ($1, $2, $3, 'COMPLETED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $4, $5, $6, $7, $8, $9, $10)
+        allowable_shrinkage_percentage, notes, supervised_by_id, supervised_by_name, outbound_order_id
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, 'COMPLETED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
       [
         conversionNumber, warehouse_id, conversion_type || 'DEBULKING_BREAKDOWN',
         totalInWeight, totalOutWeight, shrinkagePct.toFixed(2),
         allowable_shrinkage_percentage || 1.0, notes || null,
-        actor_id || null, actor_name.trim()
+        actor_id || null, actor_name.trim(), outbound_order_id || null
       ]
     );
     const conv = convRes.rows[0];
@@ -132,8 +168,8 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
     // 1. Process Bulky Inputs (Deduct from Stock)
     for (const inItem of inputs) {
       await client.query(
-        `INSERT INTO stock_conversion_items_in (conversion_id, product_id, location_id, qty_used, uom_id, weight_kg)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO stock_conversion_items_in (id, conversion_id, product_id, location_id, qty_used, uom_id, weight_kg)
+         VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6)`,
         [conv.id, inItem.product_id, inItem.location_id || null, inItem.qty_used, inItem.uom_id, inItem.weight_kg]
       );
 
@@ -141,6 +177,7 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
         warehouse_id,
         product_id: inItem.product_id,
         movement_type: 'DEBULKING_INPUT',
+        txClient: client,
         reference_type: 'STOCK_CONVERSION',
         reference_id: conv.id,
         qty_change: -parseFloat(inItem.qty_used),
@@ -154,8 +191,8 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
     // 2. Process Curah / Child Outputs (Add to Stock)
     for (const outItem of outputs) {
       await client.query(
-        `INSERT INTO stock_conversion_items_out (conversion_id, product_id, destination_location_id, qty_produced, uom_id, weight_kg)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+        `INSERT INTO stock_conversion_items_out (id, conversion_id, product_id, destination_location_id, qty_produced, uom_id, weight_kg)
+         VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6)`,
         [conv.id, outItem.product_id, outItem.destination_location_id || null, outItem.qty_produced, outItem.uom_id, outItem.weight_kg]
       );
 
@@ -163,6 +200,7 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
         warehouse_id,
         product_id: outItem.product_id,
         movement_type: 'DEBULKING_OUTPUT',
+        txClient: client,
         reference_type: 'STOCK_CONVERSION',
         reference_id: conv.id,
         qty_change: parseFloat(outItem.qty_produced),
@@ -176,8 +214,8 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
     // 3. If shrinkage exceeds allowable, create alert
     if (shrinkagePct > (allowable_shrinkage_percentage || 1.0)) {
       await client.query(
-        `INSERT INTO alerts (alert_type, entity_type, entity_id, warehouse_id, title, message, severity)
-         VALUES ('DEBULKING_SHRINKAGE_HIGH', 'STOCK_CONVERSION', $1, $2, 'Susut De-bulking Melebihi Toleransi', $3, 'WARNING')`,
+        `INSERT INTO alerts (id, alert_type, entity_type, entity_id, warehouse_id, title, message, severity)
+         VALUES (uuid_generate_v4(), 'DEBULKING_SHRINKAGE_HIGH', 'STOCK_CONVERSION', $1, $2, 'Susut De-bulking Melebihi Toleransi', $3, 'WARNING')`,
         [
           conv.id, warehouse_id,
           `De-bulking ${conv.conversion_number} mengalami susut ${shrinkagePct.toFixed(2)}% (${shrinkageLossKg.toFixed(1)} kg), di atas batas ${allowable_shrinkage_percentage || 1.0}%.`
@@ -197,7 +235,7 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
       actor_id: actor_id || null,
       actor_name: actor_name,
       actor_role: 'WH_STAFF',
-      notes: `Total Input: ${totalInWeight} kg, Output: ${totalOutWeight} kg, Susut: ${shrinkageLossKg.toFixed(1)} kg (${shrinkagePct.toFixed(2)}%)`
+      notes: `Total Input: ${totalInWeight} kg, Output: ${totalOutWeight} kg, Susut: ${shrinkageLossKg.toFixed(1)} kg (${shrinkagePct.toFixed(2)}%)${outbound_order_id ? ` — Repacking on-demand untuk order ${outbound_order_id}` : ''}`
     });
 
     return c.json({ success: true, message: 'De-bulking completed successfully', data: conv }, 201);

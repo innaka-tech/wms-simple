@@ -20,19 +20,20 @@ export async function recordCheckpoint(params: CreateCheckpointParams) {
   }
 
   // Find previous checkpoint for linked-list audit chain
+  // rowid DESC: tie-breaker untuk step dalam detik yang sama (created_at presisi detik di SQLite)
   const prevRes = await query(
     `SELECT id FROM checkpoint_logs 
      WHERE entity_type = $1 AND entity_id = $2 
-     ORDER BY created_at DESC LIMIT 1`,
+     ORDER BY created_at DESC, rowid DESC LIMIT 1`,
     [params.entity_type, params.entity_id]
   );
   const prevId = prevRes.rows.length > 0 ? prevRes.rows[0].id : null;
 
   const result = await query(
     `INSERT INTO checkpoint_logs (
-      entity_type, entity_id, entity_number, step_code, step_label,
+      id, entity_type, entity_id, entity_number, step_code, step_label,
       actor_id, actor_name, actor_role, notes, photo_urls, metadata, prev_checkpoint_id
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
     RETURNING *`,
     [
       params.entity_type,

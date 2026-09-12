@@ -108,6 +108,11 @@ describe('Auth & Scoped RBAC API Routes Integration Tests', () => {
   });
 
   it('GET /api/auth/users should return list of active users', async () => {
+    const token = await generateToken({
+      id: 'u-admin', username: 'superadmin', full_name: 'Super Admin', email: 'admin@wms.local',
+      role: 'SUPER_ADMIN', warehouse_id: null
+    });
+
     vi.mocked(db.query).mockResolvedValueOnce({
       rows: [
         { id: 'u-1', username: 'staff_jkt', full_name: 'Joko Susanto', role: 'WH_STAFF' },
@@ -115,7 +120,9 @@ describe('Auth & Scoped RBAC API Routes Integration Tests', () => {
       ]
     } as any);
 
-    const res = await app.request('/api/auth/users');
+    const res = await app.request('/api/auth/users', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);

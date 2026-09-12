@@ -40,6 +40,7 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
       .mockResolvedValueOnce({   // INSERT inbound_orders
         rows: [{ id: 'po-e2e-001', po_number: 'PO-20260901-E2E', status: 'CREATED', warehouse_id: 'wh-jkt' }]
       })
+      .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
       .mockResolvedValueOnce({}) // INSERT inbound_items
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -168,8 +169,8 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({   // INSERT cross_dock_manifests
         rows: [{ id: 'mnf-e2e-001', manifest_number: 'MNF-E2E-001', status: 'CREATED' }]
-      })
-      .mockResolvedValueOnce({}) // INSERT cross_dock_items
+      })        .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
+        .mockResolvedValueOnce({}) // INSERT cross_dock_items
       .mockResolvedValueOnce({}); // COMMIT
 
     const createMnfRes = await app.request('/api/crossdock', {
@@ -199,6 +200,7 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({}) // UPDATE cross_dock_items
+      .mockResolvedValueOnce({ rows: [{ product_id: 'prod-sugar-jumbo-1t' }] } as any) // SELECT product_id item dari DB
       .mockResolvedValueOnce({}) // UPDATE cross_dock_manifests status LOADED
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -251,11 +253,14 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
     // =========================================================================
     // PHASE 4: SECURITY GATE PASS (FLEET DEPARTURE)
     // =========================================================================
+    vi.mocked(db.query).mockResolvedValueOnce({ rows: [{ id: 'mnf-e2e-001' }] } as any); // validasi manifest (docs/05)
+
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({   // SELECT vehicle FOR UPDATE -> status AVAILABLE
         rows: [{ id: 'veh-tronton-01', plate_number: 'B 9188 WMS', status: 'AVAILABLE' }]
       })
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik log_number gate pass
       .mockResolvedValueOnce({   // INSERT fleet_exit_logs
         rows: [{ id: 'gate-log-e2e-001', log_number: 'GATE-OUT-E2E', status: 'DEPARTED' }]
       })
@@ -294,6 +299,7 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({}) // UPDATE cross_dock_items
+      .mockResolvedValueOnce({ rows: [{ product_id: 'prod-sugar-jumbo-1t' }] } as any) // SELECT product_id item dari DB
       .mockResolvedValueOnce({}) // UPDATE cross_dock_manifests status RECEIVED_DEST
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -353,9 +359,11 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
     // 7.1 Create Outbound Order for KDMP Showcase Chiller
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik order_number
       .mockResolvedValueOnce({   // INSERT outbound_orders
         rows: [{ id: 'ord-kdmp-001', order_number: 'ORD-KDMP-001', status: 'CREATED', warehouse_id: 'wh-jkt' }]
       })
+      .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
       .mockResolvedValueOnce({}) // INSERT outbound_items
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -378,11 +386,12 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
 
     // 7.2 Pick Items
     vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'ord-kdmp-001', order_number: 'ORD-KDMP-001', warehouse_id: 'wh-jkt' }]
+      rows: [{ id: 'ord-kdmp-001', order_number: 'ORD-KDMP-001', warehouse_id: 'wh-jkt', status: 'CREATED' }]
     } as any);
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [{ product_id: 'sku-chiller-kdmp' }] } as any) // SELECT product_id item
       .mockResolvedValueOnce({}) // UPDATE outbound_items
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status PICKED
       .mockResolvedValueOnce({}); // COMMIT
@@ -401,13 +410,16 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
     );
 
     // 7.3 Pack into Upright Wooden Crates
-    vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'ord-kdmp-001', order_number: 'ORD-KDMP-001' }]
-    } as any);
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({
+        rows: [{ id: 'ord-kdmp-001', order_number: 'ORD-KDMP-001', status: 'PICKED' }]
+      } as any)
+      .mockResolvedValueOnce({ rows: [{ n: 0 }] } as any); // cek item belum ter-pick
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({}) // INSERT packages
+      .mockResolvedValueOnce({}) // UPDATE outbound_items packed_qty
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status PACKED
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -423,12 +435,15 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
 
     // 7.4 Submit Driver POD with Touch Signature & Photo
     vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'ord-kdmp-001', order_number: 'ORD-KDMP-001', recipient_name: 'Pak Kades' }]
+      rows: [{ id: 'ord-kdmp-001', order_number: 'ORD-KDMP-001', recipient_name: 'Pak Kades', status: 'SHIPPED', warehouse_id: 'wh-jkt' }]
     } as any);
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik pod_number
       .mockResolvedValueOnce({}) // INSERT pod_documents
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-chiller', packed_qty: 2, picked_qty: 2 }] } as any) // items utk ledger OUTBOUND_SHIP
+      .mockResolvedValueOnce({}) // UPDATE outbound_items delivered_qty
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status DELIVERED
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -450,13 +465,14 @@ describe('WMS Simple Enterprise - Master End-to-End Operational Lifecycle Test S
 
     // 7.5 Verify POD by Admin
     vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'ord-kdmp-001', order_number: 'ORD-KDMP-001' }]
+      rows: [{ id: 'ord-kdmp-001', order_number: 'ORD-KDMP-001', warehouse_id: 'wh-jkt', status: 'DELIVERED' }]
     } as any);
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({}) // UPDATE pod_documents
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status POD_VERIFIED
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-chiller', total: 2 }] } as any) // items utk POD_VERIFIED_SHIP
       .mockResolvedValueOnce({}); // COMMIT
 
     const verifyPodRes = await app.request('/api/outbound/ord-kdmp-001/verify-pod', {

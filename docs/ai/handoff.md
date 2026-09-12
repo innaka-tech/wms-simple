@@ -1,9 +1,9 @@
 # AI Handoff & Knowledge Base: WMS Simple Enterprise
 
-**Date:** 2026-09-01  
+**Date:** 2026-09-07  
 **Project:** WMS Simple Enterprise (`/Users/anasfikri/Documents/Projects/ber5/wms-simple`)  
-**Version:** 2.3.0  
-**Current Milestone:** Phase 1 (Comprehensive Architecture, Standards, Blueprints & Master PDF) 100% Completed  
+**Version:** 3.0.0  
+**Current Milestone:** Flow v3.0.0 Docs-First (Universal Waybill & Dual Gate-Out, ADR-11) Finalized — Implementation Backlog Open  
 
 ---
 
@@ -17,13 +17,26 @@
 2. **Dokumentasi & Blueprint Publikasi:**
    - 10 Dokumen Spesifikasi Operasional lengkap di `docs/`.
    - 5 Dokumen Standar Rekayasa di `docs/standards/` (Development, OWASP & OWASP AI Security, Testing, Audit, Versioning).
-   - Master PDF Terpadu Resmi: `docs/WMS_Simple_Enterprise_Master_Documentation.pdf` (v2.3.0, 7 halaman rapi, diagram SVG tajam).
+   - Master PDF Terpadu Resmi: `docs/WMS_Simple_Enterprise_Master_Documentation.pdf` (v2.4.1, 6 halaman rapat, diagram SVG tajam, tanpa syntax error).
    - Dokumen Protokol AI: `AGENTS.md` di root `wms-simple/`.
 
 3. **Status Kode Saat Ini (Scaffolding / Proof of Concept):**
    - `backend/` (Hono REST API): Menyediakan route dasar, db pool connection, dan basic services.
    - `frontend/` (Nuxt 3 Mobile PWA): Menyediakan mobile layouts, thumb-zone bottom navigation, touch signature pad component, dan halaman form operasional (Gate Pass, Dock Receive, De-bulking, Driver POD, Stock).
    - **Catatan:** Kode ini adalah prototipe struktural awal (PoC) dan siap memasuki tahap implementasi produksi penuh + automated test suites.
+
+---
+
+## 1.5 Pembaruan v3.0.0 (2026-09-07): Universal Waybill & Dual Gate-Out
+
+Alur operasional disesuaikan (docs-first, ADR-11):
+1. Tanpa timbangan truk sama sekali (v3.2.0: timbang masuk & keluar dihapus dari alur gudang); berat muatan dari dokumen pengiriman dan tally fisik.
+2. SJ baru + nomor resi auto-generate untuk SEMUA pengiriman keluar (tabel `waybills`, endpoint `POST /api/outbound/:id/issue-waybill`); cross-doc swap jadi varian blind shipping.
+3. Dual gate-out di pos satpam: Jalur A armada pool (gate pass) & Jalur B truk vendor (tabel `vendor_vehicle_exit_logs`: nama vendor, nopol, resi wajib); truk vendor tidak wajib kembali.
+4. Rantai transaksi sampai PENERIMAAN PEMBAYARAN (v3.2.0): POD terverifikasi → faktur `invoices` (INV-XXXX) → pembayaran `payments` → LUNAS menutup transaksi; kembali ke pool hanya catatan armada.
+5. Revisi v3.1.0: semua barang masuk disimpan ke rak dulu (kecuali cross-dock); repacking ON-DEMAND setelah permintaan kirim/alokasi (barang induk dipick dari rak, `POST /api/stock/convert`), hasilnya langsung masuk penerbitan SJ + resi.
+
+Dokumen terdampak: `docs/09` (flowchart+sequence), `docs/05` (gate dual), `docs/06` (waybill universal + billing), `docs/ai/decisions.md` (ADR-11), master PDF & PNG diregenerasi. Implementasi backend/frontend mengikuti backlog di `docs/ai/current-task.md` §0.
 
 ---
 

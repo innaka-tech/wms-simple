@@ -3,9 +3,10 @@
     <!-- Header & Top Bar -->
     <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
       <div>
+        <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-0.5">Monitoring • Ledger: setiap mutasi tercatat double-entry</p>
         <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
           <AppIcon name="stock" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <span>Kartu Stok & Buku Besar Mutasi Barang (Ledger)</span>
+          <span>Stock on Hand</span>
         </h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Saldo Terkini Double-Entry • {{ authStore.activeWarehouseName }}</p>
       </div>
@@ -50,11 +51,11 @@
         <p class="text-xl md:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{{ totalOnHand }} <span class="text-xs font-normal text-slate-400">Unit/Kg</span></p>
       </div>
       <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-[10px] uppercase font-semibold text-slate-400">Total Alokasi Reserved</p>
+        <p class="text-[10px] uppercase font-semibold text-slate-400">Qty Reserved</p>
         <p class="text-xl md:text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">{{ totalReserved }} <span class="text-xs font-normal text-slate-400">Unit</span></p>
       </div>
       <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-[10px] uppercase font-semibold text-slate-400">Total In-Transit</p>
+        <p class="text-[10px] uppercase font-semibold text-slate-400">Qty In-Transit</p>
         <p class="text-xl md:text-2xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-1">{{ totalInTransit }} <span class="text-xs font-normal text-slate-400">Unit</span></p>
       </div>
     </div>
@@ -65,16 +66,23 @@
       Memuat saldo stok dari database...
     </div>
 
+    <!-- Empty State (jujur — tanpa data palsu) -->
+    <div v-else-if="filteredList.length === 0" class="p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
+      <AppIcon name="stock" custom-class="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
+      <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-2">{{ searchQuery ? 'Tidak ada SKU yang cocok dengan pencarian.' : 'Belum ada stok tercatat di gudang ini.' }}</p>
+      <p class="text-[11px] text-slate-400 mt-1">{{ searchQuery ? 'Coba kata kunci lain.' : 'Stok muncul otomatis setelah proses Receiving & Putaway selesai.' }}</p>
+    </div>
+
     <!-- DESKTOP TABLE VIEW (Visible on md: screens and up) -->
     <div v-else class="hidden md:block bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm transition-colors">
       <table class="w-full text-left border-collapse">
         <thead>
           <tr class="bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             <th class="py-3.5 px-4">Kode SKU</th>
-            <th class="py-3.5 px-4">Nama Produk / Spesifikasi</th>
-            <th class="py-3.5 px-4">Satuan (UoM)</th>
-            <th class="py-3.5 px-4 text-right">On-Hand Fisik</th>
-            <th class="py-3.5 px-4 text-right">Alokasi Reserved</th>
+            <th class="py-3.5 px-4">Nama Item / Spesifikasi</th>
+            <th class="py-3.5 px-4">UoM</th>
+            <th class="py-3.5 px-4 text-right">On-Hand</th>
+            <th class="py-3.5 px-4 text-right">Reserved</th>
             <th class="py-3.5 px-4 text-right">In-Transit</th>
             <th class="py-3.5 px-4 text-center">Status Stok</th>
           </tr>
@@ -111,7 +119,7 @@
                 class="inline-block text-[10px] font-bold px-2.5 py-1 rounded-md border"
                 :class="item.is_low_stock ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'"
               >
-                {{ item.is_low_stock ? 'MINIMUM' : 'TERSEDIA' }}
+                {{ item.is_low_stock ? 'BELOW MIN' : 'AVAILABLE' }}
               </span>
             </td>
           </tr>
@@ -138,7 +146,7 @@
             class="text-[10px] font-bold px-2 py-0.5 rounded border" 
             :class="item.is_low_stock ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'"
           >
-            {{ item.is_low_stock ? 'MIN' : 'AMAN' }}
+            {{ item.is_low_stock ? 'LOW' : 'OK' }}
           </span>
         </div>
 
@@ -171,19 +179,9 @@ const authStore = useAuthStore()
 
 const searchQuery = ref('')
 
-const fallbackList = [
-  { sku: 'BULK-SUGAR-1T', name: 'Gula Pasir Rafinasi Jumbo Bag 1 Ton (Bulky)', unit: 'JUMBO_BAG', onHand: '20', reserved: '0', inTransit: '0', is_low_stock: false },
-  { sku: 'SUGAR-SACK-25KG', name: 'Gula Pasir Rafinasi Karung 25 KG (Retail)', unit: 'SACK', onHand: '200', reserved: '0', inTransit: '0', is_low_stock: false },
-  { sku: 'KDMP-CHILLER-300L', name: 'Showcase Display Chiller 300L (KDMP)', unit: 'UNIT', onHand: '15', reserved: '2', inTransit: '5', is_low_stock: false },
-  { sku: 'ELEC-TV-43', name: 'Smart LED TV 43 Inch FHD', unit: 'PCS', onHand: '120', reserved: '10', inTransit: '0', is_low_stock: false }
-]
-
-const rawList = computed(() => {
-  if (stockStore.stockLevels && stockStore.stockLevels.length > 0) {
-    return stockStore.stockLevels
-  }
-  return fallbackList
-})
+// Fallback data contoh DIHAPUS — kalau API gagal/kosong, tampilkan empty state jujur.
+// Data palsu bikin petugas salah ambil keputusan (docs/00: anti-halusinasi).
+const rawList = computed(() => stockStore.stockLevels || [])
 
 const filteredList = computed(() => {
   if (!searchQuery.value.trim()) return rawList.value

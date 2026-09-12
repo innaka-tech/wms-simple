@@ -1,8 +1,34 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** ALL PHASES COMPLETED (Responsive Desktop Console & Mobile PWA Active)  
+**Current Status:** ACTIVE TASK — Production Deploy innaka LIVE (v4.6.1) + Semua Gap Audit Tertutup  
 **Database:** Host PostgreSQL 16 (`wms_simple_db` on `localhost:5432` / `127.0.0.1:5432`)  
-**Version:** 1.1.0  
+**Version:** 4.6.1  
+**Status:** FULL CHAIN VERIFIED + DEPLOYED (http://104.64.221.233:8090) — sisa: thermal fallback, HTTPS, ganti password seed  
+
+---
+
+## 0. Tugas Aktif: Penyesuaian Alur v3.0.0 → v3.2.0 (ADR-11)
+
+Permintaan owner: (1) penerbitan SJ baru + nomor resi untuk SEMUA jenis pengiriman keluar (bukan cuma cross-dock); (2) truk keluar dicatat vendornya, nopolnya, dan resi/SJ yang dibawa; (3) truk vendor tidak wajib kembali.
+
+Revisi v3.1.0 (feedback owner): (a) timbang truk masuk DIHAPUS; (b) repacking tidak di dock — semua barang masuk disimpan ke rak dulu; (c) repacking ON-DEMAND, hanya setelah ada permintaan kirim/alokasi (barang induk dipick dari rak); (d) hasil repacking langsung masuk penerbitan SJ + resi (cross-document).
+
+Revisi v3.2.0 (feedback owner): (a) timbang truk keluar juga DIHAPUS — tidak ada jembatan timbang sama sekali di alur; (b) rantai transaksi diperpanjang sampai PENERIMAAN PEMBAYARAN: POD terverifikasi → faktur (INV-XXXX) → pembayaran diterima → LUNAS (satu-satunya akhir transaksi).
+
+Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, spesifikasi outbound + billing di `docs/06`, spesifikasi jalur vendor di `docs/05`, ADR-11 direvisi, master PDF + PNG diregenerasi & terverifikasi.
+
+**Backlog implementasi (menyusul, docs → code):**
+1. [x] **SELESAI v3.3.0** — Tabel `waybills` + endpoint `POST /api/outbound/:id/issue-waybill` (Zod, guard status & duplikat, checkpoint `WAYBILL_ISSUED`) + kolom `billing_ready` (true saat POD_VERIFIED) + `GET /api/waybills?status=`. Test: 90/90 (unit generator 5 + integrasi 5).
+2. [x] **SELESAI v3.4.0** — Tabel `vendor_vehicle_exit_logs` (VEND-OUT-XXXX, tanpa odometer/BBM) + endpoint `POST /api/fleet/vendor-exit` (wajib vendor/nopol/resi, checkpoint `VENDOR_EXIT`) + `GET /api/fleet/vendor-exits` + kolom `waybill_number` di `fleet_exit_logs` (jalur pool). Test: 95/95.
+3. [x] **SELESAI v3.5.0** — Tabel `invoices` + `payments` + kolom `payment_status` di order + endpoint `POST /api/billing/:orderId/invoice` (syarat `billing_ready`), `POST /api/billing/invoices/:invoiceId/payments` (LUNAS: total ≥ amount) + `GET /api/billing/invoices` — checkpoint `INVOICE_ISSUED` & `PAYMENT_RECEIVED` pada rantai order. Test: 105/105.
+4. Frontend: tombol Terbitkan SJ+Resi (thermal), form log keluar truk vendor, tampil nomor resi di POD, halaman billing (faktur, catat pembayaran, piutang).
+5. Test: unit generate nomor waybill/resi unik, integrasi issue-waybill, vendor-exit & rantai billing, e2e rantai checkpoint baru (`WAYBILL_ISSUED`, `VENDOR_EXIT`, `INVOICE_ISSUED`, `PAYMENT_RECEIVED`).
+
+---
+
+## 0.1 Status Arsitektur Sebelumnya (Snapshot)
+
+**Current Status:** ALL PHASES COMPLETED (Responsive Desktop Console & Mobile PWA Active)  
 **Status:** READY FOR PRODUCTION DEPLOYMENT & DESKTOP/MOBILE FIELD OPS  
 
 ---
@@ -22,7 +48,8 @@
 - [x] **Spesifikasi Logistik Khusus Rantai Dingin KDMP:** Showcase & Chiller handling, Upright Only, BAST Desa (`docs/10_KDMP_Showcase_and_Chiller_Logistics.md`).
 - [x] **5 Standar Baku Rekayasa & Kepatuhan:** Coding, OWASP & OWASP AI Security, Testing, Audit, SemVer 2.0.0 (`docs/standards/*`).
 - [x] **Host Database Active:** PostgreSQL 16 `wms_simple_db` dimigrasi dan di-seed dengan data master & KDMP.
-- [x] **Master PDF Terpadu Publikasi Resmi:** `docs/WMS_Simple_Enterprise_Master_Documentation.pdf` (v2.3.0).
+- [x] **Master PDF Terpadu Publikasi Resmi:** `docs/WMS_Simple_Enterprise_Master_Documentation.pdf` (v2.4.1, diregenerasi via `scripts/build-master-pdf.mjs`, diagram flowchart & sequence render penuh tanpa syntax error dan tanpa ruang kosong berlebih).
+- [x] **Protokol Tata Kelola AI:** `AGENTS.md` dan `ai-state.json`.
 
 ---
 
@@ -141,3 +168,100 @@
    - [x] `pages/outbound/pod.vue`: BAST Desa digital signature canvas and photo capture review.
    - [x] `pages/stock/index.vue`: High-density tabular ledger with monospace quantities, reserved allocations, and in-transit figures.
 
+
+---
+
+## Sesi 2026-09-07 (Lanjutan) — Audit Mendalam + E2E 3 Backlog (v3.6.0)
+
+1. [x] **Audit mendalam backlog #1-#3 (waybill, vendor-exit, billing):** temuan P0 sistemik — 26 INSERT tanpa `id` (PK NULL di SQLite, rantai `prev_checkpoint_id` mati), parameter binding salah urutan (`$2...$1` ter-bind salah di SQLite, `billing_ready` tak pernah tersimpan), `uom_id` NOT NULL tak diisi (create order/PO/manifest selalu 500 di DB nyata), nested transaction `adjustStock`, kolom hantu `p.unit`/`p.weight_kg`.
+2. [x] **Semua P0/P1/P2 diperbaiki** — `uuid_generate_v4()` di semua INSERT, numbered placeholder `?N` di `db.ts`, resolusi UOM default produk, `txClient` untuk adjustStock, race LUNAS (SUM dalam tx + FOR UPDATE), validasi resi/SJ vendor-exit & departure (docs/05), nomor dokumen collision-proof, partial unique index, Zod verify-pod.
+3. [x] **Mata uang dikunci Rupiah:** `invoices.currency DEFAULT 'IDR'` + faktur terbit dengan `currency='IDR'`.
+4. [x] **E2E suite baru** (`backend/tests/e2e/transaction-chain.e2e.test.ts`): rantai penuh Jalur A (pool) & B (vendor) sampai LUNAS lawan SQLite nyata tanpa mock, 7 guard, integritas rantai checkpoint. 117/117 test lulus, TSC bersih.
+
+**Next:** frontend backlog #4 (tombol SJ+resi thermal, form vendor exit, resi di POD, halaman billing) atau push `ans` bila diminta.
+
+---
+
+## Sesi 2026-09-07 (Lanjutan 2) — Runtime Wajib PostgreSQL, SQLite Dihapus (v4.0.0)
+
+1. [x] **Migrasi engine:** `db.ts` kini `node-postgres` asli (global DB stack `postgres:16-alpine`, `127.0.0.1:5432`, `wms_simple_db`); SQLite & `sqlite-db.ts` dihapus dari runtime; `pg-schema.ts` = DDL + seed idempotent + migrasi guarded + partial index; `normalizeSql` → `gen_random_uuid()` / `ctid`.
+2. [x] **DB lama di-reset** ke schema konsisten (backup: `wms_simple_db_backup_20260907-212032.sql`); DB test terpisah `wms_simple_test_db`; e2e kini lawan PostgreSQL nyata.
+3. [x] **117/117 test lulus (19 suite)** + smoke manual rantai penuh sampai LUNAS di dev DB. ADR-12 tercatat.
+
+**Next:** frontend backlog #4, atau push `ans` bila diminta.
+
+---
+
+## Sesi 2026-09-07 (Lanjutan 3) — Backlog #4 Frontend (v4.1.0)
+
+1. [x] **/outbound** — daftar order + Terbitkan SJ+Resi + struk thermal ESC/POS (guard status & anti-duplikat).
+2. [x] **/waybills** — daftar SJ/Resi semua jalur + filter status.
+3. [x] **/billing** — siap tagih (billing_ready), faktur IDR, pembayaran parsial→LUNAS, ringkasan piutang.
+4. [x] **/outbound/pod** — lookup nomor order → resi/SJ wajib tampil; submit POD nyata (dulu mock).
+5. [x] **/gate-pass** — tab Jalur B truk vendor: vendor + nopol + resi wajib (datalist), tanpa gate-in.
+6. [x] **Nav RBAC** — menu outbound/waybills/billing per peran. `nuxt build` sukses.
+
+**Next:** smoke test app penuh (dev server), atau push `ans` bila diminta.
+
+---
+
+## Sesi 2026-09-08 — Smoke E2E, Login Fix, Dev Bypass (v4.1.1–v4.1.2)
+
+1. [x] **Smoke app penuh:** backend boot ke PostgreSQL global stack (login semua role 200, endpoint backlog hijau); frontend semua halaman 200.
+2. [x] **v4.1.1 — Fix login 500 di PG asli:** 27 kolom flag transliterasi SQLite (`INTEGER 0/1`) dikonversi `BOOLEAN` asli + seed `TRUE/FALSE`; dev & test DB di-reset. 117/117 test + TSC bersih.
+3. [x] **v4.1.2 — Dev bypass login:** tekan `D` 3x di halaman login masuk instan Super Admin (dev-only, `import.meta.dev`); port frontend dipin 3001 via CLI flag (env `PORT=3000` global tidak lagi menimpa config; backend 3000 / frontend 3001 tanpa bentrok).
+4. [x] **Dev server permanen via tmux:** sesi `wms-be` (3000) & `wms-fe` (3001) — backend login 200, halaman frontend 200.
+
+**Next (sisa backlog):** #5 — e2e rantai checkpoint inbound/crossdock (outbound pool + vendor sudah tertutup suite e2e), atau push `ans` bila diminta.
+
+---
+
+## Sesi 2026-09-09 — Backlog #5 selesai + Review UI
+
+- E2E rantai inbound → putaway → cross-dock → cross-doc di PostgreSQL nyata (4 test, tanpa mock): LULUS.
+- Bug ditemukan & diperbaiki: receive-dest tidak mengosongkan qty_in_transit gudang asal (fix: clear_transit_warehouse_id + log ledger CROSS_DOCK_TRANSIT_CLEAR); vendor-exit menolak reference_id null (Zod nullish); load/receive product_id kini dari DB.
+- Suite penuh: 121/121 test (20 file), TSC bersih. Login page branding → PostgreSQL 16.
+- Review UI: kartu dashboard "Trip Antar-Hub" salah sumber data (diganti jumlah armada pool tersedia), fallback SKU palsu dihapus, feedback sukses outbound kini tampil.
+
+---
+
+## Sesi 2026-09-10 — Audit Gap UI ↔ Backend + Penutupan Gap (v4.2.0)
+
+**Audit gap terdaftar (backend ada, UI bolong / sebaliknya):**
+1. **Picking & Packing tidak ada di UI** — endpoint `POST /outbound/:id/pick` & `/pack` ada + tested, tapi tak ada satu tombol pun di frontend → status PICKED/PACKED mustahil tercapai dari aplikasi.
+2. **Tidak ada cara Buat Delivery Order dari UI** — `POST /api/outbound` ada; halaman `/outbound` cuma daftar.
+3. **POD kirim bukti mock** — frontend POST `pod_photo_url: 'uploaded://pod-photo-capture'` (string palsu) & `delivered_qty: 1` hardcoded.
+4. **Filter `/billing` salah tipe** — `Number(o.billing_ready) === 1` padahal kolom PG `boolean` → order siap tagih tak pernah tampil.
+5. **Fallback stok palsu `/stock`** — data contoh (Gula/TV) muncul saat API gagal — pelanggaran anti-halusinasi.
+6. **Cross-dock & cross-document tanpa UI** — SELESAI v4.3.0: halaman `/crossdock` (manifest: buat → muat → terima tujuan) & `/crossdoc` (terbitkan swap dengan tipe dokumen) + store + nav. E2e rantai nyata terverifikasi (MNF-50063918, XDOC-50167044). [Closed]
+7. **Checkpoints verify-POD tanpa UI verifikasi** — SELESAI v4.4.0: panel Verifikasi Admin di `/outbound/pod` (ACC POD → POD_VERIFIED + billing_ready, atau Tolak dengan alasan → CANCELLED) + store `verifyPod`. E2e terverifikasi (ORD-NSAYFV79 → INV-K6D7BW85 IDR). [Closed]
+8. **Thermal printer Web Bluetooth hanya Chromium desktop/Android** — fallback cetak belum ada. [Open, low]
+
+**Ditutup sesi ini (v4.2.0):**
+- [x] Gap 1-2: store `createOrder`/`pickOrder`/`packOrder` + form Buat DO + tombol Picking/Packing di `/outbound`.
+- [x] Gap 3: POD kini capture foto kamera/file → JPEG base64 ≤900px + validasi TTD & consignee wajib.
+- [x] Gap 4: filter `billing_ready === true`.
+- [x] Gap 5: fallback dihapus → empty state jujur.
+- [x] `backend/vitest.config.ts` (serial e2e) di-commit; CHANGELOG 4.2.0.
+
+**Next:** Semua gap UI utama tertutup. Verifikasi POD (Gap 7) SELESAI v4.4.0: panel ACC/Tolak BAST di `/outbound/pod` + store `verifyPod`; bug `pickOrder`/`packOrder` tanpa body ikut diperbaiki. Sisa backlog minor: fallback cetak thermal printer (low priority) — atau push `ans` bila diminta.
+
+---
+
+## Sesi 2026-09-11 — Sinkronisasi Flow docs/09 v3.2.0 ↔ Aplikasi (v4.5.0)
+
+**Audit kesesuaian flow vs aplikasi:** 6 gap teridentifikasi (debulking tak tertaut order, SJ cross-dock tak terjangkau UI, ledger DALAM PERJALANAN absen, weighbridge jadi kode mati, deskripsi doc 09 di index basi, posisi nav cross-dock). Eksekusi bertahap:
+
+1. [x] **Gap 1 — Repacking on-demand (Prinsip 2):** migrasi `stock_conversions.outbound_order_id` (+FK+index, diterapkan ke `wms_simple_db`); `POST /api/debulking` validasi order ada/belum terkirim/belum punya WO lain (409); `GET /api/debulking?outbound_order_id=` + kolom `outbound_order_number`; halaman `/debulking` dirombak — pilih DO terbuka nyata, SKU parent/child dari master (UUID hardcode demo dihapus), preselect child via `parent_bulky_product_id`.
+2. [x] **Gap 2 — SJ universal cross-dock (Prinsip 3):** tombol Terbitkan SJ di manifest LOADED (row + mobile action), `issueWaybill(orderId, actor, referenceType)` kini kirim `reference_type`; list manifest join `waybills` (waybill_id/sj_number, anti-VOID).
+3. [x] **Gap 3 — Kartu stok DALAM PERJALANAN (FASE 3):** submit POD (→DELIVERED) kini mencatat mutasi `OUTBOUND_SHIP` per item (packed_qty) di ledger — tipe yang dideklarasi tapi tak pernah dipakai kini aktif; test outbound disesuaikan.
+4. [x] **Gap 4 — Weighbridge dinonaktifkan:** `/api/weighbridge` diberi header deprecated (read-only + catat manual curah/bulky via API, tanpa UI); dicatat di docs/02 & index.
+5. [x] **Gap 5 — docs/00 Index:** deskripsi doc 09 diperbarui ke v3.2.0 (POD bukan akhir, weighbridge nonaktif).
+6. [x] **Gap 6 — Posisi nav cross-dock (v4.6.1):** dipindah ke parent Inbound (sesuai node 4X, cabang dari inbound sorting); duplikat di parent Outbound dihapus.
+7. [x] **Gap tambahan — pg-schema vs migrasi (v4.6.1):** `stock_conversions.outbound_order_id` kini auto-migrate idempotent saat backend startup — sebelumnya hanya via file migrasi manual, deploy fresh (innaka) melewatkannya.
+8. [x] **Recon dev (v4.6.1):** reserved orphan Smart LED TV (10 unit) dinormalisasi via ADJUSTMENT ledger; semua stock_levels dev bersih.
+9. [x] **Bonus:** TS error `fleet.ts:433` (`ContentfulStatusCode`) diperbaiki; TSC backend bersih.
+
+**Deploy produksi:** innaka `http://104.64.221.233:8090` (v4.6.1 ter-deploy, health 200). Kredensial di `/data/docker-data/wms-simple/CREDENTIALS.md` (server-side, off-repo). Panduan: `docs/DEPLOY_INNAKA.md`.
+
+**Next (sisa):** fallback cetak thermal (low priority), HTTPS gateway, ganti password seed produksi.

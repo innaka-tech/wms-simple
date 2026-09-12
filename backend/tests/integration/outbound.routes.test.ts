@@ -44,9 +44,11 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
   it('POST /api/outbound should create outbound order and record checkpoint ORDER_CREATED', async () => {
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik order_number
       .mockResolvedValueOnce({   // INSERT outbound_orders
         rows: [{ id: 'out-1', order_number: 'ORD-20260901', status: 'CREATED' }]
       })
+      .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-1' }] } as any) // SELECT UOM produk
       .mockResolvedValueOnce({}) // INSERT outbound_items
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -74,11 +76,12 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
 
   it('POST /api/outbound/:id/pick should pick items from bins, adjust stock and record checkpoint', async () => {
     vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'out-1', order_number: 'ORD-001', warehouse_id: 'wh-jakarta' }]
+      rows: [{ id: 'out-1', order_number: 'ORD-001', warehouse_id: 'wh-jakarta', status: 'CREATED' }]
     } as any);
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-chiller-kdmp' }] } as any) // SELECT product_id item
       .mockResolvedValueOnce({}) // UPDATE outbound_items
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status PICKED
       .mockResolvedValueOnce({}); // COMMIT
@@ -109,13 +112,16 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
   });
 
   it('POST /api/outbound/:id/pack should record package boxes and checkpoint PACKING_COMPLETED', async () => {
-    vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'out-1', order_number: 'ORD-001' }]
-    } as any);
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({
+        rows: [{ id: 'out-1', order_number: 'ORD-001', status: 'PICKED' }]
+      } as any)
+      .mockResolvedValueOnce({ rows: [{ n: 0 }] } as any); // cek item belum ter-pick
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({}) // INSERT packages
+      .mockResolvedValueOnce({}) // UPDATE outbound_items packed_qty
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status PACKED
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -139,12 +145,15 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
 
   it('POST /api/outbound/:id/pod should submit digital POD evidence (photo + signature) and checkpoint DELIVERED', async () => {
     vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'out-1', order_number: 'ORD-001', recipient_name: 'Pak Kades' }]
+      rows: [{ id: 'out-1', order_number: 'ORD-001', recipient_name: 'Pak Kades', status: 'SHIPPED', warehouse_id: 'wh-jakarta' }]
     } as any);
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({ rows: [] } as any) // cek unik pod_number
       .mockResolvedValueOnce({}) // INSERT pod_documents
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-1', packed_qty: 2, picked_qty: 2 }] } as any) // items utk ledger OUTBOUND_SHIP
+      .mockResolvedValueOnce({}) // UPDATE outbound_items delivered_qty
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status DELIVERED
       .mockResolvedValueOnce({}); // COMMIT
 
@@ -171,13 +180,14 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
 
   it('POST /api/outbound/:id/verify-pod should allow admin to verify POD acceptance and record checkpoint', async () => {
     vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'out-1', order_number: 'ORD-001' }]
+      rows: [{ id: 'out-1', order_number: 'ORD-001', warehouse_id: 'wh-jakarta', status: 'DELIVERED' }]
     } as any);
 
     mockClient.query
       .mockResolvedValueOnce({}) // BEGIN
       .mockResolvedValueOnce({}) // UPDATE pod_documents
       .mockResolvedValueOnce({}) // UPDATE outbound_orders status POD_VERIFIED
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-1', total: 2 }] } as any) // items utk POD_VERIFIED_SHIP
       .mockResolvedValueOnce({}); // COMMIT
 
     const res = await app.request('/api/outbound/out-1/verify-pod', {
@@ -196,5 +206,95 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
         actor_name: 'Admin Verifikator'
       })
     );
+  });
+
+  describe('POST /api/outbound/:id/issue-waybill', () => {
+    const orderRow = { id: 'out-1', order_number: 'ORD-001', status: 'PACKED' };
+
+    it('should issue waybill with unique SJ + RESI numbers and record checkpoint WAYBILL_ISSUED', async () => {
+      vi.mocked(db.query)
+        .mockResolvedValueOnce({ rows: [orderRow] } as any) // SELECT order
+        .mockResolvedValueOnce({ rows: [] } as any) // cek waybill aktif (kosong)
+        .mockResolvedValueOnce({ rows: [] } as any) // cek sj_number unik
+        .mockResolvedValueOnce({ rows: [] } as any); // cek resi_number unik
+
+      mockClient.query
+        .mockResolvedValueOnce({}) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ id: 'wb-1', sj_number: 'SJ-AAAA1111', resi_number: 'RESI-BBBB2222', status: 'ISSUED' }] }) // INSERT waybills
+        .mockResolvedValueOnce({}); // COMMIT
+
+      const res = await app.request('/api/outbound/out-1/issue-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor_name: 'Admin Gudang Siti' })
+      });
+
+      expect(res.status).toBe(201);
+      const bodyRes = await res.json();
+      expect(bodyRes.success).toBe(true);
+      expect(bodyRes.data.sj_number).toMatch(/^SJ-[0-9A-HJ-NP-Z]{8}$/);
+      expect(bodyRes.data.resi_number).toMatch(/^RESI-[0-9A-HJ-NP-Z]{8}$/);
+      expect(checkpointService.recordCheckpoint).toHaveBeenCalledWith(
+        expect.objectContaining({
+          step_code: 'WAYBILL_ISSUED',
+          actor_name: 'Admin Gudang Siti',
+          metadata: expect.objectContaining({
+            sj_number: expect.stringMatching(/^SJ-[0-9A-HJ-NP-Z]{8}$/),
+            resi_number: expect.stringMatching(/^RESI-[0-9A-HJ-NP-Z]{8}$/)
+          })
+        })
+      );
+    });
+
+    it('should return 404 when outbound order does not exist', async () => {
+      vi.mocked(db.query).mockResolvedValueOnce({ rows: [] } as any);
+
+      const res = await app.request('/api/outbound/out-404/issue-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor_name: 'Admin Gudang Siti' })
+      });
+
+      expect(res.status).toBe(404);
+    });
+
+    it('should return 409 when an active waybill already exists for the order', async () => {
+      vi.mocked(db.query)
+        .mockResolvedValueOnce({ rows: [orderRow] } as any)
+        .mockResolvedValueOnce({ rows: [{ id: 'wb-1', sj_number: 'SJ-EXIST77' }] } as any);
+
+      const res = await app.request('/api/outbound/out-1/issue-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor_name: 'Admin Gudang Siti' })
+      });
+
+      expect(res.status).toBe(409);
+      const bodyRes = await res.json();
+      expect(bodyRes.message).toContain('SJ-EXIST77');
+    });
+
+    it('should return 409 when order status is DELIVERED or POD_VERIFIED', async () => {
+      vi.mocked(db.query)
+        .mockResolvedValueOnce({ rows: [{ ...orderRow, status: 'POD_VERIFIED' }] } as any);
+
+      const res = await app.request('/api/outbound/out-1/issue-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actor_name: 'Admin Gudang Siti' })
+      });
+
+      expect(res.status).toBe(409);
+    });
+
+    it('should return 400 when actor_name is missing (Mandatory petugas_name)', async () => {
+      const res = await app.request('/api/outbound/out-1/issue-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+
+      expect(res.status).toBe(400);
+    });
   });
 });
