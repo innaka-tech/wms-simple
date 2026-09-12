@@ -198,13 +198,16 @@
             </button>
           </form>
 
-          <!-- ROLE CLEARANCE SELECTOR (Sleek Enterprise Profile Switcher - Dev Only) -->
-          <div v-if="isDevBypassEnabled" class="pt-3.5 border-t border-slate-100 dark:border-slate-800">
+          <!-- ROLE CLEARANCE SELECTOR (Sleek Enterprise Profile Switcher - Staging Quick-Login) -->
+          <div v-if="isQuickLoginEnabled" class="pt-3.5 border-t border-slate-100 dark:border-slate-800">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-400 font-mono">
-                Profil Simulasi Peran (RBAC Clearance - Dev Only)
-              </span>
-              <span class="text-[10px] text-slate-400 font-mono">Sandi: password123<span v-if="isDevBypassEnabled"> • Tekan <kbd class="px-1 py-0.2 rounded border border-slate-200 dark:border-slate-700 font-bold">D</kbd> 3x untuk bypass</span></span>
+              <div class="flex items-center space-x-1.5">
+                <span class="inline-block w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 font-mono">
+                  Quick Login UAT (Staging Mode)
+                </span>
+              </div>
+              <span class="text-[10px] text-slate-400 font-mono">Sandi default: password123</span>
             </div>
 
             <!-- 6 Enterprise Role Cards (Clean, Subtle, Minimalist) -->
@@ -263,9 +266,15 @@ definePageMeta({
 const router = useRouter()
 const authStore = useAuthStore()
 
+// ============================================================
+// STAGING ONLY: Quick-Login diaktifkan sementara untuk UAT.
+// ⚠️ PERINGATAN WAJIB: MATIKAN (set false) SEBELUM GO-LIVE PRODUCTION!
+// ============================================================
+const isQuickLoginEnabled = true
+
 const isDevBypassEnabled = import.meta.dev
-const username = ref(isDevBypassEnabled ? 'superadmin' : '')
-const password = ref(isDevBypassEnabled ? 'password123' : '')
+const username = ref(isQuickLoginEnabled ? 'superadmin' : '')
+const password = ref(isQuickLoginEnabled ? 'password123' : '')
 const showPassword = ref(false)
 
 // ============================================================

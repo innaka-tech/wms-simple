@@ -343,4 +343,10 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
    - Frontend Nuxt build: Berhasil 100% (1.75 MB).
    - CHANGELOG.md dan ai-state.json sinkron pada v4.6.4.
 
-**Next:** Menunggu konfirmasi user untuk `git push` ke branch target (`main` / `ans`) dan deployment ke server Innaka.
+4. [x] **Staging Quick-Login Flag (UAT Convenience):**
+   - Mengaktifkan `isQuickLoginEnabled = true` pada `frontend/pages/login.vue` agar tombol kartu 6 role operasional muncul langsung di staging (`https://wms.innaka.dev/login`), memudahkan pengujian UAT tanpa harus ketik manual.
+   - **⚠️ PENGINGAT WAJIB SEBELUM PRODUCTION GO-LIVE:**
+     - [ ] **Wajib mematikan `isQuickLoginEnabled = false`** pada `frontend/pages/login.vue`.
+     - [ ] Ganti kata sandi default seed (`password123`) untuk seluruh akun operasional di database produksi.
+
+**Next:** Aplikasi aktif di staging `https://wms.innaka.dev`. Quick-login aktif untuk UAT.
