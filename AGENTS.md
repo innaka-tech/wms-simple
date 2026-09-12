@@ -45,4 +45,26 @@ Setiap agen AI yang beroperasi di repositori ini terikat pada aturan:
    - `git push` HANYA boleh dilakukan atas permintaan EKSPLISIT dari user dalam sesi tersebut. Jangan pernah push atas inisiatif sendiri, termasuk setelah commit.
    - Konfirmasi branch target ke user (`main`, `ans`, atau branch lain) jika belum disebutkan spesifik, dan push HANYA ke branch yang diinstruksikan/disetujui oleh user.
    - `git commit` bebas dilakukan sesuai kebutuhan; yang dibatasi hanya push.
+
+---
+
+## 3. Kredensial Pengujian & UAT Resmi (Official UAT & Testing Credentials)
+
+Untuk kebutuhan **User Acceptance Testing (UAT)**, pengujian otomatis, dan verifikasi alur operasional di server **Innaka Cloud**, gunakan akun resmi yang telah disiapkan pada database:
+
+* **URL UAT Publik (Cloudflare Tunnel HTTPS):** `https://wms.innaka.dev/login`
+* **URL Fallback Host Gateway:** `http://104.64.221.233:8090/login`
+* **Password Default Semua Akun UAT:** `password123`
+
+| No | Username | Password | Role Code | Nama Petugas / Identitas Fisik | Cakupan Modul & Pengujian UAT |
+|:---:|---|---|---|---|---|
+| 1 | **`superadmin`** | `password123` | `SUPER_ADMIN` | System Super Administrator | Akses penuh seluruh modul, konfigurasi master data, fleet, user management, dan audit log. |
+| 2 | **`admin_adm`** | `password123` | `ADMIN_ADM` | Siti Rahmawati (Admin Adm & Billing) | Inbound PO, Outbound Delivery Order, terbitkan Waybill/Resi/SJ, verifikasi POD, Billing & Invoice LUNAS. |
+| 3 | **`mgr_jkt`** | `password123` | `WH_MANAGER` | Bambang Sudiro (Warehouse Manager) | Monitoring buku besar stok, persetujuan kerja repacking debulking, dashboard telemetry, dan penanganan alert. |
+| 4 | **`staff_jkt`** | `password123` | `WH_STAFF` | Joko Susanto (WH Staff JKT) | Penerimaan fisik Inbound di dock, putaway ke rak, picking barang, packing kargo, dan manifest cross-dock. |
+| 5 | **`gate_officer`** | `password123` | `GATE_OFFICER` | Sersan Hendro (Satpam Gerbang) | Pos Satpam Gate Pass: inspeksi fisik truk, catat odometer/BBM keberangkatan & kepulangan, vendor-exit log. |
+| 6 | **`driver_budi`** | `password123` | `DRIVER` | Budi Santoso (Supir Tronton) | Penerimaan manifest jalan, bukti tanda terima BAST Desa / POD mobile dengan tanda tangan kanvas digital. |
+
+> [!NOTE]
+> Seluruh kata sandi di atas disimpan menggunakan algoritma hashing kriptografis **`scrypt`** dengan *salt* acak dan perbandingan waktu-konstan (*constant-time comparison*) untuk kepatuhan OWASP A07 & ISO/IEC 27001 A.9.4.3.
 <!-- ai-toolkit:protocol:end -->
