@@ -45,7 +45,6 @@ function normalizeSql(sql: string): string {
 function normalizeParams(params?: any[]): any[] | undefined {
   return params
     ? params.map((p) => {
-        if (typeof p === 'boolean') return p ? 1 : 0;
         if (typeof p === 'object' && p !== null && !(p instanceof Date)) return JSON.stringify(p);
         return p;
       })

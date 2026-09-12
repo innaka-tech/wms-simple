@@ -35,7 +35,7 @@ describe('GET /api/checkpoints/by-number/:number', () => {
   }
 
   it('should return 404 for unknown document number', async () => {
-    vi.mocked(db.query).mockResolvedValueOnce({ rows: [] } as any);
+    vi.mocked(db.query).mockResolvedValue({ rows: [] } as any);
     const res = await app.request('/api/checkpoints/by-number/PO-TIDAK-ADA');
     expect(res.status).toBe(404);
   });
@@ -97,5 +97,24 @@ describe('GET /api/checkpoints/by-number/:number', () => {
     expect(t[2].next_step_code).toBeNull();
     expect(t[2].prev_step_code).toBe('PO_RECEIVED');
     expect(t[2].seq).toBe(3);
+  });
+
+  it('should resolve checkpoint chain via waybill SJ or RESI alias', async () => {
+    // 1st query: direct entity_number lookup -> empty
+    // 2nd query: waybills lookup -> found reference
+    // 3rd query: checkpoints for resolved reference -> returns chain
+    vi.mocked(db.query)
+      .mockResolvedValueOnce({ rows: [] } as any)
+      .mockResolvedValueOnce({ rows: [{ reference_type: 'OUTBOUND_ORDER', reference_id: 'ord-1' }] } as any)
+      .mockResolvedValueOnce(chainRows());
+
+    const res = await app.request('/api/checkpoints/by-number/SJ-ABC12345');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
+    expect(body.data.document_number).toBe('SJ-ABC12345');
+    expect(body.data.alias_of).toBe('PO-123');
+    expect(body.data.chain_valid).toBe(true);
+    expect(body.data.total_checkpoints).toBe(3);
   });
 });

@@ -293,27 +293,37 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
 
   // docs/05: tidak ada truk keluar tanpa dokumen — resi/SJ wajib untuk keberangkatan pengiriman barang
   const deliveryPurpose = (purpose || 'OUTBOUND_DELIVERY') === 'OUTBOUND_DELIVERY';
-  if (deliveryPurpose && (!waybill_number || String(waybill_number).trim().length < 4)) {
+  const effectiveWaybillNumber = (waybill_number || (deliveryPurpose ? reference_number : undefined) || '').trim();
+
+  if (deliveryPurpose && (!effectiveWaybillNumber || effectiveWaybillNumber.length < 4)) {
     return c.json({
       success: false,
       message: 'Nomor resi/Surat Jalan yang dibawa wajib dicatat untuk keberangkatan pengiriman barang'
     }, 400);
   }
-  if (deliveryPurpose) {
+
+  let resolvedRefType = reference_type || (deliveryPurpose ? 'OUTBOUND_ORDER' : 'NONE');
+  let resolvedRefId = reference_id;
+
+  if (deliveryPurpose && effectiveWaybillNumber) {
     const docRes = await query(
-      `SELECT 1 FROM waybills WHERE sj_number = $1 OR resi_number = $1
-       UNION ALL SELECT 1 FROM cross_documents WHERE target_document_number = $1`,
-      [String(waybill_number).trim()]
+      `SELECT reference_type, reference_id FROM waybills WHERE UPPER(sj_number) = $1 OR UPPER(resi_number) = $1
+       UNION ALL SELECT 'CROSS_DOCUMENT' AS reference_type, id AS reference_id FROM cross_documents WHERE UPPER(target_document_number) = $1`,
+      [effectiveWaybillNumber.toUpperCase()]
     );
     if (docRes.rows.length === 0) {
       return c.json({
         success: false,
-        message: `Resi/SJ "${waybill_number}" tidak ditemukan — keberangkatan tanpa dokumen sah ditolak (docs/05)`
+        message: `Resi/SJ "${effectiveWaybillNumber}" tidak ditemukan — keberangkatan tanpa dokumen sah ditolak (docs/05)`
       }, 409);
+    }
+    if (!resolvedRefId && docRes.rows[0]?.reference_id) {
+      resolvedRefType = docRes.rows[0].reference_type;
+      resolvedRefId = docRes.rows[0].reference_id;
     }
   }
   // docs/05: keberangkatan manifest cross-dock — nomor manifest wajib dicatat & divalidasi
-  if (reference_type === 'CROSS_DOCK_MANIFEST' && reference_id) {
+  if (resolvedRefType === 'CROSS_DOCK_MANIFEST' && resolvedRefId) {
     if (!reference_number || String(reference_number).trim().length < 4) {
       return c.json({
         success: false,
@@ -322,7 +332,7 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
     }
     const mnfRes = await query(
       `SELECT 1 FROM cross_dock_manifests WHERE id = $1 AND manifest_number = $2`,
-      [reference_id, String(reference_number).trim()]
+      [resolvedRefId, String(reference_number).trim()]
     );
     if (mnfRes.rows.length === 0) {
       return c.json({
@@ -375,7 +385,7 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
       RETURNING *`,
       [
         logNumber, vehicle_id, driver_id || null, driver_name.trim(), warehouse_id,
-        purpose || 'OUTBOUND_DELIVERY', reference_type || 'NONE', reference_id || null, reference_number || null, waybill_number || null,
+        purpose || 'OUTBOUND_DELIVERY', resolvedRefType || 'NONE', resolvedRefId || null, reference_number || null, effectiveWaybillNumber || waybill_number || null,
         expected_return_time || null, odometer_out, fuel_level_out || 'FULL',
         departure_security_officer.trim(), departure_photo_url || null, departure_notes || null,
         actor_id || null, actor_name.trim()
@@ -394,19 +404,19 @@ fleetRoutes.post('/departure', optionalAuth, async (c) => {
     );
 
     // 4. If linked to manifest or outbound, update status
-    if (reference_type === 'CROSS_DOCK_MANIFEST' && reference_id) {
+    if (resolvedRefType === 'CROSS_DOCK_MANIFEST' && resolvedRefId) {
       await client.query(
         `UPDATE cross_dock_manifests 
          SET status = 'IN_TRANSIT', actual_departure = CURRENT_TIMESTAMP 
          WHERE id = $1`,
-        [reference_id]
+        [resolvedRefId]
       );
-    } else if (reference_type === 'OUTBOUND_ORDER' && reference_id) {
+    } else if (resolvedRefType === 'OUTBOUND_ORDER' && resolvedRefId) {
       await client.query(
         `UPDATE outbound_orders 
          SET status = 'SHIPPED', shipped_at = CURRENT_TIMESTAMP 
          WHERE id = $1`,
-        [reference_id]
+        [resolvedRefId]
       );
     }
 
@@ -478,11 +488,13 @@ fleetRoutes.post('/logs/:id/return', optionalAuth, async (c) => {
     }, 400);
   }
 
+  const distance = Math.max(0, parseFloat(odometer_in) - parseFloat(exitLog.odometer_out));
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // 1. Update Fleet Exit Log to RETURNED
+    // 1. Update Fleet Exit Log to RETURNED with distance_travelled_km
     const updateRes = await client.query(
       `UPDATE fleet_exit_logs 
        SET status = 'RETURNED',
@@ -491,7 +503,8 @@ fleetRoutes.post('/logs/:id/return', optionalAuth, async (c) => {
            fuel_level_in = $3,
            return_security_officer = $4,
            return_photo_url = $5,
-           return_notes = $6
+           return_notes = $6,
+           distance_travelled_km = $7
        WHERE id = $1
        RETURNING *`,
       [
@@ -500,17 +513,23 @@ fleetRoutes.post('/logs/:id/return', optionalAuth, async (c) => {
         fuel_level_in || 'FULL', 
         return_security_officer, 
         return_photo_url || null, 
-        return_notes || null
+        return_notes || null,
+        distance
       ]
     );
     const updatedLog = updateRes.rows[0];
 
-    // 2. Set vehicle status back to AVAILABLE
-    await client.query(`UPDATE vehicles SET status = 'AVAILABLE' WHERE id = $1`, [exitLog.vehicle_id]);
+    // 2. Set vehicle status back to AVAILABLE and update last_odometer_km
+    await client.query(
+      `UPDATE vehicles 
+       SET status = 'AVAILABLE',
+           last_odometer_km = $2,
+           updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $1`,
+      [exitLog.vehicle_id, odometer_in]
+    );
 
     await client.query('COMMIT');
-
-    const distance = parseFloat(odometer_in) - parseFloat(exitLog.odometer_out);
 
     // Record Checkpoint (Gate Return)
     await recordCheckpoint({
@@ -577,9 +596,9 @@ fleetRoutes.post('/vendor-exit', optionalAuth, async (c) => {
 
   // docs/05 V_DOC: resi/SJ yang dibawa harus valid (terdaftar di sistem)
   const docRes = await query(
-    `SELECT 1 FROM waybills WHERE sj_number = $1 OR resi_number = $1
-     UNION ALL SELECT 1 FROM cross_documents WHERE target_document_number = $1`,
-    [body.waybill_number]
+    `SELECT reference_type, reference_id FROM waybills WHERE UPPER(sj_number) = $1 OR UPPER(resi_number) = $1
+     UNION ALL SELECT 'CROSS_DOCUMENT' AS reference_type, id AS reference_id FROM cross_documents WHERE UPPER(target_document_number) = $1`,
+    [body.waybill_number.toUpperCase()]
   );
   if (docRes.rows.length === 0) {
     return c.json({
@@ -588,14 +607,17 @@ fleetRoutes.post('/vendor-exit', optionalAuth, async (c) => {
     }, 409);
   }
 
+  let resolvedRefType = body.reference_type && body.reference_type !== 'NONE' ? body.reference_type : (docRes.rows[0]?.reference_type || 'NONE');
+  let resolvedRefId = body.reference_id || (docRes.rows[0]?.reference_id || null);
+
   // Referensi order/manifest harus ada agar update status tidak diam-diam gagal
-  if (body.reference_type === 'OUTBOUND_ORDER' && body.reference_id) {
-    const refRes = await query(`SELECT id FROM outbound_orders WHERE id = $1`, [body.reference_id]);
+  if (resolvedRefType === 'OUTBOUND_ORDER' && resolvedRefId) {
+    const refRes = await query(`SELECT id FROM outbound_orders WHERE id = $1`, [resolvedRefId]);
     if (refRes.rows.length === 0) {
       return c.json({ success: false, message: 'Outbound order referensi tidak ditemukan' }, 404);
     }
-  } else if (body.reference_type === 'CROSS_DOCK_MANIFEST' && body.reference_id) {
-    const refRes = await query(`SELECT id FROM cross_dock_manifests WHERE id = $1`, [body.reference_id]);
+  } else if (resolvedRefType === 'CROSS_DOCK_MANIFEST' && resolvedRefId) {
+    const refRes = await query(`SELECT id FROM cross_dock_manifests WHERE id = $1`, [resolvedRefId]);
     if (refRes.rows.length === 0) {
       return c.json({ success: false, message: 'Cross-dock manifest referensi tidak ditemukan' }, 404);
     }
@@ -625,22 +647,22 @@ fleetRoutes.post('/vendor-exit', optionalAuth, async (c) => {
       RETURNING *`,
       [
         logNumber, body.warehouse_id || null, body.vendor_name, body.plate_number, body.vehicle_type || null,
-        body.driver_name || null, body.waybill_number, body.reference_type || 'NONE', body.reference_id || null,
+        body.driver_name || null, body.waybill_number, resolvedRefType || 'NONE', resolvedRefId || null,
         body.destination_note || null, actor_name, body.departure_photo_url || null, body.notes || null
       ]
     );
     const vendorLog = insertRes.rows[0];
 
     // Sama seperti jalur pool: order terkait berangkat dari gudang
-    if (body.reference_type === 'OUTBOUND_ORDER' && body.reference_id) {
+    if (resolvedRefType === 'OUTBOUND_ORDER' && resolvedRefId) {
       await client.query(
         `UPDATE outbound_orders SET status = 'SHIPPED', shipped_at = CURRENT_TIMESTAMP WHERE id = $1`,
-        [body.reference_id]
+        [resolvedRefId]
       );
-    } else if (body.reference_type === 'CROSS_DOCK_MANIFEST' && body.reference_id) {
+    } else if (resolvedRefType === 'CROSS_DOCK_MANIFEST' && resolvedRefId) {
       await client.query(
         `UPDATE cross_dock_manifests SET status = 'IN_TRANSIT', actual_departure = CURRENT_TIMESTAMP WHERE id = $1`,
-        [body.reference_id]
+        [resolvedRefId]
       );
     }
 

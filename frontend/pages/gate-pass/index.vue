@@ -129,9 +129,14 @@
                 v-model="formOut.reference_number" 
                 type="text" 
                 required 
-                placeholder="Contoh: MNF-20260901-001"
+                list="departure-doc-options"
+                placeholder="Contoh: SJ-XXXXXXXX / MNF-XXXXXXXX"
                 class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 font-mono font-bold focus:border-blue-500 focus:outline-none"
               />
+              <datalist id="departure-doc-options">
+                <option v-for="wb in waybillStore.waybills" :key="wb.id" :value="wb.sj_number">{{ wb.resi_number }} • {{ wb.order_number || '' }}</option>
+                <option v-for="wb in waybillStore.waybills" :key="'r-' + wb.id" :value="wb.resi_number">{{ wb.sj_number }} • {{ wb.order_number || '' }}</option>
+              </datalist>
               <button 
                 type="button" 
                 @click="triggerQrScan" 
@@ -377,14 +382,27 @@ const formVendor = ref({
 async function handleVendorExit() {
   vendorSubmitting.value = true
   try {
+    let refId = formVendor.value.reference_id
+    let refType = refId ? 'OUTBOUND_ORDER' : undefined
+    if (!refId && formVendor.value.waybill_number) {
+      const wb = waybillStore.waybills.find(
+        w => (w.sj_number || '').toLowerCase() === formVendor.value.waybill_number.trim().toLowerCase() ||
+             (w.resi_number || '').toLowerCase() === formVendor.value.waybill_number.trim().toLowerCase()
+      )
+      if (wb) {
+        refId = wb.reference_id
+        refType = wb.reference_type || 'OUTBOUND_ORDER'
+      }
+    }
+
     await apiFetch('/fleet/vendor-exit', {
       method: 'POST',
       body: {
         vendor_name: formVendor.value.vendor_name,
         plate_number: formVendor.value.plate_number,
         waybill_number: formVendor.value.waybill_number,
-        reference_type: formVendor.value.reference_id ? 'OUTBOUND_ORDER' : 'NONE',
-        reference_id: formVendor.value.reference_id || undefined,
+        reference_type: refType || 'NONE',
+        reference_id: refId || undefined,
         destination_note: formVendor.value.destination_note || undefined,
         actor_name: formVendor.value.actor_name
       }
@@ -424,8 +442,24 @@ function triggerQrScan() {
 }
 
 async function handleDeparture() {
+  let refId = undefined
+  let refType = undefined
+  if (formOut.value.reference_number) {
+    const wb = waybillStore.waybills.find(
+      w => (w.sj_number || '').toLowerCase() === formOut.value.reference_number.trim().toLowerCase() ||
+           (w.resi_number || '').toLowerCase() === formOut.value.reference_number.trim().toLowerCase()
+    )
+    if (wb) {
+      refId = wb.reference_id
+      refType = wb.reference_type || 'OUTBOUND_ORDER'
+    }
+  }
+
   const success = await gatePassStore.submitDeparture({
     ...formOut.value,
+    waybill_number: formOut.value.reference_number,
+    reference_type: refType,
+    reference_id: refId,
     warehouse_id: authStore.activeWarehouseId
   })
 

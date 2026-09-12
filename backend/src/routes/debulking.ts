@@ -111,37 +111,37 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
     return c.json({ success: false, message: 'Nama petugas pengawas de-bulking wajib diisi' }, 400);
   }
 
+  // docs/09 v3.2.0 Prinsip 2: repacking hanya setelah ada permintaan kirim.
+  // Bila work order dikaitkan ke order, validasi: order ada, masih terbuka (belum
+  // dikirim/dibatalkan), dan satu order hanya boleh punya satu work order repacking.
+  if (outbound_order_id) {
+    const orderRes = await query(`SELECT id, status, order_number FROM outbound_orders WHERE id = $1`, [outbound_order_id]);
+    if (orderRes.rows.length === 0) {
+      return c.json({ success: false, message: 'Outbound order tidak ditemukan' }, 404);
+    }
+    const orderStatus = orderRes.rows[0].status;
+    const blockedStatuses = ['DELIVERED', 'POD_VERIFIED', 'CANCELLED'];
+    if (blockedStatuses.includes(orderStatus)) {
+      return c.json(
+        { success: false, message: `Repacking tidak dapat ditautkan ke order berstatus ${orderStatus}` },
+        409
+      );
+    }
+    const dupRes = await query(
+      `SELECT id, conversion_number FROM stock_conversions WHERE outbound_order_id = $1`,
+      [outbound_order_id]
+    );
+    if (dupRes.rows.length > 0) {
+      return c.json(
+        { success: false, message: `Repacking sudah ada untuk order ini (WO: ${dupRes.rows[0].conversion_number})` },
+        409
+      );
+    }
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
-    // docs/09 v3.2.0 Prinsip 2: repacking hanya setelah ada permintaan kirim.
-    // Bila work order dikaitkan ke order, validasi: order ada, masih terbuka (belum
-    // dikirim/dibatalkan), dan satu order hanya boleh punya satu work order repacking.
-    if (outbound_order_id) {
-      const orderRes = await client.query(`SELECT id, status, order_number FROM outbound_orders WHERE id = $1`, [outbound_order_id]);
-      if (orderRes.rows.length === 0) {
-        return c.json({ success: false, message: 'Outbound order tidak ditemukan' }, 404);
-      }
-      const orderStatus = orderRes.rows[0].status;
-      const blockedStatuses = ['DELIVERED', 'POD_VERIFIED', 'CANCELLED'];
-      if (blockedStatuses.includes(orderStatus)) {
-        return c.json(
-          { success: false, message: `Repacking tidak dapat ditautkan ke order berstatus ${orderStatus}` },
-          409
-        );
-      }
-      const dupRes = await client.query(
-        `SELECT id, conversion_number FROM stock_conversions WHERE outbound_order_id = $1`,
-        [outbound_order_id]
-      );
-      if (dupRes.rows.length > 0) {
-        return c.json(
-          { success: false, message: `Repacking sudah ada untuk order ini (WO: ${dupRes.rows[0].conversion_number})` },
-          409
-        );
-      }
-    }
 
     const conversionNumber = `DEBULK-${Date.now().toString().slice(-8)}`;
     const totalInWeight = inputs.reduce((sum: number, item: any) => sum + parseFloat(item.weight_kg), 0);

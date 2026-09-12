@@ -5,6 +5,31 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.6.4] - 2026-09-12
+
+### Fixed (Code Review & End-to-End Operational Lifecycle Hardening)
+
+- **Audit Trail Alias Resolution (`backend/src/routes/checkpoints.ts`):**
+  - Mengimplementasikan resolusi otomatis untuk pencarian timeline dokumen melalui nomor Surat Jalan (`SJ-`), nomor Resi (`RESI-`), nomor Faktur (`INV-`), maupun pencarian string metadata checkpoint.
+  - Menghilangkan galat 404 saat pengguna menelusuri nomor resi atau faktur pada portal `/checkpoints`.
+  - Menambahkan pengujian integrasi unit untuk resolusi alias waybill dan invoice.
+
+- **Gate Pass Auto-Linking & Armada Distance Tracking (`backend/src/routes/fleet.ts`):**
+  - Memperbaiki pencatatan `distance_travelled_km` pada `fleet_exit_logs` saat armada pool kembali (gate-in), yang sebelumnya bernilai NULL.
+  - Memperbarui `last_odometer_km` kendaraan di tabel `vehicles` secara otomatis saat armada tiba kembali di pool (`status = 'AVAILABLE'`).
+  - Menambahkan auto-resolusi `reference_type` dan `reference_id` dari tabel `waybills` pada rute `POST /api/fleet/departure` dan `POST /api/fleet/vendor-exit`, memastikan status order berpindah ke `SHIPPED` meskipun petugas gerbang hanya memasukkan nomor Surat Jalan/Resi.
+
+- **Dangling Transaction Prevention (`backend/src/routes/debulking.ts`):**
+  - Memindahkan pra-validasi `outbound_order_id` (keberadaan order, status terkunci, duplikasi work order) ke luar blok transaksi (`client.query('BEGIN')`), mencegah potensi *uncommitted transaction leak* pada koneksi pool.
+
+- **Preservasi Boolean Native PostgreSQL (`backend/src/db.ts`):**
+  - Menghapus konversi peninggalan SQLite `if (typeof p === 'boolean') return p ? 1 : 0` pada `normalizeParams` sehingga parameter bertipe boolean dikirimkan sebagai nilai asli (`true`/`false`) ke PostgreSQL.
+
+- **Frontend UI State & Form Hardening:**
+  - **Billing Portal (`frontend/pages/billing/index.vue`):** Menyaring daftar `readyToBill` agar order yang fakturnya sudah diterbitkan tidak lagi muncul ganda pada tabel "Order Siap Dibilling".
+  - **POD Portal (`frontend/pages/outbound/pod.vue`):** Memperluas pencarian order agar dapat mengenali input berbasis `order_number`, `sj_number`, maupun `resi_number`.
+  - **Gate Pass Portal (`frontend/pages/gate-pass/index.vue`):** Menambahkan `datalist` opsi dokumen keberangkatan dan mengotomatiskan penerusan nomor waybill pada form keberangkatan armada pool serta truk vendor.
+
 ## [4.6.3] - 2026-09-12
 
 ### Security (OWASP Top 10 Web, OWASP AI, & ISO/IEC 27001 Hardening)

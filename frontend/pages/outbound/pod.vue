@@ -289,10 +289,13 @@ async function lookupWaybill() {
   matchedOrder.value = null
   showRejectInput.value = false
   rejectionReason.value = ''
-  if (!orderNumberInput.value.trim()) return
+  const term = orderNumberInput.value.trim().toLowerCase()
+  if (!term) return
   await waybillStore.fetchWaybills()
   const found = waybillStore.waybills.find(
-    (w) => (w.order_number || '').toLowerCase() === orderNumberInput.value.trim().toLowerCase()
+    (w) => (w.order_number || '').toLowerCase() === term ||
+           (w.sj_number || '').toLowerCase() === term ||
+           (w.resi_number || '').toLowerCase() === term
   )
   if (found) {
     matchedWaybill.value = found
@@ -302,7 +305,7 @@ async function lookupWaybill() {
       if (res.success) matchedOrder.value = res.data
     } catch { /* panel verifikasi cukup tersembunyi bila detail gagal dimuat */ }
   } else {
-    lookupMessage.value = 'Surat Jalan untuk nomor order itu tidak ditemukan — pastikan SJ + resi sudah terbit.'
+    lookupMessage.value = 'Dokumen untuk nomor order/SJ/Resi itu tidak ditemukan — pastikan SJ + resi sudah terbit.'
     playAudioFeedback('ERROR')
   }
 }

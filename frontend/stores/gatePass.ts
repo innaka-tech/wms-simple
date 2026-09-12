@@ -87,6 +87,10 @@ export const useGatePassStore = defineStore('gatePass', {
       odometer_out: number;
       fuel_level_out: string;
       departure_security_officer: string;
+      reference_number?: string;
+      waybill_number?: string;
+      reference_type?: string;
+      reference_id?: string;
       departure_notes?: string;
     }) {
       this.isLoading = true;
@@ -99,6 +103,7 @@ export const useGatePassStore = defineStore('gatePass', {
           method: 'POST',
           body: {
             ...payload,
+            waybill_number: payload.waybill_number || payload.reference_number,
             actor_name: payload.departure_security_officer
           }
         });

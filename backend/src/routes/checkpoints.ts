@@ -28,7 +28,7 @@ checkpointRoutes.get('/by-number/:number', async (c) => {
     return c.json({ success: false, message: 'Nomor dokumen terlalu pendek (min 4 karakter)' }, 400);
   }
 
-  const result = await query(
+  let result = await query(
     `SELECT cl.*, u.full_name AS actor_full_name
      FROM checkpoint_logs cl
      LEFT JOIN users u ON cl.actor_id = u.id
@@ -37,7 +37,77 @@ checkpointRoutes.get('/by-number/:number', async (c) => {
     [docNumber]
   );
 
-  if (result.rows.length === 0) {
+  let aliasOf: string | null = null;
+
+  // Resolusi alias 1: Surat Jalan / Nomor Resi (tabel waybills)
+  if (!result?.rows || result.rows.length === 0) {
+    const wbRes = await query(
+      `SELECT reference_type, reference_id FROM waybills WHERE UPPER(sj_number) = $1 OR UPPER(resi_number) = $1`,
+      [docNumber]
+    );
+    if (wbRes?.rows && wbRes.rows.length > 0) {
+      const aliasResult = await query(
+        `SELECT cl.*, u.full_name AS actor_full_name
+         FROM checkpoint_logs cl
+         LEFT JOIN users u ON cl.actor_id = u.id
+         WHERE cl.entity_type = $1 AND cl.entity_id = $2
+         ORDER BY cl.created_at ASC`,
+        [wbRes.rows[0].reference_type, wbRes.rows[0].reference_id]
+      );
+      if (aliasResult?.rows && aliasResult.rows.length > 0) {
+        result = aliasResult;
+        aliasOf = result.rows[0].entity_number;
+      }
+    }
+  }
+
+  // Resolusi alias 2: Nomor Faktur (tabel invoices)
+  if (!result?.rows || result.rows.length === 0) {
+    const invRes = await query(
+      `SELECT outbound_order_id FROM invoices WHERE UPPER(invoice_number) = $1`,
+      [docNumber]
+    );
+    if (invRes?.rows && invRes.rows.length > 0) {
+      const aliasResult = await query(
+        `SELECT cl.*, u.full_name AS actor_full_name
+         FROM checkpoint_logs cl
+         LEFT JOIN users u ON cl.actor_id = u.id
+         WHERE cl.entity_type = 'OUTBOUND_ORDER' AND cl.entity_id = $1
+         ORDER BY cl.created_at ASC`,
+        [invRes.rows[0].outbound_order_id]
+      );
+      if (aliasResult?.rows && aliasResult.rows.length > 0) {
+        result = aliasResult;
+        aliasOf = result.rows[0].entity_number;
+      }
+    }
+  }
+
+  // Resolusi alias 3: Pencarian metadata (sj_number, resi_number, invoice_number)
+  if (!result?.rows || result.rows.length === 0) {
+    const metaRes = await query(
+      `SELECT entity_type, entity_id FROM checkpoint_logs
+       WHERE metadata::text ILIKE $1
+       LIMIT 1`,
+      [`%"${docNumber}"%`]
+    );
+    if (metaRes?.rows && metaRes.rows.length > 0) {
+      const aliasResult = await query(
+        `SELECT cl.*, u.full_name AS actor_full_name
+         FROM checkpoint_logs cl
+         LEFT JOIN users u ON cl.actor_id = u.id
+         WHERE cl.entity_type = $1 AND cl.entity_id = $2
+         ORDER BY cl.created_at ASC`,
+        [metaRes.rows[0].entity_type, metaRes.rows[0].entity_id]
+      );
+      if (aliasResult?.rows && aliasResult.rows.length > 0) {
+        result = aliasResult;
+        aliasOf = result.rows[0].entity_number;
+      }
+    }
+  }
+
+  if (!result?.rows || result.rows.length === 0) {
     return c.json({ success: false, message: `Tidak ada checkpoint untuk dokumen "${docNumber}"` }, 404);
   }
 
@@ -72,6 +142,7 @@ checkpointRoutes.get('/by-number/:number', async (c) => {
     success: true,
     data: {
       document_number: docNumber,
+      alias_of: aliasOf,
       entity_type: rows[0].entity_type,
       chain_valid: chainValid,
       broken_at_step: brokenAt === null ? null : rows[brokenAt].step_code,
