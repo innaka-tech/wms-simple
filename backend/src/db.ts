@@ -52,17 +52,25 @@ function normalizeParams(params?: any[]): any[] | undefined {
     : undefined;
 }
 
-// Inisialisasi schema + seed sekali, memakai raw pool (tanpa wrapper) agar bebas deadlock
-const schemaReady: Promise<void> = initPgSchema(pgPool).catch((err) => {
-  console.error('[PostgreSQL] Gagal inisialisasi schema:', err.message);
-  throw err;
-});
+// Inisialisasi schema + seed sekali secara malas (lazy) saat query/connect pertama dipanggil
+let schemaPromise: Promise<void> | null = null;
+
+export function ensureSchema(): Promise<void> {
+  if (!schemaPromise) {
+    schemaPromise = initPgSchema(pgPool).catch((err) => {
+      console.error('[PostgreSQL] Gagal inisialisasi schema:', err.message);
+      schemaPromise = null; // Izinkan retry jika ada kegagalan transient
+      throw err;
+    });
+  }
+  return schemaPromise;
+}
 
 /**
  * Executes a parameterized SQL query on PostgreSQL (OWASP A03: selalu parameterized).
  */
 export async function query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {
-  await schemaReady;
+  await ensureSchema();
   const start = Date.now();
   try {
     const result: any = await pgPool.query(normalizeSql(text.trim()), normalizeParams(params));
@@ -81,7 +89,7 @@ export async function query<T = any>(text: string, params?: any[]): Promise<Quer
  * Client transaksi asli PostgreSQL (BEGIN/COMMIT/ROLLBACK + FOR UPDATE berfungsi penuh).
  */
 export async function connect(): Promise<DatabaseClient> {
-  await schemaReady;
+  await ensureSchema();
   const client: PoolClient = await pgPool.connect();
   return {
     async query<T = any>(text: string, params?: any[]): Promise<QueryResult<T>> {

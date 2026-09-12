@@ -1,10 +1,10 @@
 {
   "project": "wms-simple",
-  "version": "4.6.0",
-  "status": "active_flow_sync_docs09_v320_done",
-  "phase": "flow_application_sync_repacking_ondemand_crossdock_sj",
+  "version": "4.6.2",
+  "status": "active_cicd_postgres_quality_gate_hardened",
+  "phase": "cicd_vitest_postgres_coverage_hardening",
   "progress": 100,
-  "last_updated": "2026-09-11T06:30:00+07:00",
+  "last_updated": "2026-09-12T08:50:00+07:00",
   "database": {
     "target": "postgresql_host_global_stack",
     "driver": "node-postgres (pg Pool)",

@@ -1,4 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../src/db.js', () => ({
+  query: vi.fn(),
+  pool: { connect: vi.fn() },
+  closePool: vi.fn()
+}));
+
 import { app } from '../../src/app.js';
 
 describe('Health Check API Integration Tests', () => {

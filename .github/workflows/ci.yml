@@ -10,6 +10,26 @@ jobs:
   backend-test-and-lint:
     name: Backend Quality Gate (Vitest & Coverage)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: wms_simple_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: wms_simple_db
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -24,6 +44,10 @@ jobs:
       - name: Install Backend Dependencies
         working-directory: ./backend
         run: npm ci
+
+      - name: Initialize Test Database
+        working-directory: ./backend
+        run: node scripts/init-test-db.js
 
       - name: Run Backend Vitest Test Suite (Unit + Integration + E2E)
         working-directory: ./backend

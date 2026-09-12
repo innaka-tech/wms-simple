@@ -5,6 +5,21 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.6.2] - 2026-09-12
+
+### Fixed (CI/CD Quality Gate & Vitest Test Suite Hardening)
+
+- **PostgreSQL Service Container di CI/CD (`.github/workflows/ci.yml` & `.gitlab-ci.yml`):**
+  - Menambahkan service container `postgres:16-alpine` pada job `backend-test-and-lint`.
+  - Menambahkan script `backend/scripts/init-test-db.js` untuk membuat database test `wms_simple_test_db` secara otomatis dan idempotent.
+  - Memasang hook `pretest` dan `pretest:coverage` pada `backend/package.json`.
+- **Penanganan Unhandled Rejection pada `backend/src/db.ts`:**
+  - Mengubah inisialisasi skema menjadi lazy (`ensureSchema`) saat query atau connect pertama kali dipanggil, menghindari floating unhandled promise rejection saat modul dimuat.
+- **Isolasi Health Check Test (`backend/tests/integration/health.test.ts`):**
+  - Menambahkan mock `db.js` seperti halnya 15 integration test suite lainnya agar tidak bergantung pada koneksi database aktif saat menguji endpoint non-DB `/api/health`.
+- **Migrasi Vitest 4 Pool Options (`backend/vitest.config.ts`):**
+  - Memindahkan `poolOptions.forks` ke level atas `forks: { singleFork: true }` untuk menghilangkan peringatan deprecation Vitest 4.
+
 ## [4.6.0] - 2026-09-11
 
 ### Fixed (State Machine Outbound + Model Stok Three-Bucket)

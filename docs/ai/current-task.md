@@ -2,7 +2,7 @@
 
 **Current Status:** ACTIVE TASK — Production Deploy innaka LIVE (v4.6.1) + Semua Gap Audit Tertutup  
 **Database:** Host PostgreSQL 16 (`wms_simple_db` on `localhost:5432` / `127.0.0.1:5432`)  
-**Version:** 4.6.1  
+**Version:** 4.6.2  
 **Status:** FULL CHAIN VERIFIED + DEPLOYED (http://104.64.221.233:8090) — sisa: thermal fallback, HTTPS, ganti password seed  
 
 ---
@@ -263,5 +263,22 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 9. [x] **Bonus:** TS error `fleet.ts:433` (`ContentfulStatusCode`) diperbaiki; TSC backend bersih.
 
 **Deploy produksi:** innaka `http://104.64.221.233:8090` (v4.6.1 ter-deploy, health 200). Kredensial di `/data/docker-data/wms-simple/CREDENTIALS.md` (server-side, off-repo). Panduan: `docs/DEPLOY_INNAKA.md`.
+
+---
+
+## Sesi 2026-09-12 — Perbaikan CI/CD GitHub Actions & Hardening Vitest Test Suite (v4.6.2)
+
+1. [x] **Penyebab kegagalan CI/CD (`npm run test:coverage`):**
+   - Workflow `.github/workflows/ci.yml` belum memiliki service container `postgres:16-alpine`. Saat Vitest menjalankan suite e2e (`transaction-chain.e2e.test.ts` & `inbound-crossdock-chain.e2e.test.ts`), koneksi ke `127.0.0.1:5432` ditolak (`ECONNREFUSED`).
+   - `backend/src/db.ts` mengeksekusi `initPgSchema` langsung di top-level saat modul di-import. Jika database belum aktif atau gagal terhubung, error berubah menjadi *unhandled promise rejection* di luar context test runner.
+   - `backend/tests/integration/health.test.ts` meng-import `app.js` tanpa mocking `db.js` (berbeda dari 15 integration test lainnya yang selalu mem-mock DB).
+   - Warning Vitest 4: `test.poolOptions` deprecated dan telah digantikan oleh `test.forks`.
+2. [x] **Perbaikan yang diterapkan:**
+   - `.github/workflows/ci.yml` ditambahkan service `postgres:16-alpine` (port 5432, user: postgres, pass: password, db: wms_simple_db) + health check `pg_isready`.
+   - Script `backend/scripts/init-test-db.js` dibuat untuk memastikan database test `wms_simple_test_db` dibuat otomatis dan idempotent sebelum test berjalan (`pretest` dan `pretest:coverage` di `backend/package.json`).
+   - `.gitlab-ci.yml` disinkronkan dengan penambahan service `postgres:16-alpine`.
+   - `backend/src/db.ts` diperbaiki dengan lazy initialization (`ensureSchema()`) sehingga tidak menimbulkan unhandled rejection saat modul di-import tanpa akses database.
+   - `backend/tests/integration/health.test.ts` dilengkapi `vi.mock('../../src/db.js')` untuk mengisolasi pengetesan endpoint `/api/health`.
+   - `backend/vitest.config.ts` dimigrasi ke konfigurasi resmi Vitest 4 (`forks: { singleFork: true }`).
 
 **Next (sisa):** fallback cetak thermal (low priority), HTTPS gateway, ganti password seed produksi.
