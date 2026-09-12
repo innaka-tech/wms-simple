@@ -7,7 +7,18 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ## [4.6.4] - 2026-09-12
 
-### Fixed (Code Review & End-to-End Operational Lifecycle Hardening)
+### Added (Production Infrastructure, UAT Governance & Live Verification)
+
+- **Cloudflare Tunnel & HTTPS Domain Publik:**
+  - Menyiapkan akses domain aman resmi berenkripsi SSL/TLS melalui Cloudflare Tunnel di `https://wms.innaka.dev` yang terhubung ke reverse proxy Nginx port 8090.
+- **Matriks Pengujian UAT Resmi (`AGENTS.md`):**
+  - Mendaftarkan kredensial resmi 6 akun pengujian operasional berbasis identitas fisik (`superadmin`, `admin_adm`, `mgr_jkt`, `staff_jkt`, `gate_officer`, `driver_budi`) dengan password default terenkripsi `scrypt`.
+- **Verifikasi Alur Operasional End-to-End Nyata (7 Fase Penuh):**
+  - Menguji siklus hidup logistik menyeluruh di lingkungan produksi: Inbound PO -> Physical Receive -> Putaway ke rak -> Outbound DO -> Picking -> Packing -> Penerbitan Waybill & Resi -> Pos Satpam Jalur B Truk Vendor -> Mobile POD TTD Digital -> Verifikasi BAST Admin -> Penagihan Faktur -> Pembayaran Bertahap hingga LUNAS.
+  - Memverifikasi rantai audit 9 node checkpoint immutable linked-list yang tak terputus.
+  - Memverifikasi skenario On-Demand Debulking Work Order (susut 0.5% tertaut DO) dan Cross-Dock Surat Jalan Swap (blind-shipping).
+
+### Fixed (Code Review & Operational Hardening)
 
 - **Audit Trail Alias Resolution (`backend/src/routes/checkpoints.ts`):**
   - Mengimplementasikan resolusi otomatis untuk pencarian timeline dokumen melalui nomor Surat Jalan (`SJ-`), nomor Resi (`RESI-`), nomor Faktur (`INV-`), maupun pencarian string metadata checkpoint.
@@ -29,6 +40,12 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
   - **Billing Portal (`frontend/pages/billing/index.vue`):** Menyaring daftar `readyToBill` agar order yang fakturnya sudah diterbitkan tidak lagi muncul ganda pada tabel "Order Siap Dibilling".
   - **POD Portal (`frontend/pages/outbound/pod.vue`):** Memperluas pencarian order agar dapat mengenali input berbasis `order_number`, `sj_number`, maupun `resi_number`.
   - **Gate Pass Portal (`frontend/pages/gate-pass/index.vue`):** Menambahkan `datalist` opsi dokumen keberangkatan dan mengotomatiskan penerusan nomor waybill pada form keberangkatan armada pool serta truk vendor.
+
+### Deployment
+
+- **Deploy Produksi Innaka Cloud:**
+  - Build dan restart multi-stage container Node 20 backend dan Nuxt 3 frontend di `104.64.221.233` (`/data/docker-data/wms-simple/repo`).
+  - Pembersihan (*pruning*) image Docker lama sehingga penggunaan disk server tetap optimal (37 GB ruang kosong).
 
 ## [4.6.3] - 2026-09-12
 
