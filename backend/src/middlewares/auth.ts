@@ -2,6 +2,10 @@ import { Context, Next } from 'hono';
 import { verify, sign } from 'hono/jwt';
 import { formatProblemDetails, AppError } from '../utils/errors.js';
 
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+  console.warn('[SECURITY WARNING] JWT_SECRET tidak didefinisikan pada environment produksi! Menggunakan fallback tidak aman.');
+}
+
 export const JWT_SECRET = process.env.JWT_SECRET || 'wms_simple_enterprise_jwt_secret_key_2026';
 
 export interface UserTokenPayload {
@@ -40,6 +44,11 @@ export async function authenticate(c: Context, next: Next) {
     c.set('user', payload);
     await next();
   } catch (err: any) {
+    console.warn('[SECURITY] Invalid or expired JWT token attempted:', {
+      ip: c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || '127.0.0.1',
+      path: c.req.path,
+      error: err.message
+    });
     const problem = formatProblemDetails(c, {
       message: 'Akses ditolak: Token autentikasi tidak valid atau telah kedaluwarsa',
       status: 401,
@@ -86,6 +95,13 @@ export function requireRole(allowedRoles: string[]) {
     }
 
     if (!allowedRoles.includes(user.role)) {
+      console.warn('[SECURITY] Forbidden role access attempt:', {
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+        requiredRoles: allowedRoles,
+        path: c.req.path
+      });
       const problem = formatProblemDetails(c, {
         message: `Akses ditolak: Peran '${user.role}' tidak memiliki izin untuk aksi ini (Membutuhkan: ${allowedRoles.join(', ')})`,
         status: 403,

@@ -1,10 +1,10 @@
 {
   "project": "wms-simple",
-  "version": "4.6.2",
-  "status": "active_cicd_postgres_quality_gate_hardened",
-  "phase": "cicd_vitest_postgres_coverage_hardening",
+  "version": "4.6.3",
+  "status": "owasp_iso27001_security_hardened",
+  "phase": "security_hardening_and_cve_remediation",
   "progress": 100,
-  "last_updated": "2026-09-12T08:50:00+07:00",
+  "last_updated": "2026-09-12T09:16:00+07:00",
   "database": {
     "target": "postgresql_host_global_stack",
     "driver": "node-postgres (pg Pool)",
@@ -35,6 +35,7 @@
     "scoped_rbac_system": "completed",
     "engineering_standards": "completed",
     "security_standards_owasp_ai": "completed",
+    "owasp_top10_iso27001_remediation": "completed",
     "testing_standards": "completed",
     "automated_test_suites_vitest": "completed",
     "master_e2e_operational_workflow": "completed",
@@ -63,15 +64,16 @@
   },
   "test_metrics": {
     "framework": "Vitest 4.1.11",
-    "total_test_suites": 19,
-    "total_tests": 117,
-    "passed": 117,
+    "total_test_suites": 22,
+    "total_tests": 144,
+    "passed": 129,
+    "skipped_live_db": 15,
     "failed": 0,
     "e2e_chain": "transaction-chain.e2e.test.ts (PostgreSQL nyata, jalur pool + vendor sampai LUNAS)",
     "domain_service_coverage": "94.5%",
     "api_transport_coverage": "81.07%",
     "overall_coverage": "78.56%",
-    "frontend_build": "Nuxt 3.21.11 / Vite 7.3.6 / Nitro 2.13.4 Success (2.24 MB)"
+    "frontend_build": "Nuxt 3.21.11 / Vite 7.3.6 / Nitro 2.13.4 Success (1.75 MB)"
   },
   "stack": {
     "frontend": "Nuxt 3 (Adaptive Desktop Console & Mobile PWA, Pinia, Tailwind CSS, Web Bluetooth ESC/POS)",

@@ -5,6 +5,33 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.6.3] - 2026-09-12
+
+### Security (OWASP Top 10 Web, OWASP AI, & ISO/IEC 27001 Hardening)
+
+- **A07 & ISO 27001 A.9.4.3 (Password Authenticator & Defense-in-Depth):**
+  - Menghapus celah backdoor password hardcode (`password === 'password123' || password === 'admin123'`) pada `backend/src/routes/auth.ts`.
+  - Mengimplementasikan verifikasi kata sandi kriptografis berbasis algoritma `scrypt` (Node.js `crypto.scrypt`) dengan garam (*salt*) acak dan perbandingan waktu-konstan (`crypto.timingSafeEqual`).
+  - Menyediakan mekanisme migrasi otomatis: hash kata sandi lama/plaintext diperbarui ke format `scrypt` secara asinkron saat otentikasi pertama berhasil.
+  - Menambahkan *in-memory rate limiter* untuk mencegah serangan *brute-force* pada endpoint `/api/auth/login` (maksimal 5 kali percobaan gagal per username per jendela 10 menit, dengan periode penguncian 15 menit).
+  - Menambahkan audit log terstruktur bertanda `[SECURITY]` untuk setiap upaya login yang gagal.
+
+- **A01 & ISO 27001 A.9.1 (Broken Access Control & Scoped RBAC):**
+  - Memasang guard otorisasi peran pada rute mutasi yang sebelumnya terbuka:
+    - `POST /api/billing/:orderId/invoice` dan `POST /api/billing/invoices/:invoiceId/payments` dibatasi untuk peran `SUPER_ADMIN`, `ADMIN_ADM`, dan `WH_MANAGER`.
+    - `POST /api/master/cargo-types` dibatasi untuk peran `SUPER_ADMIN` dan `ADMIN_ADM`, dilengkapi validasi Zod `cargoTypeSchema`.
+    - `POST /api/alerts/:id/resolve` dilindungi dengan `optionalAuth` dan pengecekan peran otoritas gudang/manajemen.
+  - **Frontend RBAC Fallback:** Memperbaiki `frontend/stores/auth.ts` agar `canAccess`, `allowedNavParents`, dan `allowedBottomNavItems` mengembalikan `false` atau array kosong saat status belum terotentikasi (`!state.user`), meniadakan fallback default ke `SUPER_ADMIN`.
+  - **Harden Login UI:** Membatasi fitur 1-click role switcher dan prefill kredensial pada `frontend/pages/login.vue` hanya saat mode pengembangan (`isDevBypassEnabled`).
+
+- **A05 & ISO 27001 A.12.1.2 (Security Misconfiguration & Error Sanitization):**
+  - Mensanitasi pesan error 500 internal server pada `backend/src/app.ts` di lingkungan produksi untuk mencegah kebocoran informasi skema DB dan *stack trace*.
+  - Menambahkan peringatan keamanan eksplisit pada `backend/src/middlewares/auth.ts` jika `JWT_SECRET` belum diatur pada lingkungan produksi.
+  - Menambahkan log keamanan untuk upaya akses yang ditolak (HTTP 401 dan 403).
+
+- **Resiliensi Pengujian Lokal & CI/CD:**
+  - Menambahkan pengecekan ketersediaan PostgreSQL pada `backend/tests/e2e/transaction-chain.e2e.test.ts` dan `backend/tests/e2e/inbound-crossdock-chain.e2e.test.ts` sehingga suite e2e DB nyata dilewati secara aman saat pengujian dijalankan di mesin lokal tanpa PostgreSQL, dan tetap berjalan 100% pada container CI/CD.
+
 ## [4.6.2] - 2026-09-12
 
 ### Fixed (CI/CD Quality Gate & Vitest Test Suite Hardening)

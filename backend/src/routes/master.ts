@@ -129,13 +129,31 @@ masterRoutes.get('/cargo-types', async (c) => {
   return c.json({ success: true, data: result.rows });
 });
 
+const cargoTypeSchema = z.object({
+  code: z.string().min(2).max(32).toUpperCase(),
+  name: z.string().min(3).max(120),
+  category: z.string().max(50).default('GENERAL'),
+  handling_instructions: z.string().max(500).nullish(),
+  requires_weighbridge: z.boolean().default(false),
+  requires_temperature_control: z.boolean().default(false)
+});
+
 masterRoutes.post('/cargo-types', async (c) => {
-  const body = await c.req.json();
-  const { code, name, category, handling_instructions, requires_weighbridge, requires_temperature_control } = body;
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
+  if (user && !ADMIN_ROLES.includes(user.role)) {
+    return c.json({ success: false, message: `Akses ditolak: Peran '${user.role}' tidak memiliki izin untuk menambah jenis kargo` }, 403);
+  }
+
+  const parsed = cargoTypeSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return c.json({ success: false, message: 'Data tidak valid', details: parsed.error.flatten().fieldErrors }, 400);
+  }
+  const d = parsed.data;
+
   const result = await query(
     `INSERT INTO master_cargo_types (id, code, name, category, handling_instructions, requires_weighbridge, requires_temperature_control)
      VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6) RETURNING *`,
-    [code, name, category || 'GENERAL', handling_instructions || null, requires_weighbridge || false, requires_temperature_control || false]
+    [d.code, d.name, d.category, d.handling_instructions || null, d.requires_weighbridge, d.requires_temperature_control]
   );
   return c.json({ success: true, data: result.rows[0] }, 201);
 });

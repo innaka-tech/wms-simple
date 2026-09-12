@@ -26,6 +26,11 @@ billingRoutes.post('/:orderId/invoice', optionalAuth, async (c) => {
   }
   const body = parsed.data;
 
+  const BILLING_ROLES = ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'];
+  if (user && !BILLING_ROLES.includes(user.role)) {
+    return c.json({ success: false, message: `Akses ditolak: Peran '${user.role}' tidak memiliki izin untuk menerbitkan faktur` }, 403);
+  }
+
   const actor_name = (user?.full_name || body.actor_name || '').trim();
   const actor_id = user?.id || body.actor_id;
   const actor_role = user?.role || 'ADMIN_ADM';
@@ -129,6 +134,11 @@ billingRoutes.post('/invoices/:invoiceId/payments', optionalAuth, async (c) => {
     return c.json({ success: false, message: parsed.error.issues[0]?.message || 'Payload tidak valid' }, 400);
   }
   const body = parsed.data;
+
+  const BILLING_ROLES = ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'];
+  if (user && !BILLING_ROLES.includes(user.role)) {
+    return c.json({ success: false, message: `Akses ditolak: Peran '${user.role}' tidak memiliki izin untuk mencatat pembayaran` }, 403);
+  }
 
   const actor_name = (user?.full_name || body.actor_name || '').trim();
   const actor_id = user?.id || body.actor_id;

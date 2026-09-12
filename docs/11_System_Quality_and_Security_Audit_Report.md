@@ -122,9 +122,21 @@ Hasil audit mengonfirmasi bahwa sistem telah memenuhi standar rekayasa perangkat
 
 ### 6.2 Standar ISO/IEC 27001 (Information Security Management)
 * **Kontrol Akses Fisik & Logis (A.9 & A.11):** Integrasi ganda antara pemeriksaan fisik Pos Satpam (Nomor Polisi, Odometer, Surat Jalan) dan pembukaan palang digital pada database.
+* **Manajemen Kata Sandi & Otentikasi (A.9.4.2 & A.9.4.3):**
+  - Penghapusan seluruh kredensial/kondisional bypass hardcode.
+  - Hashing kriptografis menggunakan `scrypt` dengan garam acak (*cryptographically secure random salt*) dan perbandingan waktu-konstan (`crypto.timingSafeEqual`).
+  - Mekanisme pertahanan *brute-force* berbasis *in-memory rate limiting* (5 percobaan / 10 menit).
+* **Otorisasi & Pembatasan Hak Istimewa (A.9.1 & A.9.4.1):**
+  - Penerbitan faktur (`/api/billing/:orderId/invoice`) dan pembayaran (`/api/billing/invoices/:invoiceId/payments`) dikunci ketat untuk peran `SUPER_ADMIN`, `ADMIN_ADM`, dan `WH_MANAGER`.
+  - Master tipe kargo (`/api/master/cargo-types`) dikunci untuk peran admin dengan validasi skema Zod.
+  - Resolusi alert gudang (`/api/alerts/:id/resolve`) dilindungi otorisasi peran operasional/manajerial.
+  - Fallback role frontend saat unauthenticated dikunci ke `false` (bukan admin).
+* **Manajemen Kerentanan Teknis & Penanganan Error (A.12.1.2 & A.12.6.1):**
+  - Masking pesan error 500 pada mode produksi untuk mencegah kebocoran informasi teknis backend dan skema database.
+  - Peringatan keamanan otomatis bila `JWT_SECRET` belum didefinisikan secara khusus di production.
 
 ---
 
 ## 7. Status Rilis & Kesiapan Produksi
 
-Dokumen audit ini menyatakan bahwa sistem **WMS Simple Enterprise (v1.0.4)** telah lulus seluruh kriteria pengujian kualitas, keamanan, kebersihan kode, dan siap dioperasikan di lingkungan produksi.
+Dokumen audit ini menyatakan bahwa sistem **WMS Simple Enterprise (v4.6.3)** telah lulus seluruh kriteria pengujian kualitas, keamanan siber (OWASP Top 10 Web & OWASP AI), standar kontrol ISO/IEC 27001, kebersihan kode, dan siap dioperasikan di lingkungan produksi.

@@ -200,7 +200,8 @@ export const useAuthStore = defineStore('auth', {
     // Menu dua tingkat per role: parent selalu tampil, anak cuma dari role yang berhak.
     // Parent dengan semua anak ter-filter tetap hilang (tidak ada parent mati).
     allowedNavParents: (state): NavParent[] => {
-      const currentRole: UserRole = state.user?.role || 'SUPER_ADMIN';
+      if (!state.user) return [];
+      const currentRole: UserRole = state.user.role;
 
       return MASTER_NAV_PARENTS
         .map(parent => {
@@ -217,7 +218,8 @@ export const useAuthStore = defineStore('auth', {
     // Bottom nav mobile: parent operasional urut alur barang, maksimal 5.
     // Prioritas: Beranda → fase 1-4 → Pemantauan → Master (yang jarang dibuka dari HP).
     allowedBottomNavItems: (state): NavItem[] => {
-      const currentRole: UserRole = state.user?.role || 'SUPER_ADMIN';
+      if (!state.user) return [];
+      const currentRole: UserRole = state.user.role;
       const priority = (p: NavParent) => {
         if (p.name === 'Beranda') return 0;
         if (p.phase && p.phase <= 4) return p.phase;
@@ -256,7 +258,8 @@ export const useAuthStore = defineStore('auth', {
     },
 
     canAccess(moduleCode: string): boolean {
-      const currentRole: UserRole = this.user?.role || 'SUPER_ADMIN';
+      if (!this.user) return false;
+      const currentRole: UserRole = this.user.role;
       if (currentRole === 'SUPER_ADMIN') return true;
 
       switch (moduleCode) {

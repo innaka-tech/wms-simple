@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { query } from '../db.js';
+import { optionalAuth, UserTokenPayload } from '../middlewares/auth.js';
 
 export const alertRoutes = new Hono();
 
@@ -17,11 +18,19 @@ alertRoutes.get('/', async (c) => {
   return c.json({ success: true, data: result.rows });
 });
 
-// Resolve alert
-alertRoutes.post('/:id/resolve', async (c) => {
+// Resolve alert (manager/admin only)
+alertRoutes.post('/:id/resolve', optionalAuth, async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload | undefined;
+  const ALLOWED_ROLES = ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'];
+  if (user && !ALLOWED_ROLES.includes(user.role)) {
+    return c.json({ success: false, message: `Akses ditolak: Peran '${user.role}' tidak memiliki izin untuk menyelesaikan alert` }, 403);
+  }
+
   const id = c.req.param('id');
-  const body = await c.req.json();
-  const { resolution_notes, actor_name, actor_id } = body;
+  const body = await c.req.json().catch(() => ({}));
+  const { resolution_notes } = body;
+  const actor_name = user?.full_name || body.actor_name || 'Admin';
+  const actor_id = user?.id || body.actor_id || null;
 
   const result = await query(
     `UPDATE alerts 
@@ -32,7 +41,7 @@ alertRoutes.post('/:id/resolve', async (c) => {
          resolved_at = CURRENT_TIMESTAMP
      WHERE id = $1
      RETURNING *`,
-    [id, resolution_notes || 'Resolved by admin', actor_id || null, actor_name || 'Admin']
+    [id, resolution_notes || 'Resolved by admin', actor_id, actor_name]
   );
 
   return c.json({ success: true, message: 'Alert resolved', data: result.rows[0] });

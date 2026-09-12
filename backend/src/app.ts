@@ -118,8 +118,12 @@ export function createApp() {
     }
 
     console.error('Unhandled Application Error:', err);
+    const isProd = process.env.NODE_ENV === 'production';
+    const message = isProd
+      ? 'Terjadi kesalahan internal pada server'
+      : (err.message || 'Internal Server Error');
     const problem = formatProblemDetails(c, {
-      message: err.message || 'Internal Server Error',
+      message,
       status: 500,
       code: 'INTERNAL_SERVER_ERROR'
     });
