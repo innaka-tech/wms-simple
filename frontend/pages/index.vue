@@ -31,12 +31,12 @@
         v-for="fase in alurOperasional"
         :key="fase.no"
         :to="fase.to"
-        class="p-3.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-t-2 hover:border-slate-400 dark:hover:border-slate-600 transition group"
+        class="p-3.5 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-100 dark:border-slate-800/60 border-t-2 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-700 transition-all duration-200 group"
         :class="fase.topBorder"
       >
-        <p class="text-[10px] font-mono font-bold uppercase tracking-wider" :class="fase.text">{{ fase.label }}</p>
-        <p class="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1.5">{{ fase.count }}</p>
-        <p class="text-[10px] text-slate-400 mt-0.5">{{ fase.metric }}</p>
+        <p class="text-[10px] font-semibold uppercase tracking-wider" :class="fase.text">{{ fase.label }}</p>
+        <p class="text-2xl font-bold font-mono text-slate-800 dark:text-slate-100 mt-1.5">{{ fase.count }}</p>
+        <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{{ fase.metric }}</p>
       </NuxtLink>
     </div>
 
@@ -52,13 +52,13 @@
         <div v-if="recentCheckpoints.length === 0" class="py-4 text-center text-[11px] text-slate-400">Belum ada aktivitas hari ini.</div>
         <div v-else class="space-y-0.5">
           <NuxtLink v-for="cp in recentCheckpoints" :key="cp.id" :to="'/checkpoints?doc=' + (cp.entity_number || '')"
-                    class="flex items-center gap-2.5 py-1.5 px-1 -mx-1 rounded hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors">
+                    class="flex items-center gap-2.5 py-1.5 px-1.5 -mx-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
             <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="cpDot(cp.step_code)"></span>
             <div class="flex-1 min-w-0">
-              <p class="text-[11px] font-medium text-slate-700 dark:text-slate-200 truncate">{{ cp.entity_number || cp.entity_type }}</p>
-              <p class="text-[10px] text-slate-400 truncate">{{ cp.step_label }}</p>
+              <p class="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate">{{ cp.entity_number || cp.entity_type }}</p>
+              <p class="text-[10px] text-slate-400 dark:text-slate-500 truncate">{{ cp.step_label }}</p>
             </div>
-            <span class="text-[10px] font-mono text-slate-400 shrink-0">{{ shortTime(cp.created_at) }}</span>
+            <span class="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0">{{ shortTime(cp.created_at) }}</span>
           </NuxtLink>
         </div>
       </div>
@@ -70,15 +70,15 @@
           v-for="m in daftarModul"
           :key="m.to"
           :to="m.to"
-          class="flex items-center gap-3 py-2.5 border-b border-slate-100 dark:border-slate-800/60 last:border-0 group"
+          class="flex items-center gap-3 py-2.5 px-1 -mx-1 rounded-lg border-b border-slate-50 dark:border-slate-800/40 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group"
         >
-          <span class="w-1.5 h-1.5 rounded-full shrink-0" :class="m.dot"></span>
+          <span class="w-2 h-2 rounded-full shrink-0 opacity-70" :class="m.dot"></span>
           <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-slate-800 dark:text-slate-100 group-hover:underline">{{ m.label }}</p>
-            <p class="text-[10px] text-slate-400">{{ m.hint }}</p>
+            <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{{ m.label }}</p>
+            <p class="text-[10px] text-slate-400 dark:text-slate-500">{{ m.hint }}</p>
           </div>
-          <span v-if="m.badge" class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded shrink-0"
-                :class="m.count > 0 ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-400'">{{ m.badge }}</span>
+          <span v-if="m.badge" class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md shrink-0"
+                :class="m.count > 0 ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400'">{{ m.badge }}</span>
         </NuxtLink>
       </div>
 
@@ -162,14 +162,14 @@ const belumLunas = computed(() =>
 // Strip audit checkpoint terakhir
 const recentCheckpoints = ref([])
 const CHECKPOINT_COLORS = {
-  PO_: 'bg-emerald-500', PUTAWAY: 'bg-emerald-500', INBOUND: 'bg-emerald-500',
-  DEBULK: 'bg-amber-500', CONVERSION: 'bg-amber-500',
-  MANIFEST: 'bg-blue-500', LOADED: 'bg-blue-500', DEPART: 'bg-blue-500', GATE: 'bg-blue-500', PICK: 'bg-blue-500', PACK: 'bg-blue-500', SHIP: 'bg-blue-500', WAYBILL: 'bg-blue-500', VENDOR: 'bg-blue-500', RECEIVED: 'bg-blue-500',
-  POD: 'bg-cyan-500', INVOICE: 'bg-cyan-500', PAYMENT: 'bg-cyan-500', PAID: 'bg-cyan-500', CROSS_DOC: 'bg-cyan-500'
+  PO_: 'bg-teal-300', PUTAWAY: 'bg-teal-300', INBOUND: 'bg-teal-300',
+  DEBULK: 'bg-amber-300', CONVERSION: 'bg-amber-300',
+  MANIFEST: 'bg-sky-300', LOADED: 'bg-sky-300', DEPART: 'bg-sky-300', GATE: 'bg-sky-300', PICK: 'bg-sky-300', PACK: 'bg-sky-300', SHIP: 'bg-sky-300', WAYBILL: 'bg-sky-300', VENDOR: 'bg-sky-300', RECEIVED: 'bg-sky-300',
+  POD: 'bg-violet-300', INVOICE: 'bg-violet-300', PAYMENT: 'bg-violet-300', PAID: 'bg-violet-300', CROSS_DOC: 'bg-violet-300'
 }
 function cpDot(code) {
   const key = Object.keys(CHECKPOINT_COLORS).find(k => (code || '').includes(k))
-  return key ? CHECKPOINT_COLORS[key] : 'bg-slate-400'
+  return key ? CHECKPOINT_COLORS[key] : 'bg-slate-300'
 }
 function shortTime(v) {
   if (!v) return '-'
@@ -178,23 +178,23 @@ function shortTime(v) {
 
 // Lima fase — kartu metrik sekaligus pintu modul
 const alurOperasional = computed(() => [
-  { no: 1, label: 'Inbound', count: inboundAktif.value, metric: 'kiriman aktif', to: '/inbound/receive', topBorder: 'border-t-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
-  { no: 2, label: 'Warehouse Operation', count: repackAktif.value, metric: 'work order aktif', to: '/debulking', topBorder: 'border-t-amber-500', text: 'text-amber-600 dark:text-amber-400' },
-  { no: 3, label: 'Outbound', count: siapKirim.value, metric: 'order siap proses', to: '/outbound', topBorder: 'border-t-blue-500', text: 'text-blue-600 dark:text-blue-400' },
-  { no: 4, label: 'Delivery & Billing', count: menungguPod.value + belumLunas.value, metric: 'menunggu POD / bayar', to: '/outbound/pod', topBorder: 'border-t-cyan-500', text: 'text-cyan-600 dark:text-cyan-400' },
-  { no: 5, label: 'Monitoring', count: stockStore.stockLevels.length, metric: 'SKU terpantau', to: '/stock', topBorder: 'border-t-slate-400', text: 'text-slate-500 dark:text-slate-400' }
+  { no: 1, label: 'Inbound', count: inboundAktif.value, metric: 'kiriman aktif', to: '/inbound/receive', topBorder: 'border-t-teal-300 dark:border-t-teal-700', text: 'text-teal-600 dark:text-teal-400' },
+  { no: 2, label: 'Warehouse Operation', count: repackAktif.value, metric: 'work order aktif', to: '/debulking', topBorder: 'border-t-amber-300 dark:border-t-amber-700', text: 'text-amber-600 dark:text-amber-400' },
+  { no: 3, label: 'Outbound', count: siapKirim.value, metric: 'order siap proses', to: '/outbound', topBorder: 'border-t-sky-300 dark:border-t-sky-700', text: 'text-sky-600 dark:text-sky-400' },
+  { no: 4, label: 'Delivery & Billing', count: menungguPod.value + belumLunas.value, metric: 'menunggu POD / bayar', to: '/outbound/pod', topBorder: 'border-t-violet-300 dark:border-t-violet-700', text: 'text-violet-600 dark:text-violet-400' },
+  { no: 5, label: 'Monitoring', count: stockStore.stockLevels.length, metric: 'SKU terpantau', to: '/stock', topBorder: 'border-t-slate-300 dark:border-t-slate-700', text: 'text-slate-500 dark:text-slate-400' }
 ])
 
 // Daftar modul — hanya yang punya akses per role aktif
 const daftarModul = computed(() => {
   const all = [
-    { to: '/inbound/receive', label: 'Receiving (Penerimaan Dock)', hint: 'Fase 1 · scan & tally kedatangan', dot: 'bg-emerald-500', badge: inboundAktif.value || '', access: 'inbound' },
-    { to: '/debulking', label: 'Debulking & Repacking', hint: 'Fase 2 · konversi kemasan curah', dot: 'bg-amber-500', badge: repackAktif.value || '', access: 'debulking' },
-    { to: '/outbound', label: 'Delivery Order & Surat Jalan', hint: 'Fase 3 · DO, SJ + resi semua jalur', dot: 'bg-blue-500', badge: siapKirim.value || '', access: 'outbound_orders' },
-    { to: '/waybills', label: 'Surat Jalan & Resi', hint: 'Fase 3 · semua dokumen keluar', dot: 'bg-blue-500', badge: '', access: 'waybills' },
-    { to: '/gate-pass', label: 'Gate Pass (Pos Jaga)', hint: 'Fase 3 · dokumen, odometer, solar', dot: 'bg-blue-500', badge: departedVehiclesCount.value || '', access: 'gate_pass' },
-    { to: '/outbound/pod', label: 'Delivery & POD', hint: 'Fase 4 · foto serah terima + TTD', dot: 'bg-cyan-500', badge: menungguPod.value || '', access: 'outbound_pod' },
-    { to: '/billing', label: 'Faktur & Pembayaran', hint: 'Fase 4 · sampai LUNAS', dot: 'bg-cyan-500', badge: belumLunas.value || '', access: 'billing' }
+    { to: '/inbound/receive', label: 'Receiving (Penerimaan Dock)', hint: 'Fase 1 · scan & tally kedatangan', dot: 'bg-teal-400', badge: inboundAktif.value || '', access: 'inbound' },
+    { to: '/debulking', label: 'Debulking & Repacking', hint: 'Fase 2 · konversi kemasan curah', dot: 'bg-amber-400', badge: repackAktif.value || '', access: 'debulking' },
+    { to: '/outbound', label: 'Delivery Order & Surat Jalan', hint: 'Fase 3 · DO, SJ + resi semua jalur', dot: 'bg-sky-400', badge: siapKirim.value || '', access: 'outbound_orders' },
+    { to: '/waybills', label: 'Surat Jalan & Resi', hint: 'Fase 3 · semua dokumen keluar', dot: 'bg-sky-400', badge: '', access: 'waybills' },
+    { to: '/gate-pass', label: 'Gate Pass (Pos Jaga)', hint: 'Fase 3 · dokumen, odometer, solar', dot: 'bg-sky-400', badge: departedVehiclesCount.value || '', access: 'gate_pass' },
+    { to: '/outbound/pod', label: 'Delivery & POD', hint: 'Fase 4 · foto serah terima + TTD', dot: 'bg-violet-400', badge: menungguPod.value || '', access: 'outbound_pod' },
+    { to: '/billing', label: 'Faktur & Pembayaran', hint: 'Fase 4 · sampai LUNAS', dot: 'bg-violet-400', badge: belumLunas.value || '', access: 'billing' }
   ]
   return all.filter(m => authStore.canAccess(m.access))
 })

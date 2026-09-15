@@ -1,179 +1,183 @@
 <template>
-  <div class="min-h-screen bg-slate-900 text-slate-100 font-sans pb-16 print:bg-white print:text-black print:p-0 print:m-0">
-    <!-- ═══ TOP PORTAL HEADER (Screen Only) ═══ -->
-    <header class="print:hidden bg-slate-950 border-b border-slate-800 sticky top-0 z-40 px-4 py-3 shadow-md">
-      <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <!-- Left: Logo & Portal Title -->
-        <div class="flex items-center space-x-3">
-          <NuxtLink to="/waybills" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Kembali ke Daftar SJ">
-            <AppIcon name="arrow-left" custom-class="w-4 h-4" />
-          </NuxtLink>
-          <div class="flex items-center space-x-2">
-            <div class="w-8 h-8 rounded-md bg-blue-600 flex items-center justify-center font-black text-white text-xs shadow-sm tracking-wider">
-              WMS
+  <div class="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans pb-16 print:bg-white print:text-black print:p-0 print:m-0">
+    <!-- ═══ MINIMAL PRINT TOOLBAR (Screen Only) ═══ -->
+    <header class="print:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 px-4 py-2.5 shadow-sm">
+      <div class="max-w-7xl mx-auto space-y-2.5">
+        <!-- Row 1: Back + Document + Actions -->
+        <div class="flex flex-wrap items-center justify-between gap-2.5">
+          <!-- Left: Back + Doc Selector -->
+          <div class="flex items-center space-x-2.5">
+            <NuxtLink to="/waybills" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition" title="Kembali ke Daftar SJ">
+              <AppIcon name="arrow-left" custom-class="w-4 h-4" />
+            </NuxtLink>
+
+            <div class="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg text-xs font-mono">
+              <span class="text-slate-400 dark:text-slate-500 text-[10px]">DOKUMEN:</span>
+              <select
+                v-model="selectedWaybillId"
+                @change="onWaybillSelect"
+                class="bg-transparent text-slate-800 dark:text-slate-200 font-bold font-mono focus:outline-none cursor-pointer text-xs"
+              >
+                <option v-for="w in waybillsList" :key="w.id" :value="w.id" class="bg-white dark:bg-slate-900">
+                  {{ w.sj_number }} ({{ w.recipient_name || w.order_number }})
+                </option>
+              </select>
+              <button
+                type="button"
+                @click="copyDocNumber"
+                class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition cursor-pointer ml-1"
+                title="Salin Nomor"
+              >
+                <AppIcon name="copy" custom-class="w-3.5 h-3.5" />
+              </button>
             </div>
-            <div>
-              <div class="text-xs font-black tracking-wider uppercase text-white flex items-center gap-1.5">
-                <span>LOGISTIK PRIMA TMS</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-400 font-mono">PORTAL CETAK SURAT JALAN</span>
-              </div>
-              <p class="text-[10px] text-slate-400 font-mono">Universal Logistics &amp; Distribution Delivery Note Engine</p>
+
+            <span class="px-2 py-1 rounded-md text-[10px] font-semibold uppercase tracking-wider bg-teal-50 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-800 flex items-center space-x-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+              <span>{{ activeDoc?.status || 'ISSUED' }}</span>
+            </span>
+          </div>
+
+          <!-- Right: Format + Config + Print -->
+          <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+            <!-- Format Kertas -->
+            <div class="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-lg">
+              <span class="text-slate-400 dark:text-slate-500 text-[10px] font-semibold">FORMAT:</span>
+              <select
+                v-model="activeTemplateCode"
+                class="bg-transparent text-slate-700 dark:text-slate-300 text-xs font-semibold focus:outline-none cursor-pointer"
+              >
+                <option value="A4_PORTRAIT">📄 A4 Portrait (210×297 mm)</option>
+                <option value="CONTINUOUS_3PLY">🖨️ Continuous 3-Ply (9.5×11 in)</option>
+                <option value="CONTINUOUS_WARTEL">📑 Wartel 9.5×5.5 in</option>
+                <option value="THERMAL_BLUETOOTH">🧾 Thermal (58/80mm)</option>
+              </select>
             </div>
+
+            <!-- Config Toggle -->
+            <button
+              type="button"
+              @click="showConfigPanel = !showConfigPanel"
+              class="p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+              :class="showConfigPanel ? 'bg-sky-50 dark:bg-sky-900/20 text-sky-600 dark:text-sky-400' : ''"
+              title="Pengaturan Perusahaan"
+            >
+              <AppIcon name="settings" custom-class="w-4 h-4" />
+            </button>
+
+            <!-- Export CSV -->
+            <button
+              type="button"
+              @click="exportCsv"
+              class="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold transition border border-slate-200 dark:border-slate-700 flex items-center space-x-1.5 cursor-pointer"
+            >
+              <AppIcon name="download" custom-class="w-3.5 h-3.5" />
+              <span>CSV</span>
+            </button>
+
+            <!-- Print Button -->
+            <button
+              type="button"
+              @click="handlePrint"
+              class="px-4 py-1.5 rounded-lg bg-slate-800 dark:bg-slate-200 hover:bg-slate-700 dark:hover:bg-white text-white dark:text-slate-900 text-xs font-bold tracking-wide shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
+            >
+              <AppIcon name="printer" custom-class="w-4 h-4" />
+              <span>CETAK</span>
+            </button>
           </div>
         </div>
 
-        <!-- Center: Portal Navigation Tabs -->
-        <div class="flex items-center space-x-1 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
-          <NuxtLink to="/waybills" class="px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition">
-            Daftar Surat Jalan
-          </NuxtLink>
-          <span class="px-3 py-1.5 rounded-md font-semibold bg-blue-600 text-white shadow-sm">
-            Pratinjau &amp; Cetak Dokumen
-          </span>
-          <NuxtLink to="/tms/trips" class="px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition">
-            TMS Trip Dispatcher
-          </NuxtLink>
-          <NuxtLink to="/checkpoints" class="px-3 py-1.5 rounded-md font-semibold text-slate-400 hover:text-white transition">
-            Audit Log Serah Terima
-          </NuxtLink>
-        </div>
+        <!-- Row 2: Ply Tabs -->
+        <div class="flex items-center justify-between text-xs border-t border-slate-100 dark:border-slate-800 pt-2">
+          <div class="flex items-center space-x-1.5">
+            <span class="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mr-1">RANGKAP:</span>
 
-        <!-- Right: Active Hub & User Info -->
-        <div class="flex items-center space-x-2.5 text-xs">
-          <span class="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono text-[11px]">
-            WH-JKT01 GATE 4
-          </span>
-          <div class="w-7 h-7 rounded-full bg-blue-600/30 text-blue-400 flex items-center justify-center font-bold text-xs border border-blue-500/30">
-            {{ (authStore.user?.full_name || 'AD').substring(0, 2).toUpperCase() }}
+            <template v-if="activeTemplateCode === 'A4_PORTRAIT'">
+              <button
+                v-for="p in a4Plies"
+                :key="p.code"
+                type="button"
+                @click="selectedPly = p.code"
+                class="px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer"
+                :class="selectedPly === p.code ? p.activeClass : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'"
+              >
+                {{ p.label }}
+              </button>
+            </template>
+
+            <template v-else-if="activeTemplateCode === 'CONTINUOUS_3PLY' || activeTemplateCode === 'CONTINUOUS_WARTEL'">
+              <button
+                v-for="p in continuousPlies"
+                :key="p.code"
+                type="button"
+                @click="selectedPly = p.code"
+                class="px-2.5 py-1 rounded-md text-xs font-semibold transition cursor-pointer"
+                :class="selectedPly === p.code ? p.activeClass : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'"
+              >
+                {{ p.label }}
+              </button>
+            </template>
+
+            <template v-else>
+              <span class="text-slate-400 dark:text-slate-500 text-xs italic">
+                Mode Struk Thermal (58/80mm Roll)
+              </span>
+            </template>
+          </div>
+
+          <div class="text-[10px] font-mono text-slate-400 dark:text-slate-500 hidden sm:block">
+            Template: <strong class="text-slate-600 dark:text-slate-300">{{ masterDefaultTemplateName }}</strong>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- ═══ SUB-TOOLBAR: DOKUMEN & TEMPLATE SELECTOR (Screen Only) ═══ -->
-    <section class="print:hidden bg-slate-900/90 border-b border-slate-800 px-4 py-3 sticky top-[57px] z-30 backdrop-blur-md">
-      <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-        <!-- Document Pill & Switcher -->
-        <div class="flex items-center space-x-2 flex-wrap gap-y-2">
-          <div class="flex items-center space-x-1.5 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-lg text-xs font-mono">
-            <span class="text-slate-500">NO. DOKUMEN:</span>
-            <select 
-              v-model="selectedWaybillId" 
-              @change="onWaybillSelect"
-              class="bg-transparent text-white font-bold font-mono focus:outline-none cursor-pointer"
-            >
-              <option v-for="w in waybillsList" :key="w.id" :value="w.id" class="bg-slate-900 text-white">
-                {{ w.sj_number }} ({{ w.recipient_name || w.order_number }})
-              </option>
-            </select>
-            <button 
-              type="button" 
-              @click="copyDocNumber" 
-              class="text-slate-400 hover:text-white transition cursor-pointer ml-1"
-              title="Salin Nomor Dokumen"
-            >
-              <AppIcon name="copy" custom-class="w-3.5 h-3.5" />
-            </button>
+    <!-- ═══ COMPANY CONFIG PANEL (Collapsible, Screen Only) ═══ -->
+    <Transition name="slide-down">
+      <section v-if="showConfigPanel" class="print:hidden bg-sky-50/50 dark:bg-sky-950/20 border-b border-sky-200 dark:border-sky-900/50 px-4 py-4">
+        <div class="max-w-5xl mx-auto">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">⚙ Pengaturan Profil Perusahaan</h3>
+            <button type="button" @click="resetCompanyConfig" class="text-[10px] text-slate-400 hover:text-rose-500 font-semibold cursor-pointer transition">Reset Default</button>
           </div>
-
-          <span class="px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>{{ activeDoc?.status || 'DISPATCHED' }} / SIAP ANGKUT</span>
-          </span>
-        </div>
-
-        <!-- Template Selector & Action Buttons -->
-        <div class="flex items-center space-x-2 flex-wrap gap-y-2">
-          <!-- Template Dropdown ("Keluarin Semua") -->
-          <div class="flex items-center space-x-1.5 bg-slate-950 border border-slate-800 px-2.5 py-1.5 rounded-lg">
-            <span class="text-slate-400 text-xs font-semibold">Format Kertas:</span>
-            <select 
-              v-model="activeTemplateCode" 
-              class="bg-slate-900 text-blue-400 text-xs font-semibold rounded px-2 py-1 border border-slate-700 focus:outline-none focus:border-blue-500 cursor-pointer"
-            >
-              <option value="A4_PORTRAIT">📄 A4 Portrait (210 x 297 mm)</option>
-              <option value="CONTINUOUS_3PLY">🖨️ Continuous Form 3-Ply Dot Matrix (9.5 x 11 in)</option>
-              <option value="CONTINUOUS_WARTEL">📑 Continuous Form Wartel 9.5 x 5.5 in (Bagi 2)</option>
-              <option value="THERMAL_BLUETOOTH">🧾 Thermal Bluetooth (58mm / 80mm)</option>
-            </select>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div>
+              <label class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">Nama Perusahaan</label>
+              <input v-model="editConfig.name" @blur="saveCompanyEdit" type="text" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-400" />
+            </div>
+            <div class="sm:col-span-2 lg:col-span-2">
+              <label class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">Alamat Lengkap</label>
+              <input v-model="editConfig.address" @blur="saveCompanyEdit" type="text" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-400" />
+            </div>
+            <div>
+              <label class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">Telepon</label>
+              <input v-model="editConfig.phone" @blur="saveCompanyEdit" type="text" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-400" />
+            </div>
+            <div>
+              <label class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">NPWP</label>
+              <input v-model="editConfig.npwp" @blur="saveCompanyEdit" type="text" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-400" />
+            </div>
+            <div>
+              <label class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">Izin / SK Kemenhub</label>
+              <input v-model="editConfig.permit" @blur="saveCompanyEdit" type="text" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-400" />
+            </div>
+            <div>
+              <label class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">Hub Operasional</label>
+              <input v-model="editConfig.hub_name" @blur="saveCompanyEdit" type="text" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-400" />
+            </div>
+            <div>
+              <label class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">Inisial Logo (2 huruf)</label>
+              <input v-model="editConfig.logo_initials" @blur="saveCompanyEdit" type="text" maxlength="3" class="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-400" />
+            </div>
+            <div>
+              <label class="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block mb-1">URL Logo (opsional)</label>
+              <input v-model="editConfig.logo_url" @blur="saveCompanyEdit" type="url" placeholder="https://..." class="w-full text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:border-sky-400" />
+            </div>
           </div>
-
-          <!-- Quick Actions -->
-          <NuxtLink 
-            :to="'/checkpoints?doc=' + (activeDoc?.sj_number || '')"
-            class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition border border-slate-700 flex items-center space-x-1.5"
-          >
-            <AppIcon name="history" custom-class="w-3.5 h-3.5" />
-            <span>Log Dispatch</span>
-          </NuxtLink>
-
-          <button 
-            type="button" 
-            @click="exportCsv"
-            class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition border border-slate-700 flex items-center space-x-1.5 cursor-pointer"
-          >
-            <AppIcon name="download" custom-class="w-3.5 h-3.5" />
-            <span>Ekspor CSV</span>
-          </button>
-
-          <!-- Large Print Button -->
-          <button 
-            type="button" 
-            @click="handlePrint" 
-            class="px-4 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-900 text-xs font-black tracking-wide shadow-md transition flex items-center space-x-1.5 cursor-pointer"
-          >
-            <AppIcon name="printer" custom-class="w-4 h-4 text-slate-900" />
-            <span>CETAK SURAT JALAN</span>
-          </button>
+          <p class="text-[10px] text-slate-400 dark:text-slate-500 mt-2 italic">Pengaturan ini disimpan di browser lokal (localStorage). Perubahan langsung terlihat di preview cetak.</p>
         </div>
-      </div>
-
-      <!-- Ply Tabs Bar (Screen Only) -->
-      <div class="max-w-7xl mx-auto mt-2.5 pt-2.5 border-t border-slate-800 flex items-center justify-between text-xs overflow-x-auto">
-        <div class="flex items-center space-x-1.5">
-          <span class="text-[11px] text-slate-400 font-semibold mr-1">RANGKAP LEMBAR (PLY):</span>
-          
-          <!-- Tabs for A4 (4-Ply) -->
-          <template v-if="activeTemplateCode === 'A4_PORTRAIT'">
-            <button 
-              v-for="p in a4Plies" 
-              :key="p.code"
-              type="button" 
-              @click="selectedPly = p.code"
-              class="px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer"
-              :class="selectedPly === p.code ? p.activeClass : 'bg-slate-800/80 text-slate-400 hover:text-white'"
-            >
-              {{ p.label }}
-            </button>
-          </template>
-
-          <!-- Tabs for Continuous Form 3-Ply & Wartel -->
-          <template v-else-if="activeTemplateCode === 'CONTINUOUS_3PLY' || activeTemplateCode === 'CONTINUOUS_WARTEL'">
-            <button 
-              v-for="p in continuousPlies" 
-              :key="p.code"
-              type="button" 
-              @click="selectedPly = p.code"
-              class="px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer"
-              :class="selectedPly === p.code ? p.activeClass : 'bg-slate-800/80 text-slate-400 hover:text-white'"
-            >
-              {{ p.label }}
-            </button>
-          </template>
-
-          <!-- Thermal Notice -->
-          <template v-else>
-            <span class="text-slate-400 text-xs font-mono italic">
-              Mode Struk Thermal Gulung (Roll Slip Standar POS 58/80mm)
-            </span>
-          </template>
-        </div>
-
-        <div class="text-[11px] font-mono text-slate-400 hidden sm:block">
-          Template Default Sistem: <strong class="text-blue-400">{{ masterDefaultTemplateName }}</strong>
-        </div>
-      </div>
-    </section>
+      </section>
+    </Transition>
 
     <!-- ═══ DOCUMENT CANVAS WRAPPER ═══ -->
     <main class="max-w-5xl mx-auto mt-6 px-3 flex justify-center print:m-0 print:p-0 print:w-full print:max-w-none">
@@ -199,18 +203,19 @@
           <!-- Left: Shipper / WMS Enterprise Identity -->
           <div class="col-span-8 space-y-1">
             <div class="flex items-center space-x-2">
-              <div class="w-6 h-6 rounded bg-slate-900 text-white flex items-center justify-center font-black text-[10px]">
-                LP
+              <img v-if="companyConfig.logo_url" :src="companyConfig.logo_url" :alt="companyConfig.name" class="w-6 h-6 rounded object-contain" />
+              <div v-else class="w-6 h-6 rounded bg-slate-900 text-white flex items-center justify-center font-black text-[10px]">
+                {{ companyConfig.logo_initials }}
               </div>
               <h1 class="text-base font-black tracking-tight text-slate-950 uppercase font-sans">
-                {{ activeDoc?.customer_name || 'PT. LOGISTIK PRIMA NUSANTARA' }}
+                {{ activeDoc?.customer_name || companyConfig.name }}
               </h1>
             </div>
             <p class="text-[10px] text-slate-600 leading-snug">
-              Pergudangan Marunda Center Blok B3 No. 12-15, Segaramakmur, Tarumajaya, Kab. Bekasi, Jawa Barat 17211<br />
-              Telp: (021) 8892-3400 (Hunting) | Fax: (021) 8892-3401<br />
-              NPWP: 01.389.204.8-412.000 | SK Kemenhub: TMS/2024/0981<br />
-              <strong class="text-slate-800">Hub Operasional:</strong> DC Marunda West Gate &amp; Cross-dock CGK
+              {{ companyConfig.address }}<br />
+              Telp: {{ companyConfig.phone }}<br />
+              NPWP: {{ companyConfig.npwp }} | {{ companyConfig.permit }}<br />
+              <strong class="text-slate-800">Hub Operasional:</strong> {{ companyConfig.hub_name }}
             </p>
           </div>
 
@@ -484,7 +489,7 @@
         </div>
 
         <div class="text-center text-[7.5px] font-mono text-slate-400 tracking-wider pt-0.5">
-          SISTEM LOGISTIK &amp; DISTRIBUSI TERPADU INDONESIA • AUDIT COMPLIANCE ISO 9001 / WMS-TMS ENGINE • © 2026 PT LOGISTIK PRIMA NUSANTARA
+           {{ companyConfig.tagline }} • © 2026 {{ companyConfig.name }}
         </div>
       </div>
 
@@ -514,8 +519,8 @@
           <!-- Dot Matrix Company Box & Header -->
           <div class="border-2 border-black p-2 flex justify-between items-start">
             <div>
-              <div class="font-black text-sm uppercase tracking-tight">PT. LOGISTIK PRIMA NUSANTARA</div>
-              <div class="text-[9px]">Pergudangan Marunda Center B3/12-15 • Telp: (021) 8892-3400 • NPWP: 01.389.204.8-412.000</div>
+              <div class="font-black text-sm uppercase tracking-tight">{{ companyConfig.name }}</div>
+              <div class="text-[9px]">{{ companyConfig.address }} • Telp: {{ companyConfig.phone }} • NPWP: {{ companyConfig.npwp }}</div>
             </div>
             <div class="text-right">
               <div class="border-2 border-black px-2 py-0.5 font-black text-xs uppercase bg-slate-100">
@@ -673,8 +678,8 @@
           <!-- Wartel Compact Header -->
           <div class="border border-black p-1 flex justify-between items-center">
             <div>
-              <strong class="text-xs uppercase">PT. LOGISTIK PRIMA NUSANTARA</strong>
-              <div class="text-[7.5px]">Marunda Center B3/12-15 • Telp: (021) 8892-3400 • NPWP: 01.389.204.8-412.000</div>
+              <strong class="text-xs uppercase">{{ companyConfig.name }}</strong>
+              <div class="text-[7.5px]">{{ companyConfig.address }} • Telp: {{ companyConfig.phone }} • NPWP: {{ companyConfig.npwp }}</div>
             </div>
             <div class="border border-black px-2 py-0.5 font-bold text-[10px] bg-slate-100 text-right uppercase">
               SURAT JALAN (DELIVERY ORDER)
@@ -778,8 +783,8 @@
         class="bg-white text-slate-900 w-full max-w-[80mm] p-4 shadow-xl rounded font-mono text-xs space-y-2.5 border border-slate-300 print:shadow-none print:border-none print:p-0 print:m-0"
       >
         <div class="text-center border-b border-dashed border-slate-400 pb-2">
-          <div class="font-black text-sm uppercase">LOGISTIK PRIMA WMS</div>
-          <div class="text-[10px] text-slate-600">HUB MARUNDA GATE 4</div>
+          <div class="font-black text-sm uppercase">{{ companyConfig.name }}</div>
+          <div class="text-[10px] text-slate-600">{{ companyConfig.hub_name }}</div>
           <div class="text-[10px] text-slate-600">STRUK SURAT JALAN &amp; GATE PASS</div>
         </div>
 
@@ -822,7 +827,7 @@
 
         <div class="text-[9px] text-center text-slate-500 pt-1 border-t border-dashed border-slate-300">
           *** TERIMA KASIH • SELAMAT JALAN ***<br />
-          Sistem WMS/TMS Logistik Prima v5.1
+          {{ companyConfig.tagline }}
         </div>
 
         <!-- Screen Only Direct Bluetooth Trigger -->
@@ -843,13 +848,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useWaybillStore } from '~/stores/waybill'
 import { useOutboundStore } from '~/stores/outbound'
 import { useAuthStore } from '~/stores/auth'
 import { useWmsApi } from '~/composables/useWmsApi'
 import { useThermalPrinter } from '~/composables/useThermalPrinter'
+import { useCompanyConfig } from '~/composables/useCompanyConfig'
 
 const route = useRoute()
 const router = useRouter()
@@ -858,12 +864,26 @@ const outboundStore = useOutboundStore()
 const authStore = useAuthStore()
 const { apiFetch } = useWmsApi()
 const thermalPrinter = useThermalPrinter()
+const { config: companyConfig, update: updateCompanyConfig, reset: resetCompanyConfigFn } = useCompanyConfig()
 
 const selectedWaybillId = ref('')
 const activeDoc = ref(null)
 const activeTemplateCode = ref('A4_PORTRAIT')
 const masterDefaultTemplateName = ref('A4 Portrait (210 x 297 mm)')
 const selectedPly = ref('L1')
+const showConfigPanel = ref(false)
+
+// Editable copy of company config for the config panel
+const editConfig = reactive({ ...companyConfig.value })
+
+function saveCompanyEdit() {
+  updateCompanyConfig({ ...editConfig })
+}
+
+function resetCompanyConfig() {
+  resetCompanyConfigFn()
+  Object.assign(editConfig, companyConfig.value)
+}
 
 // Plies definition
 const a4Plies = [
@@ -1128,5 +1148,24 @@ onMounted(async () => {
     margin: 8mm;
     size: auto;
   }
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  max-height: 0;
+  transform: translateY(-8px);
+}
+
+.slide-down-enter-to,
+.slide-down-leave-from {
+  opacity: 1;
+  max-height: 400px;
 }
 </style>
