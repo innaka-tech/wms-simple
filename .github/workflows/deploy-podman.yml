@@ -72,7 +72,6 @@ jobs:
     name: Deploy & Pull to Server via Podman
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: ${{ secrets.SERVER_HOST != '' && secrets.SSH_PRIVATE_KEY != '' }}
     steps:
       - name: Prepare lowercase image tags
         id: prep
