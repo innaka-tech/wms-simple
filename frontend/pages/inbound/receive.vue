@@ -108,6 +108,13 @@
               <div v-else-if="po.status === 'RECEIVED'" class="flex flex-wrap items-center gap-2">
                 <input v-model.number="putawayDraft[item.id].storage_qty" type="number" min="0" :max="item.received_qty" placeholder="Qty ke rak"
                        class="w-24 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
+                <select v-if="putawayDraft[item.id].storage_qty > 0" v-model="putawayDraft[item.id].location_id"
+                        class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none font-medium">
+                  <option value="">-- Pilih Rak Lokasi --</option>
+                  <option v-for="loc in warehouseLocations" :key="loc.id" :value="loc.id">
+                    Zona {{ loc.zone }} • Aisle {{ loc.aisle }} • Rak {{ loc.rack }}-{{ loc.bin }}
+                  </option>
+                </select>
                 <input v-model.number="putawayDraft[item.id].cross_dock_qty" type="number" min="0" :max="item.received_qty" placeholder="Qty cross-dock"
                        class="w-28 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
                 <span class="text-[10px] text-slate-400">rak + cross-dock = {{ item.received_qty }} (wajib)</span>
@@ -147,6 +154,7 @@ const expandedId = ref('')
 const customers = ref([])
 const warehouses = ref([])
 const products = ref([])
+const warehouseLocations = ref([])
 const truckPlate = ref('')
 const driverName = ref('')
 const receiveDraft = reactive({})
@@ -155,9 +163,21 @@ const putawayDraft = reactive({})
 
 const form = ref({
   customer_id: '',
-  warehouse_id: 'a0000000-0000-0000-0000-000000000001',
+  warehouse_id: authStore.activeWarehouseId || '',
   items: [{ product_id: '', ordered_qty: 1 }]
 })
+
+async function loadLocations(whId) {
+  if (!whId) return
+  try {
+    const res = await apiFetch(`/warehouses/${whId}`)
+    if (res.success && res.data?.locations) {
+      warehouseLocations.value = res.data.locations
+    }
+  } catch (err) {
+    console.error('Gagal memuat lokasi rak:', err)
+  }
+}
 
 function statusLabel(s) {
   return { CREATED: 'Menunggu Receiving', RECEIVED: 'Received — perlu Putaway', PUTAWAY_COMPLETED: 'Putaway Completed — stok masuk' }[s] || s
@@ -168,10 +188,17 @@ function statusClass(s) {
 
 function openDetail(po) {
   expandedId.value = expandedId.value === po.id ? '' : po.id
+  if (po.warehouse_id) loadLocations(po.warehouse_id)
   for (const item of (po.items || [])) {
     receiveDraft[item.id] = item.ordered_qty
     conditionDraft[item.id] = 'GOOD'
-    if (!putawayDraft[item.id]) putawayDraft[item.id] = { storage_qty: item.received_qty, cross_dock_qty: 0 }
+    if (!putawayDraft[item.id]) {
+      putawayDraft[item.id] = {
+        storage_qty: item.received_qty,
+        cross_dock_qty: 0,
+        location_id: item.location_id || (warehouseLocations.value[0]?.id || '')
+      }
+    }
   }
 }
 
@@ -211,7 +238,8 @@ async function submitPutaway(po) {
     product_id: it.product_id,
     received_qty: it.received_qty,
     cross_dock_qty: Number(putawayDraft[it.id]?.cross_dock_qty ?? 0),
-    storage_qty: Number(putawayDraft[it.id]?.storage_qty ?? it.received_qty)
+    storage_qty: Number(putawayDraft[it.id]?.storage_qty ?? it.received_qty),
+    location_id: putawayDraft[it.id]?.location_id || undefined
   }))
   await inboundStore.putaway(po.id, {
     items,
@@ -232,6 +260,7 @@ onMounted(async () => {
     if (w.success) warehouses.value = w.data || []
     if (p.success) products.value = p.data || []
     form.value.customer_id = customers.value[0]?.id || ''
+    if (!form.value.warehouse_id) form.value.warehouse_id = authStore.activeWarehouseId || warehouses.value[0]?.id || ''
     form.value.items[0].product_id = products.value[0]?.id || ''
   } catch (e) {
     console.error('Gagal memuat master data:', e)

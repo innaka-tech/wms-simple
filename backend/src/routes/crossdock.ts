@@ -101,7 +101,7 @@ crossdockRoutes.post('/', async (c) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const manifestNumber = `MNF-${Date.now().toString().slice(-8)}`;
+    const manifestNumber = `MNF${Date.now().toString().slice(-8)}`;
 
     const manifestRes = await client.query(
       `INSERT INTO cross_dock_manifests (

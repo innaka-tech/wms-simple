@@ -96,27 +96,34 @@ export const useOutboundStore = defineStore('outbound', {
       }
     },
 
-    async pickOrder(orderId: string): Promise<boolean> {
+    async pickOrder(orderId: string, customItems?: any[]): Promise<boolean> {
       this.isLoading = true;
       this.errorMessage = '';
       this.successMessage = '';
       const { apiFetch } = useWmsApi();
       const authStore = useAuthStore();
       try {
-        // Backend pick cukup items per baris (id, picked_qty) — product_id diresolusi server dari DB
-        const detailRes = await apiFetch(`/outbound/${orderId}`);
-        if (!detailRes.success) throw new Error('Gagal memuat detail order untuk picking');
-        const items = (detailRes.data.items || []).map((it: any) => ({
-          id: it.id,
-          picked_qty: it.picked_qty != null ? Number(it.picked_qty) : Number(it.ordered_qty)
-        }));
+        let items = customItems;
+        if (!items || items.length === 0) {
+          const detailRes = await apiFetch(`/outbound/${orderId}`);
+          if (!detailRes.success) throw new Error('Gagal memuat detail order untuk picking');
+          items = (detailRes.data.items || []).map((it: any) => ({
+            id: it.id,
+            picked_qty: it.picked_qty != null && Number(it.picked_qty) > 0 ? Number(it.picked_qty) : Number(it.ordered_qty),
+            location_id: it.location_id || null
+          }));
+        }
         if (!items.length) throw new Error('Order tidak memiliki item untuk dipick');
         const res = await apiFetch(`/outbound/${orderId}/pick`, {
           method: 'POST',
-          body: { items, actor_name: authStore.user?.full_name || 'Petugas Gudang' }
+          body: {
+            items,
+            actor_name: authStore.user?.full_name || 'Petugas Gudang',
+            actor_id: authStore.user?.id || null
+          }
         });
         if (res.success) {
-          this.successMessage = 'Picking selesai — barang diambil dari rak';
+          this.successMessage = 'Picking selesai — barang diambil dari rak lokasi';
           await this.fetchOrders();
           return true;
         }
@@ -129,20 +136,27 @@ export const useOutboundStore = defineStore('outbound', {
       }
     },
 
-    async packOrder(orderId: string): Promise<boolean> {
+    async packOrder(orderId: string, packages?: any[], notes?: string): Promise<boolean> {
       this.isLoading = true;
       this.errorMessage = '';
       this.successMessage = '';
       const { apiFetch } = useWmsApi();
       const authStore = useAuthStore();
       try {
-        // Packing: packages opsional, actor_name wajib
+        const body: any = {
+          actor_name: authStore.user?.full_name || 'Petugas Gudang',
+          actor_id: authStore.user?.id || null,
+          notes: notes || undefined
+        };
+        if (packages && packages.length > 0) {
+          body.packages = packages;
+        }
         const res = await apiFetch(`/outbound/${orderId}/pack`, {
           method: 'POST',
-          body: { actor_name: authStore.user?.full_name || 'Petugas Gudang' }
+          body
         });
         if (res.success) {
-          this.successMessage = 'Packing selesai — siap terbitkan Surat Jalan';
+          this.successMessage = 'Packing selesai — koli fisik terdaftar, siap terbitkan Surat Jalan';
           await this.fetchOrders();
           return true;
         }

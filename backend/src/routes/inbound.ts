@@ -94,7 +94,7 @@ inboundRoutes.post('/', optionalAuth, async (c) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const poNumber = `PO-${Date.now().toString().slice(-8)}`;
+    const poNumber = `PO${Date.now().toString().slice(-8)}`;
 
     const orderRes = await client.query(
       `INSERT INTO inbound_orders (id, po_number, customer_id, warehouse_id, status, eta, sender_info, notes, created_by_id, created_by_name)

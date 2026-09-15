@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { generateWaybillNumber } from '../../src/utils/waybill.js';
 
-describe('Waybill Number Generator (SJ-XXXXXXXX / RESI-XXXXXXXX)', () => {
+describe('Waybill Number Generator (SJXXXXXXXX / RESIXXXXXXXX)', () => {
   it('should generate SJ number with correct format', () => {
     const sj = generateWaybillNumber('SJ');
-    expect(sj).toMatch(/^SJ-[0-9A-HJ-NP-Z]{8}$/);
+    expect(sj).toMatch(/^SJ[0-9A-HJ-NP-Z]{8}$/);
   });
 
   it('should generate RESI number with correct format', () => {
     const resi = generateWaybillNumber('RESI');
-    expect(resi).toMatch(/^RESI-[0-9A-HJ-NP-Z]{8}$/);
+    expect(resi).toMatch(/^RESI[0-9A-HJ-NP-Z]{8}$/);
   });
 
   it('should never contain ambiguous characters (I, O)', () => {

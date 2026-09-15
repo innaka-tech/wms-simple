@@ -95,16 +95,16 @@ INSERT INTO users (id, username, full_name, email, password_hash, role, warehous
 -- 11. Products / SKUs (Contoh Bulky Parent & Child Curah)
 INSERT INTO products (id, sku_code, name, description, cargo_type_id, default_packaging_type_id, default_uom_id, weight_kg_per_unit, volume_m3_per_unit, is_debulking_target, parent_bulky_product_id, min_stock_qty) VALUES
 -- 11.1 Bulky Parent Item: Gula Rafinasi Jumbo Bag 1 Ton
-('e0000000-0000-0000-0000-000000000001', 'BULK-SUGAR-1T', 'Gula Pasir Rafinasi Jumbo Bag 1 Ton (Bulky)', 'Gula rafinasi industri kemasan Jumbo Bag 1000 kg', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000005', 1000.00, 1.2000, FALSE, NULL, 5),
+('e0000000-0000-0000-0000-000000000001', 'BULKSUGAR1T', 'Gula Pasir Rafinasi Jumbo Bag 1 Ton (Bulky)', 'Gula rafinasi industri kemasan Jumbo Bag 1000 kg', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000005', 1000.00, 1.2000, FALSE, NULL, 5),
 
 -- 11.2 Child Item 1 (Hasil Dicurah / Bagging): Gula Karung 25 KG
-('e0000000-0000-0000-0000-000000000002', 'SUGAR-SACK-25KG', 'Gula Pasir Rafinasi Karung 25 KG (Retail/Distribusi)', 'Hasil repack bagging-off dari Jumbo Bag 1 Ton', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000007', 25.00, 0.0300, TRUE, 'e0000000-0000-0000-0000-000000000001', 50),
+('e0000000-0000-0000-0000-000000000002', 'SUGARSACK25KG', 'Gula Pasir Rafinasi Karung 25 KG (Retail/Distribusi)', 'Hasil repack bagging-off dari Jumbo Bag 1 Ton', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000007', 25.00, 0.0300, TRUE, 'e0000000-0000-0000-0000-000000000001', 50),
 
 -- 11.3 Child Item 2 (Curah Lepas): Gula Pasir Curah Loose KG
-('e0000000-0000-0000-0000-000000000003', 'SUGAR-LOOSE-KG', 'Gula Pasir Curah Lepas (Silo / Bulk Tank)', 'Gula curah simpan di Silo untuk truk tangki curah', '10000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000001', 1.00, 0.0012, TRUE, 'e0000000-0000-0000-0000-000000000001', 1000),
+('e0000000-0000-0000-0000-000000000003', 'SUGARLOOSEKG', 'Gula Pasir Curah Lepas (Silo / Bulk Tank)', 'Gula curah simpan di Silo untuk truk tangki curah', '10000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000001', 1.00, 0.0012, TRUE, 'e0000000-0000-0000-0000-000000000001', 1000),
 
 -- 11.4 Packaged General Cargo: Elektronik TV
-('e0000000-0000-0000-0000-000000000004', 'ELEC-TV-43', 'Smart LED TV 43 Inch FHD', 'Televisi LED 43 Inch with Smart OS', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000009', 8.50, 0.0850, FALSE, NULL, 20);
+('e0000000-0000-0000-0000-000000000004', 'ELECTV43', 'Smart LED TV 43 Inch FHD', 'Televisi LED 43 Inch with Smart OS', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000009', 8.50, 0.0850, FALSE, NULL, 20);
 
 -- 12. Vehicles (Fleet Master)
 INSERT INTO vehicles (id, plate_number, vehicle_type_id, brand, model, year_made, current_driver_id, assigned_warehouse_id, status, last_odometer_km) VALUES

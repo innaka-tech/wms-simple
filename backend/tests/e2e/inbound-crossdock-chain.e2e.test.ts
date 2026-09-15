@@ -136,7 +136,7 @@ describe('E2E Backlog #5 (PostgreSQL): Inbound → Putaway → Cross-Dock → Cr
     });
     expect(po.status).toBe(201);
     expect(po.data.id).toBeTruthy();
-    expect(po.data.po_number).toMatch(/^PO-/);
+    expect(po.data.po_number).toMatch(/^PO/);
 
     // 2. Penerimaan fisik di dock (tally: 10 masuk, kondisi baik)
     const detail = await req('GET', `/api/inbound/${po.data.id}`);
@@ -192,7 +192,7 @@ describe('E2E Backlog #5 (PostgreSQL): Inbound → Putaway → Cross-Dock → Cr
     });
     expect(mnf.status).toBe(201);
     expect(mnf.data.id).toBeTruthy();
-    expect(mnf.data.manifest_number).toMatch(/^MNF-/);
+    expect(mnf.data.manifest_number).toMatch(/^MNF/);
 
     // 2. Loading ke truk
     const mnfDetail = await req('GET', `/api/crossdock/${mnf.data.id}`);
@@ -268,7 +268,7 @@ describe('E2E Backlog #5 (PostgreSQL): Inbound → Putaway → Cross-Dock → Cr
     });
     expect(xdoc.status).toBe(201);
     expect(xdoc.data.id).toBeTruthy();
-    expect(xdoc.data.cross_doc_number).toMatch(/^XDOC-/);
+    expect(xdoc.data.cross_doc_number).toMatch(/^XDOC/);
     expect(xdoc.data.status).toBe('ISSUED');
 
     // 2. Nomor dokumen target terdaftar → sah dibawa truk vendor (docs/05 V_DOC)
@@ -283,7 +283,7 @@ describe('E2E Backlog #5 (PostgreSQL): Inbound → Putaway → Cross-Dock → Cr
     });
     expect(vend.status).toBe(201);
     expect(vend.data.id).toBeTruthy();
-    expect(vend.data.log_number).toMatch(/^VEND-OUT-/);
+    expect(vend.data.log_number).toMatch(/^VENDOUT/);
 
     await expectChainIntegrity('CROSS_DOCUMENT', xdoc.data.id, ['CROSS_DOC_ISSUED']);
     await expectChainIntegrity('VENDOR_EXIT_LOG', vend.data.id, ['VENDOR_EXIT']);

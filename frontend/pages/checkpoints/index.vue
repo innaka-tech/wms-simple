@@ -9,13 +9,13 @@
     <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg flex flex-col sm:flex-row sm:items-center gap-3 transition-colors">
       <div class="flex-1">
         <h2 class="text-sm font-bold text-slate-900 dark:text-white">Audit Trail Dokumen</h2>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Masukkan nomor dokumen: PO-, MNF-, SJ/RESI-, XDOC-, ORD-, INV-, VEND-OUT-</p>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Masukkan nomor dokumen: PO, MNF, SJ/RESI, XDOC, ORD, INV, VENDOUT</p>
       </div>
       <form class="flex gap-2" @submit.prevent="lookup">
         <input
           v-model="docNumber"
           type="text"
-          placeholder="PO-12345678"
+          placeholder="PO12345678"
           class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none w-44"
         />
         <button type="submit" :disabled="isLoading" class="px-3 py-2 rounded-md bg-slate-900 dark:bg-slate-100 hover:bg-slate-700 dark:hover:bg-white disabled:opacity-50 text-white dark:text-slate-900 text-xs font-semibold transition cursor-pointer">

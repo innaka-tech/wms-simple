@@ -44,22 +44,40 @@
 
       <!-- Desktop actions -->
       <template #row-actions="{ row }">
-        <NuxtLink
-          :to="'/checkpoints?doc=' + row.sj_number"
-          class="text-xs text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition"
-        >
-          Audit Trail
-        </NuxtLink>
+        <div class="flex items-center space-x-2">
+          <NuxtLink
+            :to="'/waybills/print?sj=' + row.sj_number"
+            class="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition flex items-center space-x-1 shadow-xs"
+          >
+            <AppIcon name="printer" custom-class="w-3.5 h-3.5 text-white" />
+            <span>Cetak SJ</span>
+          </NuxtLink>
+          <NuxtLink
+            :to="'/checkpoints?doc=' + row.sj_number"
+            class="text-xs text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition"
+          >
+            Audit Trail
+          </NuxtLink>
+        </div>
       </template>
 
       <!-- Mobile actions -->
       <template #mobile-actions="{ row }">
-        <NuxtLink
-          :to="'/checkpoints?doc=' + row.sj_number"
-          class="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline"
-        >
-          Audit Trail Dokumen
-        </NuxtLink>
+        <div class="flex items-center space-x-3 pt-1">
+          <NuxtLink
+            :to="'/waybills/print?sj=' + row.sj_number"
+            class="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center space-x-1"
+          >
+            <AppIcon name="printer" custom-class="w-3.5 h-3.5" />
+            <span>Cetak Dokumen SJ</span>
+          </NuxtLink>
+          <NuxtLink
+            :to="'/checkpoints?doc=' + row.sj_number"
+            class="text-xs text-slate-500 font-medium hover:underline"
+          >
+            Audit Trail
+          </NuxtLink>
+        </div>
       </template>
     </AppDataTable>
   </div>

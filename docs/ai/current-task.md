@@ -1,9 +1,82 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** ACTIVE TASK — Code Review & End-to-End Operational Lifecycle Hardening Selesai (v4.6.4)  
-**Database:** Host PostgreSQL 16 (`wms_simple_db` on `localhost:5432` / `127.0.0.1:5432`)  
-**Version:** 4.6.4  
-**Status:** FULL OPERATIONAL CHAIN VERIFIED LIVE + SECURITY HARDENED (v4.6.4)  
+**Current Status:** PHASE 4 MASTER REFERENSI & ALERT CENTER COMPLETED (v5.2.0)  
+**Database:** Host PostgreSQL 16 (`wms_simple_db` & `wms_simple_test_db` on `127.0.0.1:5432`, user: `postgres`, pw: `fadh`)  
+**Version:** 5.2.0  
+**Status:** ALL PHASES OF MASTER PLAN FULLY IMPLEMENTED & VERIFIED (28 Vitest Suites, 191/191 Passed, Nuxt 3 Production Build Clean 1.76 MB, Browser Verified)  
+
+---
+
+## 0. Sesi 2026-09-15 (Eksekusi Fase 4 Master Plan & UI Redesign v5.2.0):
+
+1. [x] **Konsol Master Referensi Sistem Terpadu (`/master/references`):**
+   - **Backend API Master Data CRUD:**
+     - Tipe Kargo (`master_cargo_types`): GET, POST, PUT, DELETE (soft-deactivate).
+     - Tipe Kemasan (`master_packaging_types`): GET, POST, PUT, DELETE.
+     - Satuan UOM (`master_uom`): GET, POST, PUT, DELETE.
+     - **Aturan Konversi Antar-Satuan UOM (`master_uom_conversions`):** POST, PUT, DELETE untuk konversi rasio (misal: 1 TON = 1.000 KG, 1 JUMBOSACK = 1.000 KG) terintegrasi rumus operasional.
+     - Tipe Armada (`master_vehicle_types`): GET, POST, PUT, DELETE.
+     - Tipe Dokumen (`master_document_types`): GET, POST, PUT, DELETE.
+     - Template Cetak (`master_print_templates`): GET, POST, PUT, DELETE, PUT default.
+   - **Frontend UI Master Referensi (`frontend/pages/master/references.vue`):**
+     - Tab navigasi dinamis: Tipe Kargo, Tipe Kemasan, Satuan UOM, Aturan Konversi UOM, Tipe Armada, Tipe Dokumen, Template Cetak.
+     - Form Add & Edit Modal untuk setiap entitas referensi dengan sanitasi kode *non-hyphen* otomatis.
+     - Tabel khusus Aturan Konversi UOM lengkap dengan satuan asal, tujuan, multiplier, rumus perbandingan, dan modal tambah/edit.
+     - Dialog konfirmasi hapus/nonaktifkan terintegrasi SweetAlert2 (`useSwal().confirmAction()`).
+
+2. [x] **Pusat Notifikasi & Operational Alert Center (`frontend/components/AppHeader.vue` & `backend/src/routes/alerts.ts`):**
+   - **Backend Alert Center Endpoints:**
+     - `GET /api/alerts`: filter status (`is_resolved`), keparahan (`severity: CRITICAL|WARNING|INFO`), dan gudang (`warehouse_id`).
+     - `GET /api/alerts/summary`: kalkulasi ringkasan agregat alert aktif.
+     - `POST /api/alerts`: endpoint pembuatan alert manual/sistemik terverifikasi Zod schema.
+     - `POST /api/alerts/:id/resolve`: resolusi alert individual atomik.
+     - `POST /api/alerts/resolve-all`: resolusi serentak seluruh alert aktif dengan catatan resolusi.
+     - `POST /api/alerts/scan-overdue`: pemindaian proaktif armada pool berstatus `DEPARTED` yang melewati `expected_return_time` dan otomatis menerbitkan alert `CRITICAL`.
+   - **Frontend Header Alert Center:**
+     - Dropdown popover modern dengan indikator badge aktif berdenyut (animated pulse).
+     - Filter cepat per tingkat keparahan: Semua, Kritis, Peringatan.
+     - Tombol "Scan Anomali" dan "Selesaikan Semua" dengan feedback SweetAlert2.
+
+3. [x] **Konsistensi Redesign Antarmuka & SweetAlert2:**
+   - Dark sidebar slate-900 konsisten, header terpadu tanpa distorsi, dan standarisasi token CSS di `main.css`.
+   - Penggantian seluruh `window.alert()` / `confirm()` menjadi SweetAlert2 modal responsif di seluruh halaman aplikasi.
+
+4. [x] **Rangkaian Pengujian Otomatis & Quality Gates:**
+   - Membangun `backend/tests/integration/alerts.routes.test.ts` (6/6 tests passing).
+   - Memperluas `backend/tests/integration/master.routes.test.ts` (13/13 tests passing).
+   - **Hasil Pengujian Total:** **28 passed (28 suites), 191 passed (191 tests), 0 failed, 0 skipped**.
+   - **TypeScript Compiler:** `npx tsc --noEmit` bersih (0 error).
+   - **Frontend Build:** Nuxt 3 / Nitro / Vite 7 sukses (1.76 MB clean bundle).
+   - **Verifikasi Visual Browser Subagent:** Verifikasi live antarmuka `/master/references`, tab konversi UOM, dan popover Alert Center sukses ditangkap sebagai artefak visual.
+
+---
+
+## 0. Sesi 2026-09-14 (Fase Eksekusi Penuh Master Plan v5.0.0):
+
+1. [x] **Fase 5: Penutupan Penuh Operasional & Fisik (Jembatan Timbang, Packing Koli, Alokasi Rak, UOM Auto-Conversion):**
+   - **Modul Jembatan Timbang Truk / Weighbridge Station Console (Gap Tabel 19):**
+     - Backend API `GET /api/weighbridge`, `POST /api/weighbridge` (Gross Masuk, nomor tiket non-hyphen `WBXXXXXXXX`), `PUT /api/weighbridge/:id/second-weight` (Tare Keluar & auto-kalkulasi Net Cargo Weight).
+     - Frontend UI `/weighbridge`: Simulator sensor digital RS-232, tombol Zero/Tare/Gross, tab tiket aktif vs riwayat selesai, modal timbang masuk & keluar, dan cetak struk thermal `printWeighbridgeReceipt`.
+     - Pinia store `useWeighbridgeStore` dan integrasi menu navigasi di `useAuthStore`.
+     - Vitest integration test `weighbridge.routes.test.ts` (5/5 tests passed).
+   - **Modul Packing Interaktif & Pencatatan Koli Fisik (Gap Tabel 28 & Pelacakan Unit KDMP):**
+     - Backend API `POST /api/outbound/:id/pack` menyimpan `packaging_type_id` ke tabel `packages`.
+     - Modal interaktif Packing & Koli Fisik di `/outbound`: Multi-koli dengan kode non-hyphen (`BOX...`), pilihan tipe kemasan dari `master_packaging_types`, berat riil (KG), dimensi (PxLxT cm), serta pengikatan Serial Number (`SN...`) dan Tag Aset Balai Desa (`KDMP...`) untuk kargo chiller pendingin.
+     - Panel expandable rincian item order & daftar koli fisik pada daftar delivery order.
+   - **Saran Lokasi Rak Saat Outbound Picking (Gap Tabel 9):**
+     - Modal picking interaktif di `/outbound` menampilkan daftar lokasi rak gudang (`warehouse_locations`) untuk alokasi pengambilan barang tanpa *blind warehouse*.
+   - **Auto-Kalkulasi Rasio Konversi UOM pada Debulking (Gap Tabel 4):**
+     - Menghubungkan tabel `master_uom_conversions` ke formulir Debulking (`/debulking`).
+     - Fitur 1-klik "Terapkan Rasio UOM" untuk mengonversi kuantitas parent bulky menjadi kuantitas output kemasan ritel secara presisi.
+2. [x] **Fase 1 s/d 4 (Standardisasi Non-Hyphen, TMS Trips, Karantina, Opname, Master Referensi, Alert Center):**
+   - Standardisasi format tanpa tanda strip pada seluruh kode SKU dan nomor dokumen (`generateDocumentNumber`).
+   - TMS Multi-Drop Dispatcher (`/tms/trips`) & Overload Guard (proteksi ODOL kapasitas berat & kubikasi).
+   - Area Karantina & QC Disposisi (`/stock/quarantine`) dan Stock Opname Cycle Count (`/stock/opname`).
+   - Master Referensi Terpadu (`/master/references`) dan Lonceng Peringatan Operasional (Alert Center).
+3. [x] **Quality Gate Verifikasi:**
+   - Vitest test suites: **24 passed (24), 155 passed (155), 0 failed, 0 skipped**.
+   - Frontend Nuxt 3 production build (`nuxt build`): Sukses, 0 error (1.76 MB).
+   - Browser Subagent Live Verification: Seluruh halaman baru (`/weighbridge`, `/outbound`, `/debulking`, `/tms/trips`, `/stock/quarantine`, `/stock/opname`, `/master/references`, Alert popover) terverifikasi berjalan sempurna secara visual dan interaktif.
 
 ---
 
@@ -264,89 +337,4 @@ Status: **docs-first SELESAI (v3.2.0)** — flowchart & sequence di `docs/09`, s
 
 **Deploy produksi:** innaka `http://104.64.221.233:8090` (v4.6.1 ter-deploy, health 200). Kredensial di `/data/docker-data/wms-simple/CREDENTIALS.md` (server-side, off-repo). Panduan: `docs/DEPLOY_INNAKA.md`.
 
----
-
-## Sesi 2026-09-12 — Perbaikan CI/CD GitHub Actions & Hardening Vitest Test Suite (v4.6.2)
-
-1. [x] **Penyebab kegagalan CI/CD (`npm run test:coverage`):**
-   - Workflow `.github/workflows/ci.yml` belum memiliki service container `postgres:16-alpine`. Saat Vitest menjalankan suite e2e (`transaction-chain.e2e.test.ts` & `inbound-crossdock-chain.e2e.test.ts`), koneksi ke `127.0.0.1:5432` ditolak (`ECONNREFUSED`).
-   - `backend/src/db.ts` mengeksekusi `initPgSchema` langsung di top-level saat modul di-import. Jika database belum aktif atau gagal terhubung, error berubah menjadi *unhandled promise rejection* di luar context test runner.
-   - `backend/tests/integration/health.test.ts` meng-import `app.js` tanpa mocking `db.js` (berbeda dari 15 integration test lainnya yang selalu mem-mock DB).
-   - Warning Vitest 4: `test.poolOptions` deprecated dan telah digantikan oleh `test.forks`.
-2. [x] **Perbaikan yang diterapkan:**
-   - `.github/workflows/ci.yml` ditambahkan service `postgres:16-alpine` (port 5432, user: postgres, pass: password, db: wms_simple_db) + health check `pg_isready`.
-   - Script `backend/scripts/init-test-db.js` dibuat untuk memastikan database test `wms_simple_test_db` dibuat otomatis dan idempotent sebelum test berjalan (`pretest` dan `pretest:coverage` di `backend/package.json`).
-   - `.gitlab-ci.yml` disinkronkan dengan penambahan service `postgres:16-alpine`.
-   - `backend/src/db.ts` diperbaiki dengan lazy initialization (`ensureSchema()`) sehingga tidak menimbulkan unhandled rejection saat modul di-import tanpa akses database.
-   - `backend/tests/integration/health.test.ts` dilengkapi `vi.mock('../../src/db.js')` untuk mengisolasi pengetesan endpoint `/api/health`.
-   - `backend/vitest.config.ts` dimigrasi ke konfigurasi resmi Vitest 4 (`forks: { singleFork: true }`).
-
----
-
-## Sesi 2026-09-12 (Lanjutan) — Remediasi OWASP Top 10, Hardening Otentikasi & Otorisasi RBAC, Kepatuhan ISO/IEC 27001 (v4.6.3)
-
-1. [x] **Hasil Audit Keamanan & CVE:**
-   - Audit dependensi (`npm audit`) pada backend, frontend, dan root: **0 kerentanan ditemukan (PASS)**.
-   - Review skema database & query: 100% menggunakan *parameterized queries* (`$1, $2, ...`), bebas SQL injection (OWASP A03).
-   - Review SSRF: Backend tidak melakukan fetch HTTP ke URL inputan eksternal (OWASP A10).
-2. [x] **Remediasi & Hardening yang Diterapkan:**
-   - **OWASP A07 & ISO 27001 A.9.4.3 (Penghapusan Backdoor Password & Hashing Scrypt):**
-     - Menghapus perbandingan bypass hardcode `password === 'password123' || password === 'admin123'` pada `backend/src/routes/auth.ts`.
-     - Mengganti dengan verifikasi hash kriptografis Node.js `scrypt` (salt acak 16 byte + timingSafeEqual).
-     - Menambahkan migrasi otomatis hash kata sandi lama/plaintext saat otentikasi valid pertama kali.
-     - Memasang *rate limiter* in-memory (5 percobaan gagal / 10 menit, 15 menit penguncian) dan structured security warning log.
-   - **OWASP A01 & ISO 27001 A.9.1 (Broken Access Control & Role Hardening):**
-     - Memasang guard otorisasi `BILLING_ROLES` (`SUPER_ADMIN`, `ADMIN_ADM`, `WH_MANAGER`) pada rute penerbitan faktur (`POST /:orderId/invoice`) dan pencatatan pembayaran (`POST /invoices/:invoiceId/payments`) di `backend/src/routes/billing.ts`.
-     - Memasang guard otorisasi `ADMIN_ROLES` dan validasi Zod pada `POST /cargo-types` di `backend/src/routes/master.ts`.
-     - Memasang `optionalAuth` dan guard verifikasi peran pada `POST /:id/resolve` di `backend/src/routes/alerts.ts`.
-     - Memperbaiki `frontend/stores/auth.ts` agar status unauthenticated (`!state.user`) mengembalikan `false` atau `[]`, bukan fallback ke `'SUPER_ADMIN'`.
-     - Membatasi 1-click role switcher dan default credential prefill pada `frontend/pages/login.vue` hanya saat mode development (`isDevBypassEnabled`).
-   - **OWASP A05 & ISO 27001 A.12.1.2 (Security Misconfiguration & Error Sanitization):**
-     - Mensanitasi pesan error 500 internal server pada `backend/src/app.ts` di production agar tidak membocorkan detail query/stack trace.
-     - Menambahkan peringatan runtime jika `JWT_SECRET` default digunakan pada environment production di `backend/src/middlewares/auth.ts`.
-     - Menambahkan log keamanan untuk penolakan akses 401 dan 403.
-   - **Resiliensi Pengujian Test Suite:**
-     - Menangani `ECONNREFUSED` pada E2E test suite `transaction-chain.e2e.test.ts` dan `inbound-crossdock-chain.e2e.test.ts` sehingga skip gracefully di mesin lokal tanpa PostgreSQL aktif, dan tetap berjalan 100% pada CI/CD.
-3. [x] **Hasil Verifikasi Rilis:**
-   - Backend Vitest: 22 test files lulus 100% (129 tests passed, 15 skipped for live DB).
-   - Backend TypeScript compile (`npm run build` / `tsc`): 0 error.
-   - Frontend Nuxt build (`npm run build`): Kompilasi client & server Nitro sukses (1.75 MB).
-
----
-
-## Sesi 2026-09-12 (Lanjutan II) — Code Review Menyeluruh & End-to-End Operational Lifecycle Hardening (v4.6.4)
-
-1. [x] **Pengujian E2E Operasional Nyata (Live Environment `https://wms.innaka.dev`):**
-   - Menjalankan skrip simulasi alur operasional terpadu 7 fase penuh dari Inbound hingga Billing LUNAS (`scratch/live-e2e-test.mjs`).
-   - Menguji otentikasi seluruh 6 akun resmi UAT (`superadmin`, `admin_adm`, `mgr_jkt`, `staff_jkt`, `gate_officer`, `driver_budi`): 100% login sukses dengan scrypt kriptografis.
-   - Menguji alur Inbound PO (`PO-81752587`), Physical Receive, Putaway ke rak penyimpanan, Outbound DO (`ORD-UG9E8U2G`), Picking, Packing, Penerbitan Waybill (`SJ-Z40X9A62` + `RESI-1QFSQSAA`).
-   - Menguji gerbang satpam Jalur B Truk Vendor (`VEND-OUT-WLVEFC1V`) yang berhasil memicu transisi order ke `SHIPPED`.
-   - Menguji tanda terima mobile POD oleh driver, verifikasi BAST oleh Admin Adm (`billing_ready = true`).
-   - Menguji penagihan faktur (`INV-80PNBWG3`), pembayaran parsial (Rp 500.000), dan pelunasan (Rp 1.000.000) hingga status menjadi `PAID` / LUNAS.
-   - Menguji audit trail rantai checkpoint tak terputus (9 node checkpoint berurutan dan valid).
-   - Menguji alur On-Demand Debulking Work Order (`BULK-SUGAR-1T` -> `SUGAR-SACK-25KG`, susut 0.5% < 1.0% batas toleransi) tertaut ke order outbound.
-   - Menguji alur Cross-Dock Manifest (`MNF-81801379`), loading, Surat Jalan Swap (`XDOC-81801631`), dan penerimaan spoke transit.
-
-2. [x] **Temuan Code Review & Remediasi Celah:**
-   - **Audit Trail Alias Resolution (`backend/src/routes/checkpoints.ts`):** Pencarian dokumen dengan nomor `SJ-`, `RESI-`, atau `INV-` pada endpoint `/by-number/:number` sebelumnya return 404 karena entitas di log tersimpan sebagai `ORD-`. Diperbaiki dengan kueri fallback otomatis ke tabel `waybills` dan `invoices`. Dilengkapi unit test di `checkpoint-by-number.routes.test.ts`.
-   - **Fleet Distance & Odometer Tracking (`backend/src/routes/fleet.ts`):** Memperbaiki nilai `distance_travelled_km` yang selalu bernilai `null` saat armada kembali di pos satpam, serta memperbarui `vehicles.last_odometer_km` secara otomatis.
-   - **Gate Pass Auto-Linking (`backend/src/routes/fleet.ts`):** Menambahkan auto-resolusi `reference_type` dan `reference_id` dari nomor waybill pada saat keberangkatan armada pool maupun truk vendor, sehingga status pesanan berpindah ke `SHIPPED` secara andal tanpa mewajibkan satpam memilih UUID pesanan internal.
-   - **Debulking Transaction Leak Guard (`backend/src/routes/debulking.ts`):** Memindahkan pra-validasi `outbound_order_id` ke luar `BEGIN` transaksi untuk mencegah koneksi menggantung jika order tidak valid.
-   - **Native PostgreSQL Boolean Normalization (`backend/src/db.ts`):** Menghapus konversi peninggalan SQLite `if (typeof p === 'boolean') return p ? 1 : 0` pada parameter query agar nilai boolean dikirim native ke PostgreSQL.
-   - **Billing UI Duplicate Guard (`frontend/pages/billing/index.vue`):** Mencegah order yang sudah memiliki invoice aktif muncul kembali pada tabel `readyToBill`.
-   - **POD Portal Search Flexibility (`frontend/pages/outbound/pod.vue`):** Memungkinkan pencarian order menggunakan nomor resi atau surat jalan selain nomor order.
-   - **Gate Pass UI Document Autofill (`frontend/pages/gate-pass/index.vue` & `frontend/stores/gatePass.ts`):** Menambahkan `datalist` dokumen keberangkatan dan menyinkronkan parameter `waybill_number`.
-
-3. [x] **Hasil Verifikasi Build & Test:**
-   - Backend Vitest: 22 test files lulus 100% (130 passed, 15 skipped for live DB).
-   - Backend TypeScript compile: 0 error.
-   - Frontend Nuxt build: Berhasil 100% (1.75 MB).
-   - CHANGELOG.md dan ai-state.json sinkron pada v4.6.4.
-
-4. [x] **Staging Quick-Login Flag (UAT Convenience):**
-   - Mengaktifkan `isQuickLoginEnabled = true` pada `frontend/pages/login.vue` agar tombol kartu 6 role operasional muncul langsung di staging (`https://wms.innaka.dev/login`), memudahkan pengujian UAT tanpa harus ketik manual.
-   - **⚠️ PENGINGAT WAJIB SEBELUM PRODUCTION GO-LIVE:**
-     - [ ] **Wajib mematikan `isQuickLoginEnabled = false`** pada `frontend/pages/login.vue`.
-     - [ ] Ganti kata sandi default seed (`password123`) untuk seluruh akun operasional di database produksi.
-
-**Next:** Aplikasi aktif di staging `https://wms.innaka.dev`. Quick-login aktif untuk UAT.
+**Next (sisa):** fallback cetak thermal (low priority), HTTPS gateway, ganti password seed produksi.

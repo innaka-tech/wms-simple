@@ -77,6 +77,7 @@
             <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">1. Pilih Armada Truk Tersedia</label>
             <select 
               v-model="formOut.vehicle_id" 
+              @change="onVehicleChange"
               required 
               class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-3 text-sm text-slate-900 dark:text-slate-100 font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             >
@@ -121,30 +122,118 @@
             </div>
           </div>
 
-          <!-- 3. Surat Jalan / Document Reference -->
+          <!-- 3. Order / Manifest Selection (Pautkan Order Pengiriman) -->
           <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">No. Surat Jalan / Manifest yang Dibawa</label>
+            <div class="flex justify-between items-center">
+              <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Order Pengiriman / Manifest yang Dibawa</label>
+              <span v-if="formOut.reference_type === 'OUTBOUND_ORDER'" class="text-[10px] text-blue-600 dark:text-blue-400 font-medium font-mono">Status Order &rarr; SHIPPED</span>
+            </div>
+            <select 
+              v-model="selectedDepartureDoc"
+              @change="onDepartureDocSelect"
+              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">— Pilih Order Siap Kirim / Manifest (Otomatis) —</option>
+              <optgroup v-if="readyOutboundOrders.length" label="Delivery Order Siap Kirim (Outbound)">
+                <option v-for="order in readyOutboundOrders" :key="order.id" :value="'ORDER:' + order.id">
+                  {{ order.order_number }} • {{ order.recipient_name }} ({{ order.status }})
+                </option>
+              </optgroup>
+              <optgroup v-if="readyManifests.length" label="Manifest Cross-Dock Siap Berangkat">
+                <option v-for="m in readyManifests" :key="m.id" :value="'MANIFEST:' + m.id">
+                  {{ m.manifest_number }} ({{ m.status }})
+                </option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- 4. Surat Jalan / Document Reference -->
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">No. Surat Jalan / Resi / Dokumen Sah</label>
             <div class="flex space-x-2">
               <input 
                 v-model="formOut.reference_number" 
                 type="text" 
                 required 
-                list="departure-doc-options"
-                placeholder="Contoh: SJ-XXXXXXXX / MNF-XXXXXXXX"
+                placeholder="Ketik / Scan Barcode (Contoh: SJT2AC1QCW / ORDTAXVDL80 / MNF...)"
+                @keyup.enter.prevent="scanOrLookupDoc"
                 class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 font-mono font-bold focus:border-blue-500 focus:outline-none"
               />
-              <datalist id="departure-doc-options">
-                <option v-for="wb in waybillStore.waybills" :key="wb.id" :value="wb.sj_number">{{ wb.resi_number }} • {{ wb.order_number || '' }}</option>
-                <option v-for="wb in waybillStore.waybills" :key="'r-' + wb.id" :value="wb.resi_number">{{ wb.sj_number }} • {{ wb.order_number || '' }}</option>
-              </datalist>
               <button 
                 type="button" 
-                @click="triggerQrScan" 
-                class="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-semibold text-slate-700 dark:text-slate-200 transition flex items-center space-x-1.5 cursor-pointer"
+                @click="scanOrLookupDoc" 
+                :disabled="isSearchingDoc"
+                title="Cari dan cocokkan nomor dokumen secara otomatis"
+                class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-50 shadow-sm"
               >
-                <AppIcon name="camera" custom-class="w-3.5 h-3.5" />
-                <span>Scan Dokumen</span>
+                <AppIcon name="search" custom-class="w-3.5 h-3.5" />
+                <span>{{ isSearchingDoc ? 'Mencari...' : 'Cari Dokumen' }}</span>
               </button>
+            </div>
+
+            <!-- Card Hasil Data Dokumen Sah Ditemukan -->
+            <div v-if="scannedDocDetail" class="mt-3 p-4 rounded-xl border border-emerald-500/30 bg-emerald-50/60 dark:bg-emerald-950/20 space-y-3 transition-all shadow-xs">
+              <div class="flex items-center justify-between border-b border-emerald-500/20 pb-2.5">
+                <div class="flex items-center space-x-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span class="text-xs font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    ✓ DOKUMEN SAH TERVERIFIKASI
+                  </span>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-500/20">
+                    {{ scannedDocDetail.doc_type === 'WAYBILL' ? 'Surat Jalan & Resi' : (scannedDocDetail.doc_type === 'CROSS_DOCK_MANIFEST' ? 'Manifest Cross-Dock' : 'Delivery Order (DO)') }}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  @click="clearScannedDoc"
+                  class="text-xs text-slate-400 hover:text-rose-500 font-semibold transition cursor-pointer"
+                >
+                  ✕ Bersihkan
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span class="text-[10px] text-slate-400 uppercase font-semibold block">Penerima (Consignee):</span>
+                  <span class="font-bold text-slate-900 dark:text-white text-sm block">{{ scannedDocDetail.recipient_name }}</span>
+                  <span class="text-[11px] text-slate-600 dark:text-slate-400 block mt-0.5">{{ scannedDocDetail.destination_address }}</span>
+                  <span v-if="scannedDocDetail.recipient_phone && scannedDocDetail.recipient_phone !== '-'" class="text-[10px] font-mono text-slate-400 block">Telp: {{ scannedDocDetail.recipient_phone }}</span>
+                </div>
+
+                <div class="space-y-1">
+                  <div>
+                    <span class="text-[10px] text-slate-400 uppercase font-semibold block">Pengirim / Shipper:</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ scannedDocDetail.customer_name }}</span>
+                  </div>
+                  <div class="flex flex-wrap gap-2 text-[11px] font-mono pt-0.5">
+                    <span v-if="scannedDocDetail.sj_number" class="text-blue-600 dark:text-blue-400 font-bold">SJ: {{ scannedDocDetail.sj_number }}</span>
+                    <span v-if="scannedDocDetail.resi_number" class="text-indigo-600 dark:text-indigo-400 font-bold">Resi: {{ scannedDocDetail.resi_number }}</span>
+                    <span v-if="scannedDocDetail.order_number" class="text-slate-600 dark:text-slate-300">DO: {{ scannedDocDetail.order_number }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rincian Muatan / Barang yang Dibawa -->
+              <div v-if="scannedDocDetail.items && scannedDocDetail.items.length" class="pt-2 border-t border-emerald-500/15">
+                <div class="flex justify-between items-center mb-1.5 text-[10px] font-mono font-semibold text-slate-500 dark:text-slate-400">
+                  <span>MUATAN / BARANG ({{ scannedDocDetail.items.length }} SKU):</span>
+                  <span>Total Bobot: ~{{ scannedDocDetail.total_weight_kg }} KG</span>
+                </div>
+                <div class="space-y-1 max-h-28 overflow-y-auto pr-1">
+                  <div v-for="it in scannedDocDetail.items" :key="it.id" class="flex justify-between items-center text-[11px] p-2 rounded bg-white/90 dark:bg-slate-900/90 border border-slate-200/60 dark:border-slate-800 font-mono">
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ it.product_name }} ({{ it.sku_code }})</span>
+                    <span class="font-bold text-blue-600 dark:text-blue-400">{{ it.ordered_qty || it.planned_qty || 1 }} Unit</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Status Kesiapan Gerbang -->
+              <div class="pt-1 flex items-center justify-between text-[11px] font-mono">
+                <span class="text-slate-500 dark:text-slate-400">Status Dokumen: <strong class="text-slate-700 dark:text-slate-200">{{ scannedDocDetail.order_status || scannedDocDetail.status }}</strong></span>
+                <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                  SIAP KELUAR GERBANG (AUTHORIZED)
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -198,7 +287,7 @@
               v-model="formOut.departure_security_officer" 
               type="text" 
               required 
-              placeholder="Contoh: Sersan Hendro / Bripka Joko"
+              placeholder="Nama petugas pos jaga"
               class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
             />
           </div>
@@ -312,19 +401,46 @@
           </div>
 
           <div class="pt-2 space-y-2 border-t border-slate-100 dark:border-slate-800">
-            <div class="flex space-x-2">
+            <!-- Live distance / error calculation -->
+            <div v-if="returnInputs[log.id] && returnInputs[log.id] >= Number(log.odometer_out)" class="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded">
+              ✓ Estimasi Jarak Tempuh: {{ (returnInputs[log.id] - Number(log.odometer_out)).toFixed(1) }} KM
+            </div>
+            <div v-else-if="returnInputs[log.id] && returnInputs[log.id] < Number(log.odometer_out)" class="text-[11px] font-mono font-bold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded">
+              ⚠ Odometer masuk ({{ returnInputs[log.id] }}) < Odometer keluar ({{ log.odometer_out }})
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input 
                 v-model.number="returnInputs[log.id]" 
                 type="number" 
                 step="0.1" 
-                placeholder="Odometer Masuk (KM)" 
-                class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs md:text-sm text-slate-900 dark:text-slate-100 font-mono font-bold focus:border-blue-500 focus:outline-none"
+                placeholder="Odometer Masuk (KM) *" 
+                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
+              />
+              <select 
+                v-model="returnFuelInputs[log.id]" 
+                class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="FULL">BBM: Penuh (FULL)</option>
+                <option value="3/4">BBM: 3/4 Tangki</option>
+                <option value="1/2">BBM: 1/2 Tangki</option>
+                <option value="1/4">BBM: 1/4 Tangki</option>
+                <option value="E">BBM: Kritis (Empty)</option>
+              </select>
+            </div>
+
+            <div class="flex space-x-2">
+              <input 
+                v-model="returnNotesInputs[log.id]" 
+                type="text" 
+                placeholder="Catatan kondisi fisik / ban / BBM..." 
+                class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none"
               />
               <button 
                 type="button" 
                 @click="handleReturn(log)"
                 :disabled="gatePassStore.isLoading"
-                class="px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-md shadow-sm disabled:opacity-50 transition cursor-pointer"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold rounded-md shadow-sm disabled:opacity-50 transition cursor-pointer shrink-0"
               >
                 Gate In
               </button>
@@ -333,13 +449,13 @@
               <ThermalPrintButton 
                 label="Cetak Struk Gate Pass"
                 :receipt-data="{
-                  log_number: log.log_number || 'GATE-OUT-LOG',
+                  log_number: log.log_number || 'GATEOUTLOG',
                   plate_number: log.plate_number,
                   driver_name: log.driver_name,
                   purpose: log.purpose,
                   odometer_out: log.odometer_out,
                   fuel_level_out: log.fuel_level_out || 'FULL',
-                  officer_name: log.departure_security_officer || 'Sersan Hendro',
+                  officer_name: log.departure_security_officer || authStore.user?.full_name || 'Petugas Pos Jaga',
                   type: 'GATE_OUT'
                 }"
               />
@@ -357,6 +473,7 @@ import { useGatePassStore } from '~/stores/gatePass'
 import { useAuthStore } from '~/stores/auth'
 import { useWaybillStore } from '~/stores/waybill'
 import { useOutboundStore } from '~/stores/outbound'
+import { useCrossDockStore } from '~/stores/crossdock'
 import { useWmsApi } from '~/composables/useWmsApi'
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner'
 
@@ -364,11 +481,34 @@ const gatePassStore = useGatePassStore()
 const authStore = useAuthStore()
 const waybillStore = useWaybillStore()
 const outboundStore = useOutboundStore()
+const crossDockStore = useCrossDockStore()
 const { apiFetch } = useWmsApi()
 
 const activeTab = ref('departure')
+const isSearchingDoc = ref(false)
+const scannedDocDetail = ref(null)
 const returnInputs = reactive({})
+const returnFuelInputs = reactive({})
+const returnNotesInputs = reactive({})
 const vendorSubmitting = ref(false)
+const selectedDepartureDoc = ref('')
+
+function clearScannedDoc() {
+  scannedDocDetail.value = null
+  formOut.value.reference_number = ''
+  formOut.value.waybill_number = ''
+  formOut.value.reference_id = ''
+  formOut.value.reference_type = 'NONE'
+  selectedDepartureDoc.value = ''
+}
+
+const readyOutboundOrders = computed(() => {
+  return (outboundStore.orders || []).filter(o => ['CREATED', 'PICKED', 'PACKED'].includes(o.status))
+})
+
+const readyManifests = computed(() => {
+  return (crossDockStore.manifests || []).filter(m => ['CREATED', 'LOADED'].includes(m.status))
+})
 
 const formVendor = ref({
   vendor_name: '',
@@ -376,40 +516,28 @@ const formVendor = ref({
   waybill_number: '',
   reference_id: '',
   destination_note: '',
-  actor_name: 'Sersan Hendro'
+  actor_name: authStore.user?.full_name || ''
 })
 
 async function handleVendorExit() {
   vendorSubmitting.value = true
   try {
-    let refId = formVendor.value.reference_id
-    let refType = refId ? 'OUTBOUND_ORDER' : undefined
-    if (!refId && formVendor.value.waybill_number) {
-      const wb = waybillStore.waybills.find(
-        w => (w.sj_number || '').toLowerCase() === formVendor.value.waybill_number.trim().toLowerCase() ||
-             (w.resi_number || '').toLowerCase() === formVendor.value.waybill_number.trim().toLowerCase()
-      )
-      if (wb) {
-        refId = wb.reference_id
-        refType = wb.reference_type || 'OUTBOUND_ORDER'
-      }
-    }
-
     await apiFetch('/fleet/vendor-exit', {
       method: 'POST',
       body: {
         vendor_name: formVendor.value.vendor_name,
         plate_number: formVendor.value.plate_number,
         waybill_number: formVendor.value.waybill_number,
-        reference_type: refType || 'NONE',
-        reference_id: refId || undefined,
+        reference_type: formVendor.value.reference_id ? 'OUTBOUND_ORDER' : 'NONE',
+        reference_id: formVendor.value.reference_id || undefined,
         destination_note: formVendor.value.destination_note || undefined,
-        actor_name: formVendor.value.actor_name
+        actor_name: formVendor.value.actor_name || authStore.user?.full_name || 'Petugas Pos Jaga'
       }
     })
     playAudioFeedback('SUCCESS')
     gatePassStore.successMessage = `Log keluar truk vendor tercatat — ${formVendor.value.vendor_name} (${formVendor.value.plate_number}) bawa ${formVendor.value.waybill_number}. Truk vendor tidak wajib kembali.`
-    formVendor.value = { vendor_name: '', plate_number: '', waybill_number: '', reference_id: '', destination_note: '', actor_name: formVendor.value.actor_name }
+    formVendor.value = { vendor_name: '', plate_number: '', waybill_number: '', reference_id: '', destination_note: '', actor_name: authStore.user?.full_name || '' }
+    await outboundStore.fetchOrders()
   } catch (err) {
     gatePassStore.errorMessage = err.detail || err.message
     playAudioFeedback('ERROR')
@@ -420,13 +548,151 @@ async function handleVendorExit() {
 
 const formOut = ref({
   vehicle_id: '',
-  driver_name: 'Budi Santoso',
-  purpose: 'CROSS_DOCK_DELIVERY',
-  reference_number: 'MNF-20260901-001',
-  odometer_out: 45200.0,
+  driver_name: '',
+  purpose: 'OUTBOUND_DELIVERY',
+  reference_type: 'NONE',
+  reference_id: '',
+  reference_number: '',
+  waybill_number: '',
+  odometer_out: 0,
   fuel_level_out: 'FULL',
-  departure_security_officer: 'Sersan Hendro'
+  departure_security_officer: authStore.user?.full_name || ''
 })
+
+function onVehicleChange() {
+  const v = (gatePassStore.availableVehicles || []).find(veh => veh.id === formOut.value.vehicle_id)
+  if (v) {
+    if (v.last_odometer_km !== undefined && v.last_odometer_km !== null) {
+      formOut.value.odometer_out = Number(v.last_odometer_km)
+    }
+    if (v.driver_name) {
+      formOut.value.driver_name = v.driver_name
+    }
+  }
+}
+
+async function onDepartureDocSelect() {
+  if (!selectedDepartureDoc.value) {
+    clearScannedDoc()
+    return
+  }
+
+  const [type, id] = selectedDepartureDoc.value.split(':')
+  let lookupNumber = ''
+
+  if (type === 'ORDER') {
+    const order = (outboundStore.orders || []).find(o => o.id === id)
+    if (order) {
+      formOut.value.reference_type = 'OUTBOUND_ORDER'
+      formOut.value.reference_id = order.id
+      formOut.value.reference_number = order.order_number
+      formOut.value.purpose = 'OUTBOUND_DELIVERY'
+      lookupNumber = order.order_number
+      const wb = (waybillStore.waybills || []).find(w => w.reference_id === order.id && w.status !== 'VOID')
+      if (wb) {
+        formOut.value.waybill_number = wb.sj_number || wb.resi_number || ''
+        formOut.value.reference_number = wb.sj_number || order.order_number
+        lookupNumber = wb.sj_number || lookupNumber
+      }
+    }
+  } else if (type === 'MANIFEST') {
+    const manifest = (crossDockStore.manifests || []).find(m => m.id === id)
+    if (manifest) {
+      formOut.value.reference_type = 'CROSS_DOCK_MANIFEST'
+      formOut.value.reference_id = manifest.id
+      formOut.value.reference_number = manifest.manifest_number
+      formOut.value.purpose = 'CROSS_DOCK_DELIVERY'
+      lookupNumber = manifest.manifest_number
+      if (manifest.driver_name) formOut.value.driver_name = manifest.driver_name
+      const wb = (waybillStore.waybills || []).find(w => w.reference_id === manifest.id && w.status !== 'VOID')
+      if (wb) {
+        formOut.value.waybill_number = wb.sj_number || ''
+        lookupNumber = wb.sj_number || lookupNumber
+      }
+    }
+  }
+
+  if (lookupNumber) {
+    try {
+      const res = await apiFetch(`/fleet/lookup-doc/${encodeURIComponent(lookupNumber)}`)
+      if (res && res.success && res.data) {
+        scannedDocDetail.value = res.data
+        if (res.data.driver_name && !formOut.value.driver_name) formOut.value.driver_name = res.data.driver_name
+        if (res.data.vehicle_id && !formOut.value.vehicle_id) {
+          formOut.value.vehicle_id = res.data.vehicle_id
+          onVehicleChange()
+        }
+      }
+    } catch (e) {
+      console.warn('Doc lookup error on select:', e)
+    }
+  }
+}
+
+async function scanOrLookupDoc() {
+  const term = (formOut.value.reference_number || '').trim().toUpperCase()
+  if (!term) return
+  isSearchingDoc.value = true
+  try {
+    const res = await apiFetch(`/fleet/lookup-doc/${encodeURIComponent(term)}`)
+    if (res && res.success && res.data) {
+      const doc = res.data
+      scannedDocDetail.value = doc
+      formOut.value.reference_type = doc.reference_type || 'OUTBOUND_ORDER'
+      formOut.value.reference_id = doc.reference_id
+      formOut.value.reference_number = doc.reference_number || term
+      formOut.value.waybill_number = doc.waybill_number || doc.sj_number || ''
+      if (doc.reference_type === 'OUTBOUND_ORDER') {
+        selectedDepartureDoc.value = 'ORDER:' + doc.reference_id
+      } else if (doc.reference_type === 'CROSS_DOCK_MANIFEST') {
+        selectedDepartureDoc.value = 'MANIFEST:' + doc.reference_id
+      }
+      if (doc.driver_name && !formOut.value.driver_name) {
+        formOut.value.driver_name = doc.driver_name
+      }
+      if (doc.vehicle_id && !formOut.value.vehicle_id) {
+        formOut.value.vehicle_id = doc.vehicle_id
+        onVehicleChange()
+      }
+      playAudioFeedback('SUCCESS')
+      gatePassStore.successMessage = `Dokumen ${doc.reference_number} (${doc.recipient_name}) berhasil diverifikasi!`
+      return
+    }
+  } catch (err) {
+    // Fallback: search in loaded local stores
+    const wb = (waybillStore.waybills || []).find(w => w.sj_number === term || w.resi_number === term)
+    if (wb) {
+      formOut.value.waybill_number = wb.sj_number
+      if (wb.reference_type === 'OUTBOUND_ORDER' || !wb.reference_type) {
+        selectedDepartureDoc.value = 'ORDER:' + wb.reference_id
+        await onDepartureDocSelect()
+      } else if (wb.reference_type === 'CROSS_DOCK_MANIFEST') {
+        selectedDepartureDoc.value = 'MANIFEST:' + wb.reference_id
+        await onDepartureDocSelect()
+      }
+      playAudioFeedback('SUCCESS')
+      return
+    }
+    const ord = (outboundStore.orders || []).find(o => o.order_number === term)
+    if (ord) {
+      selectedDepartureDoc.value = 'ORDER:' + ord.id
+      await onDepartureDocSelect()
+      playAudioFeedback('SUCCESS')
+      return
+    }
+    const mnf = (crossDockStore.manifests || []).find(m => m.manifest_number === term)
+    if (mnf) {
+      selectedDepartureDoc.value = 'MANIFEST:' + mnf.id
+      await onDepartureDocSelect()
+      playAudioFeedback('SUCCESS')
+      return
+    }
+    gatePassStore.errorMessage = err.detail || err.message || `Dokumen "${term}" tidak ditemukan di database`
+    playAudioFeedback('ERROR')
+  } finally {
+    isSearchingDoc.value = false
+  }
+}
 
 const departedLogs = computed(() => {
   return gatePassStore.logs.filter(l => l.status === 'DEPARTED')
@@ -434,37 +700,24 @@ const departedLogs = computed(() => {
 
 const { playAudioFeedback } = useBarcodeScanner((scannedCode) => {
   formOut.value.reference_number = scannedCode
+  scanOrLookupDoc()
 })
 
-function triggerQrScan() {
-  formOut.value.reference_number = `MNF-${Date.now().toString().slice(-6)}`
-  playAudioFeedback('SUCCESS')
-}
-
 async function handleDeparture() {
-  let refId = undefined
-  let refType = undefined
-  if (formOut.value.reference_number) {
-    const wb = waybillStore.waybills.find(
-      w => (w.sj_number || '').toLowerCase() === formOut.value.reference_number.trim().toLowerCase() ||
-           (w.resi_number || '').toLowerCase() === formOut.value.reference_number.trim().toLowerCase()
-    )
-    if (wb) {
-      refId = wb.reference_id
-      refType = wb.reference_type || 'OUTBOUND_ORDER'
-    }
-  }
-
   const success = await gatePassStore.submitDeparture({
     ...formOut.value,
-    waybill_number: formOut.value.reference_number,
-    reference_type: refType,
-    reference_id: refId,
     warehouse_id: authStore.activeWarehouseId
   })
 
   if (success) {
     playAudioFeedback('SUCCESS')
+    selectedDepartureDoc.value = ''
+    formOut.value.reference_number = ''
+    formOut.value.waybill_number = ''
+    formOut.value.reference_id = ''
+    formOut.value.reference_type = 'NONE'
+    scannedDocDetail.value = null
+    await outboundStore.fetchOrders()
   } else {
     playAudioFeedback('ERROR')
   }
@@ -477,11 +730,17 @@ async function handleReturn(log) {
     playAudioFeedback('ERROR')
     return
   }
+  if (odoIn < Number(log.odometer_out)) {
+    gatePassStore.errorMessage = `Odometer Masuk (${odoIn} KM) tidak boleh lebih kecil dari Odometer Keluar (${log.odometer_out} KM)!`
+    playAudioFeedback('ERROR')
+    return
+  }
 
   const success = await gatePassStore.submitReturn(log.id, {
     odometer_in: odoIn,
-    fuel_level_in: 'FULL',
-    return_security_officer: 'Sersan Hendro'
+    fuel_level_in: returnFuelInputs[log.id] || 'FULL',
+    return_security_officer: authStore.user?.full_name || 'Petugas Pos Jaga',
+    return_notes: returnNotesInputs[log.id] || undefined
   })
 
   if (success) {
@@ -492,18 +751,23 @@ async function handleReturn(log) {
 }
 
 onMounted(async () => {
-  await gatePassStore.fetchVehicles()
-  await gatePassStore.fetchLogs()
-  await waybillStore.fetchWaybills()
-  await outboundStore.fetchOrders()
+  if (authStore.user?.full_name) {
+    formOut.value.departure_security_officer = authStore.user.full_name
+    formVendor.value.actor_name = authStore.user.full_name
+  }
+  await Promise.all([
+    gatePassStore.fetchVehicles(),
+    gatePassStore.fetchLogs(),
+    waybillStore.fetchWaybills(),
+    outboundStore.fetchOrders(),
+    crossDockStore.fetchManifests()
+  ])
 
   if (gatePassStore.availableVehicles.length > 0 && !formOut.value.vehicle_id) {
     const available = gatePassStore.availableVehicles[0]
     if (available) {
       formOut.value.vehicle_id = available.id
-      if (available.last_odometer_km) {
-        formOut.value.odometer_out = available.last_odometer_km
-      }
+      onVehicleChange()
     }
   }
 })

@@ -101,7 +101,7 @@ crossDocRoutes.post('/', async (c) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const crossDocNumber = `XDOC-${Date.now().toString().slice(-8)}`;
+    const crossDocNumber = `XDOC${Date.now().toString().slice(-8)}`;
 
     const insertRes = await client.query(
       `INSERT INTO cross_documents (

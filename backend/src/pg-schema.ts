@@ -71,6 +71,20 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       created_at TEXT DEFAULT now()
     );
 
+    CREATE TABLE IF NOT EXISTS master_print_templates (
+      id TEXT PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'WAYBILL',
+      paper_size TEXT NOT NULL,
+      printer_type TEXT NOT NULL,
+      description TEXT,
+      is_default BOOLEAN DEFAULT FALSE,
+      is_active BOOLEAN DEFAULT TRUE,
+      created_at TEXT DEFAULT now(),
+      updated_at TEXT DEFAULT now()
+    );
+
     CREATE TABLE IF NOT EXISTS master_vehicle_types (
       id TEXT PRIMARY KEY,
       code TEXT UNIQUE NOT NULL,
@@ -580,6 +594,99 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       status TEXT NOT NULL DEFAULT 'ISSUED',
       notes TEXT,
       created_at TEXT DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS trips (
+      id TEXT PRIMARY KEY,
+      trip_number TEXT UNIQUE NOT NULL,
+      warehouse_id TEXT NOT NULL REFERENCES warehouses(id),
+      vehicle_id TEXT NOT NULL REFERENCES vehicles(id),
+      driver_id TEXT REFERENCES users(id),
+      driver_name TEXT NOT NULL,
+      truck_plate TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PLANNED',
+      total_weight_kg DOUBLE PRECISION DEFAULT 0,
+      total_volume_cbm DOUBLE PRECISION DEFAULT 0,
+      max_payload_kg DOUBLE PRECISION DEFAULT 0,
+      max_volume_cbm DOUBLE PRECISION DEFAULT 0,
+      departure_time TEXT,
+      completed_time TEXT,
+      odometer_start DOUBLE PRECISION,
+      odometer_end DOUBLE PRECISION,
+      notes TEXT,
+      created_by_id TEXT REFERENCES users(id),
+      created_by_name TEXT NOT NULL,
+      created_at TEXT DEFAULT now(),
+      updated_at TEXT DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS trip_stops (
+      id TEXT PRIMARY KEY,
+      trip_id TEXT NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      stop_sequence INTEGER NOT NULL,
+      reference_type TEXT NOT NULL DEFAULT 'OUTBOUND_ORDER',
+      reference_id TEXT NOT NULL,
+      reference_number TEXT NOT NULL,
+      recipient_name TEXT NOT NULL,
+      destination_address TEXT NOT NULL,
+      destination_city TEXT,
+      weight_kg DOUBLE PRECISION DEFAULT 0,
+      volume_cbm DOUBLE PRECISION DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'PENDING',
+      arrived_at TEXT,
+      completed_at TEXT,
+      pod_notes TEXT,
+      created_at TEXT DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS quarantine_records (
+      id TEXT PRIMARY KEY,
+      record_number TEXT UNIQUE NOT NULL,
+      warehouse_id TEXT NOT NULL REFERENCES warehouses(id),
+      product_id TEXT NOT NULL REFERENCES products(id),
+      qty DOUBLE PRECISION NOT NULL,
+      uom_id TEXT NOT NULL REFERENCES master_uom(id),
+      source_type TEXT NOT NULL DEFAULT 'DAMAGE_FOUND',
+      source_reference TEXT,
+      reason TEXT NOT NULL,
+      inspection_status TEXT NOT NULL DEFAULT 'PENDING',
+      inspector_id TEXT REFERENCES users(id),
+      inspector_name TEXT,
+      inspection_notes TEXT,
+      disposition TEXT,
+      created_by_id TEXT REFERENCES users(id),
+      created_by_name TEXT NOT NULL,
+      created_at TEXT DEFAULT now(),
+      updated_at TEXT DEFAULT now()
+    );
+
+    CREATE TABLE IF NOT EXISTS stock_opname_sessions (
+      id TEXT PRIMARY KEY,
+      opname_number TEXT UNIQUE NOT NULL,
+      warehouse_id TEXT NOT NULL REFERENCES warehouses(id),
+      zone TEXT,
+      status TEXT NOT NULL DEFAULT 'IN_PROGRESS',
+      notes TEXT,
+      created_by_id TEXT REFERENCES users(id),
+      created_by_name TEXT NOT NULL,
+      created_at TEXT DEFAULT now(),
+      reconciled_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS stock_opname_items (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES stock_opname_sessions(id) ON DELETE CASCADE,
+      product_id TEXT NOT NULL REFERENCES products(id),
+      location_id TEXT REFERENCES warehouse_locations(id),
+      system_qty DOUBLE PRECISION NOT NULL,
+      physical_qty DOUBLE PRECISION NOT NULL,
+      difference_qty DOUBLE PRECISION NOT NULL,
+      uom_id TEXT NOT NULL REFERENCES master_uom(id),
+      status TEXT NOT NULL DEFAULT 'COUNTED',
+      counted_by_id TEXT REFERENCES users(id),
+      counted_by_name TEXT NOT NULL,
+      notes TEXT,
+      created_at TEXT DEFAULT now()
     );`;
 
 const SEED_SQL = `      INSERT INTO master_cargo_types (id, code, name, category, handling_instructions, requires_weighbridge, requires_temperature_control) VALUES
@@ -624,6 +731,13 @@ const SEED_SQL = `      INSERT INTO master_cargo_types (id, code, name, category
       ('50000000-0000-0000-0000-000000000004', 'HOUSE_AWB', 'House Airway Bill (Sub-AWB Penerima Akhir)', 'CROSS_DOC', TRUE)
       ON CONFLICT DO NOTHING;
 
+      INSERT INTO master_print_templates (id, code, name, category, paper_size, printer_type, description, is_default) VALUES
+      ('70000000-0000-0000-0000-000000000001', 'A4_PORTRAIT', 'A4 Portrait Standar (Laser / Inkjet)', 'WAYBILL', '210 x 297 mm (A4)', 'LASER_INKJET', 'Lembar Manifest Logistik Resmi Standar A4 4-Ply dengan Barcode, Rincian Muatan & 4 Tanda Tangan', TRUE),
+      ('70000000-0000-0000-0000-000000000002', 'CONTINUOUS_3PLY', 'Continuous Form 3-Ply Matrix (9.5 x 11 in)', 'WAYBILL', '9.5 x 11 in (241 x 279 mm)', 'DOT_MATRIX', 'Continuous Form Kertas Karbon NCR 3-Ply Pin-Feed Epson LX/LQ 80 Kolom dengan Lubang Pin Tractor Feed', FALSE),
+      ('70000000-0000-0000-0000-000000000003', 'CONTINUOUS_WARTEL', 'Continuous Form Wartel 9.5 x 5.5 in (Bagi 2)', 'WAYBILL', '9.5 x 5.5 in (241 x 140 mm)', 'DOT_MATRIX', 'Continuous Form Wartel Bagi 2 Kertas Kompak Half-Letter Epson 80 Kolom untuk Ritase Cepat', FALSE),
+      ('70000000-0000-0000-0000-000000000004', 'THERMAL_BLUETOOTH', 'Thermal Bluetooth (58mm / 80mm)', 'WAYBILL', '58mm / 80mm Roll', 'THERMAL', 'Struk Kertas Roll Thermal Portable Bluetooth Mobile Driver Fleet & Gate Out Pos Satpam', FALSE)
+      ON CONFLICT DO NOTHING;
+
       INSERT INTO master_vehicle_types (id, code, name, body_type, axle_count, max_payload_kg, max_volume_cbm, length_cm, width_cm, height_cm, door_type, fuel_type, avg_fuel_consumption_km_per_liter) VALUES
       ('60000000-0000-0000-0000-000000000001', 'CDE_BOX', 'Colt Diesel Engkel (CDE) 4 Roda Box', 'BOX', 2, 2500.00, 10.00, 310, 170, 170, 'REAR', 'SOLAR', 5.50),
       ('60000000-0000-0000-0000-000000000002', 'CDD_BOX', 'Colt Diesel Double (CDD) 6 Roda Box', 'BOX', 2, 5000.00, 18.00, 430, 200, 200, 'REAR', 'SOLAR', 4.50),
@@ -650,11 +764,18 @@ const SEED_SQL = `      INSERT INTO master_cargo_types (id, code, name, category
       ('d0000000-0000-0000-0000-000000000006', 'gate_officer', 'Sersan Hendro (Satpam Gerbang)', 'satpam@wms-simple.local', 'password123', 'GATE_OFFICER', 'a0000000-0000-0000-0000-000000000001', NULL)
       ON CONFLICT DO NOTHING;
 
+      INSERT INTO warehouse_locations (id, warehouse_id, zone, aisle, rack, bin, location_type, max_weight_capacity_kg, max_volume_capacity_cbm) VALUES
+      ('l0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'A', '01', '01', 'A', 'STANDARD_RACK', 2000.0, 5.0),
+      ('l0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000001', 'A', '01', '01', 'B', 'STANDARD_RACK', 2000.0, 5.0),
+      ('l0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000001', 'B', '02', '01', 'A', 'HEAVY_DUTY_BULK', 5000.0, 15.0),
+      ('l0000000-0000-0000-0000-000000000004', 'a0000000-0000-0000-0000-000000000001', 'C', '01', '01', 'A', 'COLD_STORAGE', 3000.0, 8.0)
+      ON CONFLICT DO NOTHING;
+
       INSERT INTO products (id, sku_code, name, description, cargo_type_id, default_packaging_type_id, default_uom_id, weight_kg_per_unit, volume_m3_per_unit, is_debulking_target, parent_bulky_product_id, min_stock_qty) VALUES
-      ('e0000000-0000-0000-0000-000000000001', 'BULK-SUGAR-1T', 'Gula Pasir Rafinasi Jumbo Bag 1 Ton (Bulky)', 'Gula rafinasi industri kemasan Jumbo Bag 1000 kg', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000005', 1000.00, 1.2000, FALSE, NULL, 5),
-      ('e0000000-0000-0000-0000-000000000002', 'SUGAR-SACK-25KG', 'Gula Pasir Rafinasi Karung 25 KG (Retail/Distribusi)', 'Hasil repack bagging-off dari Jumbo Bag 1 Ton', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000007', 25.00, 0.0300, TRUE, 'e0000000-0000-0000-0000-000000000001', 50),
-      ('e0000000-0000-0000-0000-000000000003', 'KDMP-CHILLER-300L', 'Showcase Display Chiller 300L (KDMP)', 'Showcase display pendingin untuk Koperasi Desa Merah Putih', '10000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000009', 65.00, 0.6500, FALSE, NULL, 10),
-      ('e0000000-0000-0000-0000-000000000004', 'ELEC-TV-43', 'Smart LED TV 43 Inch FHD', 'Televisi LED 43 Inch with Smart OS', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000009', 8.50, 0.0850, FALSE, NULL, 20)
+      ('e0000000-0000-0000-0000-000000000001', 'BULKSUGAR1T', 'Gula Pasir Rafinasi Jumbo Bag 1 Ton (Bulky)', 'Gula rafinasi industri kemasan Jumbo Bag 1000 kg', '10000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000005', 1000.00, 1.2000, FALSE, NULL, 5),
+      ('e0000000-0000-0000-0000-000000000002', 'SUGARSACK25KG', 'Gula Pasir Rafinasi Karung 25 KG (Retail/Distribusi)', 'Hasil repack bagging-off dari Jumbo Bag 1 Ton', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000005', '30000000-0000-0000-0000-000000000007', 25.00, 0.0300, TRUE, 'e0000000-0000-0000-0000-000000000001', 50),
+      ('e0000000-0000-0000-0000-000000000003', 'KDMPCHILLER300L', 'Showcase Display Chiller 300L (KDMP)', 'Showcase display pendingin untuk Koperasi Desa Merah Putih', '10000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000003', '30000000-0000-0000-0000-000000000009', 65.00, 0.6500, FALSE, NULL, 10),
+      ('e0000000-0000-0000-0000-000000000004', 'ELECTV43', 'Smart LED TV 43 Inch FHD', 'Televisi LED 43 Inch with Smart OS', '10000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000007', '30000000-0000-0000-0000-000000000009', 8.50, 0.0850, FALSE, NULL, 20)
       ON CONFLICT DO NOTHING;
 
       INSERT INTO vehicles (id, plate_number, vehicle_type_id, brand, model, year_made, current_driver_id, assigned_warehouse_id, status, last_odometer_km) VALUES
@@ -678,14 +799,18 @@ const MIGRATION_ALTERS = [
   "ALTER TABLE checkpoint_logs ADD COLUMN photo_urls TEXT DEFAULT '[]'",
   "ALTER TABLE checkpoint_logs ADD COLUMN metadata TEXT DEFAULT '{}'",
   'ALTER TABLE checkpoint_logs ADD COLUMN prev_checkpoint_id TEXT',
-  'ALTER TABLE stock_conversions ADD COLUMN outbound_order_id TEXT REFERENCES outbound_orders(id)'
+  'ALTER TABLE stock_conversions ADD COLUMN outbound_order_id TEXT REFERENCES outbound_orders(id)',
+  'ALTER TABLE outbound_orders ADD COLUMN trip_id TEXT REFERENCES trips(id) ON DELETE SET NULL'
 ];
 
 // Partial unique index: satu waybill aktif & satu faktur aktif per referensi (race-proof)
 const INDEX_SQL = [
   "CREATE UNIQUE INDEX IF NOT EXISTS ux_waybills_active_reference ON waybills(reference_type, reference_id) WHERE status <> 'VOID'",
   "CREATE UNIQUE INDEX IF NOT EXISTS ux_invoices_active_order ON invoices(outbound_order_id) WHERE status <> 'VOID'",
-  'CREATE INDEX IF NOT EXISTS ix_stock_conversions_outbound_order ON stock_conversions(outbound_order_id)'
+  'CREATE INDEX IF NOT EXISTS ix_stock_conversions_outbound_order ON stock_conversions(outbound_order_id)',
+  'CREATE INDEX IF NOT EXISTS ix_trip_stops_trip ON trip_stops(trip_id)',
+  'CREATE INDEX IF NOT EXISTS ix_quarantine_warehouse ON quarantine_records(warehouse_id)',
+  'CREATE INDEX IF NOT EXISTS ix_opname_warehouse ON stock_opname_sessions(warehouse_id)'
 ];
 
 export async function initPgSchema(pool: Pool): Promise<void> {

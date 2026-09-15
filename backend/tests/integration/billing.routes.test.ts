@@ -40,7 +40,7 @@ describe('Billing (Invoice & Payment sampai LUNAS) API Routes Integration Tests'
 
       mockClient.query
         .mockResolvedValueOnce({}) // BEGIN
-        .mockResolvedValueOnce({ rows: [{ id: 'inv-1', invoice_number: 'INV-AAAA1111', status: 'ISSUED' }] }) // INSERT
+        .mockResolvedValueOnce({ rows: [{ id: 'inv-1', invoice_number: 'INVAAAA1111', status: 'ISSUED' }] }) // INSERT
         .mockResolvedValueOnce({}); // COMMIT
 
       const res = await app.request('/api/billing/out-1/invoice', {
@@ -51,7 +51,7 @@ describe('Billing (Invoice & Payment sampai LUNAS) API Routes Integration Tests'
 
       expect(res.status).toBe(201);
       const bodyRes = await res.json();
-      expect(bodyRes.data.invoice_number).toMatch(/^INV-[0-9A-HJ-NP-Z]{8}$/);
+      expect(bodyRes.data.invoice_number).toMatch(/^INV[0-9A-HJ-NP-Z]{8}$/);
       expect(checkpointService.recordCheckpoint).toHaveBeenCalledWith(
         expect.objectContaining({
           step_code: 'INVOICE_ISSUED',

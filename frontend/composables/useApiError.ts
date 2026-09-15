@@ -9,9 +9,10 @@ interface ApiErrorLike {
   statusCode?: number
   status?: number
   response?: { status?: number; _data?: { message?: string; code?: string } }
-  data?: { message?: string; code?: string }
+  data?: { message?: string; code?: string; statusCode?: number }
   message?: string
 }
+
 
 export function describeApiError(err: ApiErrorLike): { message: string; code: number; serverCode?: string } {
   const status =
