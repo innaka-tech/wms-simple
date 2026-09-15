@@ -109,11 +109,31 @@ curl -s http://127.0.0.1:8090/api/health
 
 ---
 
-## 7. Operasional Rutin (Update Versi)
+## 7. Operasional Rutin (Update Versi Manual)
 
-Untuk memperbarui aplikasi ke versi terbaru:
+Untuk memperbarui aplikasi ke versi terbaru secara manual:
 ```bash
 cd /data/wms-simple/repo
 git pull origin ans
-podman compose -f docker-compose.prod.yml up -d --build
+podman-compose -f docker-compose.podman.yml up -d --build
 ```
+
+---
+
+## 8. CI/CD Otomatis: Build Image ke GHCR & Auto-Pull Podman
+
+Alur CI/CD otomatis telah dikonfigurasi melalui GitHub Actions ([`.github/workflows/deploy-podman.yml`](../.github/workflows/deploy-podman.yml)):
+
+1. **Trigger:** Setiap `git push` ke branch `main` atau `ans` pada repositori `latiefdole/wms-simple`.
+2. **Build & Push ke GHCR:**
+   - Image backend di-push ke: `ghcr.io/latiefdole/wms-simple-backend:latest`
+   - Image frontend di-push ke: `ghcr.io/latiefdole/wms-simple-frontend:latest`
+3. **Auto-Deploy via SSH:**
+   - GitHub Actions terhubung ke server `172.237.70.58` menggunakan SSH key dari secrets (`SSH_PRIVATE_KEY`).
+   - Server melakukan login ke GHCR dan auto-pull image terbaru:
+     ```bash
+     podman pull ghcr.io/latiefdole/wms-simple-backend:latest
+     podman pull ghcr.io/latiefdole/wms-simple-frontend:latest
+     ```
+   - Container backend & frontend di-restart dengan image baru tanpa mematikan database PostgreSQL.
+   - Script memvalidasi respon healthcheck HTTP 200 OK.

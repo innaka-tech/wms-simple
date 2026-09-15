@@ -27,6 +27,7 @@ services:
 
   # Hono Backend Application (Node.js/TypeScript)
   backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/latiefdole/wms-simple-backend:latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -54,6 +55,7 @@ services:
 
   # Nuxt 3 Frontend (SSR)
   frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/latiefdole/wms-simple-frontend:latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
