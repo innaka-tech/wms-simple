@@ -5,6 +5,27 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [4.7.0] - 2026-09-15
+
+### Security & Architecture (Host OS PostgreSQL & Least Privilege Hardening)
+
+- **Migrasi Database ke Level Host OS (Sesuai Protokol AGENTS.md):**
+  - Mengalihkan target database PostgreSQL 16 dari container Podman ke level OS host machine (`systemctl status postgresql`) di server `172.237.70.58`.
+  - Menghentikan dan menghapus container `wms-postgres` dan volume container terisolasi, merampingkan stack Podman hanya untuk container aplikasi (`backend`, `frontend`, `gateway`).
+  - Menghubungkan container backend Hono ke host PostgreSQL menggunakan `host.containers.internal:5432`.
+
+- **Anti-Privilege Escalation & Least Privilege Security (OWASP Web A01 / A05):**
+  - Membuat role database non-root khusus `wms_app` dengan atribut kaku: `NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION`.
+  - Mencegah eskalasi hak akses ke sistem operasi host: jika kredensial aplikasi bocor sekalipun, penyerang tidak dapat mengeksekusi binary host atau command OS (`COPY ... TO PROGRAM` ditolak engine PostgreSQL).
+  - Database `wms_simple_db` dan skema `public` dimiliki langsung oleh role `wms_app`.
+
+- **Pengerasan Akses Jaringan Database (`pg_hba.conf` & `conf.d`):**
+  - Mengonfigurasi `listen_addresses = '*'` via `/etc/postgresql/16/main/conf.d/listen.conf`.
+  - Menerapkan pembatasan otentikasi ketat pada `pg_hba.conf`: hanya mengizinkan `wms_app` mengakses `wms_simple_db` dari subnet internal bridge Podman (`10.0.0.0/8`) dan localhost (`127.0.0.1/32`, `::1/128`) menggunakan algoritma enkripsi password `scram-sha-256`.
+  - Seluruh koneksi dari IP publik dan user administratif (`postgres`) diblokir dari akses jaringan luar.
+
+---
+
 ## [4.6.4] - 2026-09-12
 
 ### Added (Production Infrastructure, UAT Governance & Live Verification)

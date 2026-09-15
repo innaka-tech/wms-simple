@@ -1,9 +1,9 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** ACTIVE TASK — Code Review & End-to-End Operational Lifecycle Hardening Selesai (v4.6.4)  
-**Database:** Host PostgreSQL 16 (`wms_simple_db` on `localhost:5432` / `127.0.0.1:5432`)  
-**Version:** 4.6.4  
-**Status:** FULL OPERATIONAL CHAIN VERIFIED LIVE + SECURITY HARDENED (v4.6.4)  
+**Current Status:** ACTIVE TASK — Host OS PostgreSQL & Least-Privilege Role Security Hardening (v4.7.0)  
+**Database:** Host PostgreSQL 16 on OS Level (`wms_simple_db` on `localhost:5432` / `127.0.0.1:5432` / `host.containers.internal:5432`, non-root user `wms_app`)  
+**Version:** 4.7.0  
+**Status:** HOST OS DATABASE & PODMAN APPLICATION STACK VERIFIED (v4.7.0)  
 
 ---
 

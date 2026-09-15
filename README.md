@@ -113,7 +113,7 @@ Salin file `.env.example` ke `.env` dan sesuaikan parameter konfigurasi:
 ```bash
 cat << 'EOF' > .env
 WMS_HTTP_PORT=8090
-DB_HOST=postgres
+DB_HOST=host.containers.internal
 DB_PORT=5432
 DB_USER=wms_app
 DB_PASSWORD=wms_secure_password_2026
@@ -123,14 +123,14 @@ EOF
 ```
 
 #### 3. Menjalankan Stack Mandiri dengan Podman Compose
-Repositori telah dilengkapi dengan konfigurasi [docker-compose.podman.yml](docker-compose.podman.yml) yang mencakup PostgreSQL 16 terisolasi, backend Hono, frontend Nuxt 3, dan Nginx gateway:
+Database PostgreSQL 16 berjalan di tingkat OS host dengan akun non-root `wms_app` (`NOSUPERUSER`), dan stack container aplikasi dijalankan melalui [docker-compose.podman.yml](docker-compose.podman.yml):
 
 ```bash
-# Build dan jalankan seluruh stack di latar belakang
-podman compose -f docker-compose.podman.yml up -d --build
+# Jalankan seluruh stack aplikasi di latar belakang
+podman compose -f docker-compose.podman.yml up -d
 
 # ATAU menggunakan podman-compose
-podman-compose -f docker-compose.podman.yml up -d --build
+podman-compose -f docker-compose.podman.yml up -d
 ```
 
 #### 4. Verifikasi Kesehatan Layanan

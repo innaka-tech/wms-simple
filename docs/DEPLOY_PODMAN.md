@@ -47,23 +47,43 @@ cd repo
 
 ---
 
-## 4. Konfigurasi Database (PostgreSQL)
+## 4. Konfigurasi Database (PostgreSQL di Level Host OS — Non-Root)
 
-Jika database PostgreSQL dijalankan via Podman di server:
+Database PostgreSQL dijalankan langsung di level sistem operasi host (bukan container) untuk kestabilan I/O, persistensi data independen dari siklus container, dan kepatuhan terhadap aturan keamanan hak akses minimum (*least privilege*):
+
 ```bash
-# Buat volume dan jalankan container PostgreSQL
-podman volume create pg_wms_data
+# 1. Install PostgreSQL 16 di Host Ubuntu/Debian
+apt update && apt install -y postgresql postgresql-contrib
 
-podman run -d \
-  --name wms-postgres \
-  --restart always \
-  --network host \
-  -e POSTGRES_DB=wms_simple_db \
-  -e POSTGRES_USER=wms_app \
-  -e POSTGRES_PASSWORD=WmsSecurePassword2026! \
-  -v pg_wms_data:/var/lib/postgresql/data \
-  docker.io/library/postgres:16-alpine
+# 2. Buat User wms_app (Non-Root, Non-Superuser) dan Database wms_simple_db
+sudo -u postgres psql << 'EOF'
+CREATE ROLE wms_app WITH LOGIN PASSWORD 'wms_secure_password_2026' NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION;
+CREATE DATABASE wms_simple_db OWNER wms_app;
+GRANT ALL PRIVILEGES ON DATABASE wms_simple_db TO wms_app;
+\c wms_simple_db
+ALTER SCHEMA public OWNER TO wms_app;
+GRANT ALL ON SCHEMA public TO wms_app;
+EOF
+
+# 3. Konfigurasi listen_addresses agar dapat diakses dari bridge network Podman
+echo "listen_addresses = '*'" > /etc/postgresql/16/main/conf.d/listen.conf
+
+# 4. Batasi akses otentikasi di pg_hba.conf (Hanya izinkan wms_app dari subnet internal & local)
+cat << 'EOF' >> /etc/postgresql/16/main/pg_hba.conf
+
+# WMS Simple Enterprise Container Subnet Access
+host    wms_simple_db   wms_app         10.0.0.0/8             scram-sha-256
+host    wms_simple_db   wms_app         127.0.0.1/32           scram-sha-256
+host    wms_simple_db   wms_app         ::1/128                scram-sha-256
+EOF
+
+# 5. Restart service PostgreSQL
+systemctl restart postgresql
+systemctl status postgresql
 ```
+
+> [!IMPORTANT]
+> **Keamanan Anti-Privilege Escalation:** User `wms_app` memiliki atribut `NOSUPERUSER NOCREATEDB NOCREATEROLE`. Akses `COPY ... TO/FROM PROGRAM` dan eksekusi binary OS diblokir secara mutlak di tingkat database engine, sehingga jika kredensial aplikasi bocor sekalipun, penyerang tidak dapat melakukan eskalasi hak akses ke level root host.
 
 ---
 
@@ -73,14 +93,15 @@ Buat berkas `.env` di direktori `/data/wms-simple/repo`:
 ```bash
 cat << 'EOF' > .env
 WMS_HTTP_PORT=8090
-DB_HOST=127.0.0.1
+DB_HOST=host.containers.internal
 DB_PORT=5432
 DB_USER=wms_app
-DB_PASSWORD=WmsSecurePassword2026!
+DB_PASSWORD=wms_secure_password_2026
 DB_NAME=wms_simple_db
 JWT_SECRET=wms_super_secret_jwt_key_staging_2026_change_in_prod
 EOF
 ```
+
 
 ---
 
@@ -122,7 +143,7 @@ podman-compose -f docker-compose.podman.yml up -d --build
 
 ## 8. CI/CD Otomatis: Build Image ke GHCR & Auto-Pull Podman
 
-Alur CI/CD otomatis telah dikonfigurasi melalui GitHub Actions ([`.github/workflows/deploy-podman.yml`](../.github/workflows/deploy-podman.yml)):
+Alur CI/CD otomatis telah dikonfigurasi melalui GitHub Actions ([`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd.yml)):
 
 1. **Trigger:** Setiap `git push` ke branch `main` atau `ans` pada repositori `latiefdole/wms-simple`.
 2. **Build & Push ke GHCR:**

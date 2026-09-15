@@ -2,29 +2,10 @@ version: '3.8'
 
 # WMS Simple Enterprise — Podman Production Stack
 # Container Runtime: Podman (rootless or rootful)
-# Services: PostgreSQL 16 + Hono Backend API + Nuxt 3 Frontend + Nginx Gateway
+# Services: Hono Backend API + Nuxt 3 Frontend + Nginx Gateway
+# Database: PostgreSQL 16 on Host OS (127.0.0.1 / host.containers.internal)
 
 services:
-  # Database PostgreSQL 16
-  postgres:
-    image: docker.io/library/postgres:16-alpine
-    container_name: wms-postgres
-    restart: always
-    environment:
-      POSTGRES_DB: ${DB_NAME:-wms_simple_db}
-      POSTGRES_USER: ${DB_USER:-wms_app}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-wms_secure_password_2026}
-    volumes:
-      - wms_pg_data:/var/lib/postgresql/data:Z
-    networks:
-      - wms_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-wms_app} -d ${DB_NAME:-wms_simple_db} || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-
   # Hono Backend Application (Node.js/TypeScript)
   backend:
     image: ${BACKEND_IMAGE:-ghcr.io/latiefdole/wms-simple-backend:latest}
@@ -36,14 +17,12 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST:-host.containers.internal}
+      DB_PORT: ${DB_PORT:-5432}
       DB_USER: ${DB_USER:-wms_app}
       DB_PASSWORD: ${DB_PASSWORD:-wms_secure_password_2026}
       DB_NAME: ${DB_NAME:-wms_simple_db}
       JWT_SECRET: ${JWT_SECRET:-wms_super_secret_jwt_key_staging_2026_change_in_prod}
-    depends_on:
-      - postgres
     networks:
       - wms_network
     healthcheck:
@@ -94,6 +73,3 @@ networks:
   wms_network:
     driver: bridge
 
-volumes:
-  wms_pg_data:
-    driver: local

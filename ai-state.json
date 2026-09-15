@@ -1,15 +1,16 @@
 {
   "project": "wms-simple",
-  "version": "4.6.4",
-  "status": "e2e_verified_and_hardened",
+  "version": "4.7.0",
+  "status": "host_postgresql_least_privilege_configured",
   "phase": "operational_lifecycle_hardening",
   "progress": 100,
-  "last_updated": "2026-09-12T10:02:00+07:00",
+  "last_updated": "2026-09-15T19:58:00+07:00",
   "database": {
-    "target": "postgresql_host_global_stack",
+    "target": "postgresql_host_os_level",
     "driver": "node-postgres (pg Pool)",
-    "host": "127.0.0.1:5432",
+    "host": "127.0.0.1:5432 / host.containers.internal:5432",
     "database": "wms_simple_db",
+    "user": "wms_app (NOSUPERUSER, NOCREATEDB, NOCREATEROLE)",
     "test_database": "wms_simple_test_db",
     "status": "active"
   },
