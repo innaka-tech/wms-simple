@@ -1,7 +1,11 @@
-name: Build, Publish to GHCR & Deploy to Server (Podman)
+name: WMS Simple Enterprise CI/CD Pipeline
 
 on:
   push:
+    branches:
+      - main
+      - ans
+  pull_request:
     branches:
       - main
       - ans
@@ -15,8 +19,61 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  # ============================================================
+  # 1. Quality Gate: Backend Vitest Test Suite (Unit + Integration + E2E)
+  # ============================================================
+  quality-gate:
+    name: Backend Quality Gate (Vitest & PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: wms_simple_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password
+      DB_NAME: wms_simple_db
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Initialize Test Database
+        working-directory: ./backend
+        run: node scripts/init-test-db.js
+
+      - name: Run Backend Vitest Test Suite
+        working-directory: ./backend
+        run: npm run test
+
+  # ============================================================
+  # 2. Build & Publish: Multi-Stage OCI Images to GHCR
+  # ============================================================
   build-and-push:
     name: Build & Push Images to GHCR
+    needs: quality-gate
     runs-on: ubuntu-latest
     outputs:
       backend_tag: ${{ steps.prep.outputs.backend_tag }}
@@ -29,6 +86,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry (GHCR)
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -44,33 +102,37 @@ jobs:
           echo "frontend_tag=ghcr.io/$OWNER_LC/wms-simple-frontend:latest" >> "$GITHUB_OUTPUT"
           echo "frontend_sha=ghcr.io/$OWNER_LC/wms-simple-frontend:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
-      - name: Build & Push Backend Image to GHCR
+      - name: Build & Push Backend Image
         uses: docker/build-push-action@v5
         with:
           context: ./backend
           file: ./backend/Dockerfile
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ steps.prep.outputs.backend_tag }}
             ${{ steps.prep.outputs.backend_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build & Push Frontend Image to GHCR
+      - name: Build & Push Frontend Image
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
           file: ./frontend/Dockerfile
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ${{ steps.prep.outputs.frontend_tag }}
             ${{ steps.prep.outputs.frontend_sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # ============================================================
+  # 3. Continuous Deployment: Auto-Pull via Podman on Server
+  # ============================================================
   deploy:
     name: Deploy & Pull to Server via Podman
     needs: build-and-push
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Prepare lowercase image tags
@@ -97,7 +159,8 @@ jobs:
           BACKEND_TAG: ${{ steps.prep.outputs.backend_tag }}
           FRONTEND_TAG: ${{ steps.prep.outputs.frontend_tag }}
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$SERVER_PORT" "${SERVER_USER}@${SERVER_HOST}" << EOF
+          ssh -i ~/.ssh/deploy_key -p "$SERVER_PORT" "${SERVER_USER}@${SERVER_HOST}" \
+            "GITHUB_TOKEN='$GITHUB_TOKEN' ACTOR='$ACTOR' BACKEND_TAG='$BACKEND_TAG' FRONTEND_TAG='$FRONTEND_TAG' bash -s" << 'EOF'
             set -e
             echo "==> Authenticating Podman to GHCR..."
             echo "$GITHUB_TOKEN" | podman login ghcr.io -u "$ACTOR" --password-stdin
@@ -112,14 +175,31 @@ jobs:
             git checkout ans || git checkout main
             git pull
 
-            echo "==> Restarting services with updated images..."
-            podman stop wms-simple-backend wms-simple-frontend || true
-            podman rm wms-simple-backend wms-simple-frontend || true
+            echo "==> Recreating application containers with updated images..."
+            podman rm -f wms-simple-gateway || true
+            podman rm -f wms-simple-backend || true
+            podman rm -f wms-simple-frontend || true
             podman-compose -f docker-compose.podman.yml up -d
 
             echo "==> Verifying service health..."
-            sleep 10
-            podman ps
-            curl -f -s http://127.0.0.1:8090/api/health || (echo "Healthcheck failed!" && exit 1)
+            SUCCESS=false
+            for i in $(seq 1 15); do
+              if curl -f -s http://127.0.0.1:8090/api/health > /dev/null; then
+                echo "==> Healthcheck passed on attempt $i!"
+                SUCCESS=true
+                break
+              fi
+              echo "Waiting for services to become ready ($i/15)..."
+              sleep 3
+            done
+
+            if [ "$SUCCESS" != "true" ]; then
+              echo "==> ERROR: Healthcheck failed after 45 seconds!"
+              podman ps
+              podman logs --tail 50 wms-simple-backend
+              exit 1
+            fi
+
+            curl -s http://127.0.0.1:8090/api/health
             echo "==> Deployment successfully finished!"
           EOF

@@ -607,8 +607,13 @@ fleetRoutes.post('/vendor-exit', optionalAuth, async (c) => {
     }, 409);
   }
 
-  let resolvedRefType = body.reference_type && body.reference_type !== 'NONE' ? body.reference_type : (docRes.rows[0]?.reference_type || 'NONE');
-  let resolvedRefId = body.reference_id || (docRes.rows[0]?.reference_id || null);
+  let resolvedRefType = body.reference_type || 'NONE';
+  let resolvedRefId = body.reference_id || null;
+
+  if (!resolvedRefId && docRes.rows[0]?.reference_id) {
+    resolvedRefType = docRes.rows[0].reference_type || 'NONE';
+    resolvedRefId = docRes.rows[0].reference_id;
+  }
 
   // Referensi order/manifest harus ada agar update status tidak diam-diam gagal
   if (resolvedRefType === 'OUTBOUND_ORDER' && resolvedRefId) {
