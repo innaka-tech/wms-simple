@@ -73,8 +73,86 @@ Endpoint Health Check: `http://localhost:3000/api/health`
 
 ---
 
-## 5. Indeks Dokumentasi Lengkap (`docs/`)
+## 5. Deployment Menggunakan Podman (Pengganti Docker)
 
+Aplikasi **WMS Simple Enterprise** mendukung penuh **Podman** sebagai runtime container modern pengganti Docker.
+
+### Mengapa Memilih Podman?
+1. **Daemonless Architecture:** Podman tidak membutuhkan daemon background terpusat (`dockerd`), sehingga mengeliminasi *single point of failure*.
+2. **Rootless Security (OWASP & Hardening):** Container dapat dijalankan tanpa hak akses root pengguna (*non-root*), sangat aman dari eskalasi hak istimewa (privilege escalation).
+3. **Drop-in Replacement:** Perintah CLI kompatibel 1:1 dengan Docker (`alias docker=podman`).
+4. **OCI Compliant:** Menggunakan format standar Open Container Initiative untuk image dan container.
+
+### Perbandingan Perintah CLI Docker vs Podman
+
+| Operasi | Perintah Docker | Perintah Podman |
+|---|---|---|
+| **Build Image** | `docker build -t wms-be ./backend` | `podman build -t wms-be ./backend` |
+| **Daftar Container** | `docker ps -a` | `podman ps -a` |
+| **Lihat Log** | `docker logs -f wms-backend` | `podman logs -f wms-backend` |
+| **Jalankan Compose** | `docker compose up -d` | `podman compose up -d` *(atau `podman-compose up -d`)* |
+| **Stop Compose** | `docker compose down` | `podman compose down` *(atau `podman-compose down`)* |
+| **Prune Image Usang** | `docker image prune -f` | `podman image prune -f` |
+
+---
+
+### Panduan Langkah Demi Langkah: Migrasi dari Docker ke Podman
+
+#### 1. Persiapan Host (Install Podman & Podman Compose)
+```bash
+# Ubuntu 24.04 / Debian
+sudo apt update && sudo apt install -y podman podman-compose
+
+# Verifikasi instalasi
+podman --version
+podman-compose --version
+```
+
+#### 2. Konfigurasi File Lingkungan (`.env`)
+Salin file `.env.example` ke `.env` dan sesuaikan parameter konfigurasi:
+```bash
+cat << 'EOF' > .env
+WMS_HTTP_PORT=8090
+DB_HOST=postgres
+DB_PORT=5432
+DB_USER=wms_app
+DB_PASSWORD=wms_secure_password_2026
+DB_NAME=wms_simple_db
+JWT_SECRET=wms_super_secret_jwt_key_staging_2026_change_in_prod
+EOF
+```
+
+#### 3. Menjalankan Stack Mandiri dengan Podman Compose
+Repositori telah dilengkapi dengan konfigurasi [docker-compose.podman.yml](docker-compose.podman.yml) yang mencakup PostgreSQL 16 terisolasi, backend Hono, frontend Nuxt 3, dan Nginx gateway:
+
+```bash
+# Build dan jalankan seluruh stack di latar belakang
+podman compose -f docker-compose.podman.yml up -d --build
+
+# ATAU menggunakan podman-compose
+podman-compose -f docker-compose.podman.yml up -d --build
+```
+
+#### 4. Verifikasi Kesehatan Layanan
+```bash
+# Periksa container yang sedang berjalan
+podman ps
+
+# Periksa status endpoint healthcheck backend
+curl -s http://127.0.0.1:8090/api/health
+```
+
+#### 5. Pembaruan Aplikasi (Continuous Update)
+```bash
+git pull origin ans
+podman compose -f docker-compose.podman.yml up -d --build
+```
+
+---
+
+## 6. Indeks Dokumentasi Lengkap (`docs/`)
+
+- [DEPLOY_PODMAN.md](docs/DEPLOY_PODMAN.md) — Panduan Operasional Khusus Deployment Podman di Server Staging/Produksi.
 - [01_Strategic_Framework_and_6_Pillars.md](docs/01_Strategic_Framework_and_6_Pillars.md) — 6 Pilar Strategis & Rationale Kenapa Menggunakan Hono.
 - [02_Bulky_Curah_and_Debulking.md](docs/02_Bulky_Curah_and_Debulking.md) — Penanganan Bulky & Curah, De-bulking/Bagging-Off, Susut/Loss %, Jembatan Timbang (Flow & Sequence Diagram).
 - [03_CrossDock_and_CrossDocument.md](docs/03_CrossDock_and_CrossDocument.md) — Cross-Docking & Definisi/Alur Cross-Document Swap (Flow & Sequence Diagram).
