@@ -32,9 +32,61 @@ const updateUserSchema = z.object({
 
 export const authRoutes = new Hono();
 
+// ═══ Rate Limiting & Brute Force Protection (OWASP A07 / ISO 27001 A.8.5) ═══
+interface LoginAttempt {
+  count: number;
+  firstAttempt: number;
+  blockedUntil?: number;
+}
+
+const loginAttempts = new Map<string, LoginAttempt>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_WINDOW_MS = 10 * 60 * 1000; // 10 menit
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 menit lockout jika melebihi batas
+
+function getClientIp(c: any): string {
+  return (
+    c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ||
+    c.req.header('x-real-ip') ||
+    '127.0.0.1'
+  );
+}
+
+function checkLoginRateLimit(key: string): { allowed: boolean; retryAfterSec?: number } {
+  const now = Date.now();
+  const record = loginAttempts.get(key);
+  if (!record) return { allowed: true };
+
+  if (record.blockedUntil && now < record.blockedUntil) {
+    const retryAfterSec = Math.ceil((record.blockedUntil - now) / 1000);
+    return { allowed: false, retryAfterSec };
+  }
+
+  if (now - record.firstAttempt > LOGIN_WINDOW_MS) {
+    loginAttempts.delete(key);
+    return { allowed: true };
+  }
+
+  return { allowed: true };
+}
+
+function recordFailedLogin(key: string) {
+  const now = Date.now();
+  const record = loginAttempts.get(key) || { count: 0, firstAttempt: now };
+  record.count++;
+  if (record.count >= MAX_LOGIN_ATTEMPTS) {
+    record.blockedUntil = now + LOCKOUT_MS;
+  }
+  loginAttempts.set(key, record);
+}
+
+function recordSuccessfulLogin(key: string) {
+  loginAttempts.delete(key);
+}
+
 // 1. User Login
 authRoutes.post('/login', async (c) => {
-  const body = await c.req.json();
+  const body = await c.req.json().catch(() => ({}));
   const { username, password } = body;
 
   if (!username || !password) {
@@ -46,6 +98,20 @@ authRoutes.post('/login', async (c) => {
     return c.json(problem, 400);
   }
 
+  const clientIp = getClientIp(c);
+  const rateLimitKey = `${clientIp}:${username.trim().toLowerCase()}`;
+  const rateLimit = checkLoginRateLimit(rateLimitKey);
+
+  if (!rateLimit.allowed) {
+    c.header('Retry-After', String(rateLimit.retryAfterSec || 60));
+    const problem = formatProblemDetails(c, {
+      message: `Terlalu banyak percobaan login gagal. Akun diblokir sementara selama ${Math.ceil((rateLimit.retryAfterSec || 60) / 60)} menit.`,
+      status: 429,
+      code: 'TOO_MANY_REQUESTS'
+    });
+    return c.json(problem, 429);
+  }
+
   const userRes = await query(
     `SELECT u.*, w.name AS warehouse_name, w.code AS warehouse_code
      FROM users u
@@ -55,6 +121,12 @@ authRoutes.post('/login', async (c) => {
   );
 
   if (userRes.rows.length === 0) {
+    recordFailedLogin(rateLimitKey);
+    console.warn('[SECURITY] Failed login attempt (user not found):', {
+      username: username.trim(),
+      clientIp,
+      timestamp: new Date().toISOString()
+    });
     const problem = formatProblemDetails(c, {
       message: 'Username atau kata sandi tidak cocok',
       status: 401,
@@ -65,17 +137,37 @@ authRoutes.post('/login', async (c) => {
 
   const user = userRes.rows[0];
 
-  // In demo/production environment, verify password hash
-  // (All default seed accounts accept password 'password123' or matching hash)
-  const isMatch = password === 'password123' || password === 'admin123' || user.password_hash === password;
+  // Verifikasi kata sandi kriptografis murni (scrypt / timingSafeEqual)
+  const isMatch = verifyPassword(password, user.password_hash);
 
   if (!isMatch) {
+    recordFailedLogin(rateLimitKey);
+    console.warn('[SECURITY] Failed login attempt (invalid password):', {
+      username: user.username,
+      clientIp,
+      timestamp: new Date().toISOString()
+    });
     const problem = formatProblemDetails(c, {
       message: 'Username atau kata sandi tidak cocok',
       status: 401,
       code: 'INVALID_CREDENTIALS'
     });
     return c.json(problem, 401);
+  }
+
+  // Login berhasil: reset counter rate limiting
+  recordSuccessfulLogin(rateLimitKey);
+
+  // Upgrade otomatis password legacy (plaintext) ke hash scrypt yang aman
+  if (!user.password_hash.startsWith('scrypt$')) {
+    try {
+      const qPromise = query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hashPassword(password), user.id]);
+      if (qPromise && typeof qPromise.catch === 'function') {
+        qPromise.catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
   }
 
   const tokenPayload = {

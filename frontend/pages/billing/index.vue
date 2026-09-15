@@ -160,11 +160,14 @@ const amountByOrder = reactive({})
 const paymentTarget = ref(null)
 const paymentForm = reactive({ amount: '', method: 'TRANSFER' })
 
-const readyToBill = computed(() =>
-  outboundStore.orders.filter(
-    (o) => o.status === 'POD_VERIFIED' && o.billing_ready === true && o.payment_status !== 'PAID'
+const readyToBill = computed(() => {
+  const invoicedOrderIds = new Set(
+    billingStore.invoices.filter((i) => i.status !== 'VOID').map((i) => i.outbound_order_id)
   )
-)
+  return outboundStore.orders.filter(
+    (o) => o.status === 'POD_VERIFIED' && Boolean(o.billing_ready) && o.payment_status !== 'PAID' && !invoicedOrderIds.has(o.id)
+  )
+})
 
 function formatIDR(v) {
   return Number(v || 0).toLocaleString('id-ID')

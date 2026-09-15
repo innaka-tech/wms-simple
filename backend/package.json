@@ -8,7 +8,10 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "test:setup": "node scripts/init-test-db.js",
+    "pretest": "node scripts/init-test-db.js",
     "test": "vitest run",
+    "pretest:coverage": "node scripts/init-test-db.js",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
