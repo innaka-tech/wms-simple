@@ -1,6 +1,6 @@
-# Deploy Produksi — Server Innaka
+# Deploy Produksi — Server Akamai
 
-Dokumen ini menjelaskan cara aplikasi di-deploy ke server innaka.
+Dokumen ini menjelaskan cara aplikasi di-deploy ke server Akamai.
 **Kredensial asli TIDAK ada di file ini** — tersimpan di server:
 `/data/docker-data/wms-simple/CREDENTIALS.md` (di luar repo, permission 600).
 
@@ -10,9 +10,9 @@ Dokumen ini menjelaskan cara aplikasi di-deploy ke server innaka.
 
 | Komponen | Nilai |
 |---|---|
-| Server | innaka (Linode/Akamai) `104.64.221.233` |
+| Server | Akamai (Linode/Akamai) `172.237.70.58` |
 | Lokasi deploy | `/data/docker-data/wms-simple/repo` (branch `ans`) |
-| URL publik | `http://104.64.221.233:8090` |
+| URL publik | `http://172.237.70.58:8090` |
 | Gateway | nginx (`wms-simple-gateway`) — satu-satunya port yang expose ke internet |
 | Backend | Hono/Node 20 (`wms-simple-backend`, internal :3000) |
 | Frontend | Nuxt 3 SSR (`wms-simple-frontend`, internal :3000) |
@@ -63,7 +63,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 docker logs -f wms-simple-backend
 ```
 
-Health check: `curl http://104.64.221.233:8090/api/health` → `200`.
+Health check: `curl http://172.237.70.58:8090/api/health` → `200`.
 
 ## 5. Catatan keamanan
 
