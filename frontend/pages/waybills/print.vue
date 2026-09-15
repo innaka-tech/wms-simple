@@ -220,21 +220,26 @@
           </div>
 
           <!-- Right: Box Surat Jalan & Barcode -->
-          <div class="col-span-4 border-2 border-slate-950 p-2 text-center bg-slate-50/70">
-            <div class="bg-slate-950 text-white font-black text-xs py-1 tracking-wider uppercase">
-              SURAT JALAN / DELIVERY NOTE
-            </div>
-            <div class="text-[8px] font-bold text-slate-600 mt-1 uppercase tracking-tight">
-              BUKTI RESMI PENGHANTARAN BARANG LOGISTIK
-            </div>
-            <!-- Simulated Code 128 Barcode -->
-            <div class="py-1.5 flex flex-col items-center justify-center">
-              <div class="font-mono text-2xl tracking-[0.25em] font-black scale-y-125 select-none leading-none">
-                ||| | |||| || ||| || ||||
+          <div class="col-span-4 border-2 border-slate-950 p-2 text-center bg-slate-50/70 flex flex-col justify-between">
+            <div>
+              <div class="bg-slate-950 text-white font-black text-xs py-1 tracking-wider uppercase">
+                SURAT JALAN / DELIVERY NOTE
               </div>
-              <span class="text-[9px] font-mono font-bold tracking-widest text-slate-900 mt-1">
-                *{{ activeDoc?.sj_number || 'SJT2AC1QCW' }}*
-              </span>
+              <div class="text-[8px] font-bold text-slate-600 mt-1 uppercase tracking-tight">
+                BUKTI RESMI PENGHANTARAN BARANG LOGISTIK
+              </div>
+            </div>
+            <!-- Real Vector Code 128 Barcode -->
+            <div class="py-1 flex flex-col items-center justify-center">
+              <AppBarcode
+                :value="activeDoc?.sj_number || 'SJT2AC1QCW'"
+                :width="1.3"
+                :height="36"
+                :display-value="true"
+                :text="`*${activeDoc?.sj_number || 'SJT2AC1QCW'}*`"
+                :font-size="10"
+                custom-class="max-w-full"
+              />
             </div>
           </div>
         </div>
@@ -818,11 +823,16 @@
           </div>
         </div>
 
-        <div class="text-center py-1">
-          <div class="font-mono text-lg tracking-widest font-black">
-            |||||||||||||||||||||
-          </div>
-          <span class="text-[9px] font-bold">*{{ activeDoc?.sj_number }}*</span>
+        <div class="text-center py-1 flex flex-col items-center justify-center">
+          <AppBarcode
+            :value="activeDoc?.sj_number || 'SJT2AC1QCW'"
+            :width="1.3"
+            :height="36"
+            :display-value="true"
+            :text="`*${activeDoc?.sj_number || 'SJT2AC1QCW'}*`"
+            :font-size="10"
+            custom-class="max-w-full"
+          />
         </div>
 
         <div class="text-[9px] text-center text-slate-500 pt-1 border-t border-dashed border-slate-300">
