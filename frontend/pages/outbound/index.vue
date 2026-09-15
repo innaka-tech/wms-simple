@@ -10,20 +10,30 @@
     <!-- Header ramping -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
       <div>
-        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Delivery Order &amp; Surat Jalan</h2>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Fase 3 · Alokasi Rak Picking, Packing Koli Fisik &amp; Pelacakan Unit KDMP, Terbitkan SJ + Resi</p>
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/70 dark:border-sky-800">
+            Outbound Delivery
+          </span>
+          <h2 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Delivery Order &amp; Surat Jalan</h2>
+        </div>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Fase 3 · Alokasi Rak Picking, Packing Koli Fisik &amp; Pelacakan Unit KDMP, Terbitkan SJ + Resi</p>
       </div>
-      <div class="flex gap-2 shrink-0">
+      <div class="flex items-center gap-2 shrink-0">
         <button type="button" @click="showCreate = !showCreate"
-                class="px-3 py-2 rounded-md text-xs font-semibold transition cursor-pointer"
-                :class="showCreate ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700' : 'bg-blue-600 hover:bg-blue-700 text-white'">
-          {{ showCreate ? 'Tutup Form' : '+ Buat DO Baru' }}
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
+                :class="showCreate ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700' : 'bg-sky-600 hover:bg-sky-700 text-white'">
+          <AppIcon :name="showCreate ? 'x' : 'plus'" custom-class="w-3.5 h-3.5" />
+          <span>{{ showCreate ? 'Tutup Form' : 'Buat DO Baru' }}</span>
         </button>
-        <NuxtLink to="/waybills" class="px-3 py-2 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 transition">Daftar SJ & Resi</NuxtLink>
+        <NuxtLink to="/waybills" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 shadow-xs transition">
+          <AppIcon name="file-text" custom-class="w-3.5 h-3.5" />
+          <span>Daftar SJ &amp; Resi</span>
+        </NuxtLink>
         <button type="button" @click="printer.connectBluetoothPrinter()"
-                class="px-3 py-2 rounded-md text-xs font-medium border transition cursor-pointer"
-                :class="printer.isConnected.value ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800'">
-          {{ printer.isConnected.value ? 'Printer siap' : 'Hubungkan printer' }}
+                class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border shadow-xs transition cursor-pointer"
+                :class="printer.isConnected.value ? 'bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800'">
+          <AppIcon name="printer" custom-class="w-3.5 h-3.5" />
+          <span>{{ printer.isConnected.value ? 'Printer Siap' : 'Hubungkan Printer' }}</span>
         </button>
       </div>
     </div>
@@ -89,8 +99,19 @@
 
     <!-- Daftar order -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden transition-colors">
-      <div v-if="outboundStore.isLoading" class="p-8 text-center text-xs text-slate-400">Memuat order...</div>
-      <div v-else-if="outboundStore.orders.length === 0" class="p-8 text-center text-xs text-slate-400">Belum ada Delivery Order. Buat DO baru dari data shipper.</div>
+      <div v-if="outboundStore.isLoading" class="p-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
+        <AppIcon name="refresh-cw" custom-class="w-5 h-5 animate-spin text-sky-600" />
+        <span>Memuat data delivery order...</span>
+      </div>
+      <AppEmptyState
+        v-else-if="outboundStore.orders.length === 0"
+        icon="package"
+        title="Belum Ada Delivery Order"
+        description="Belum ada transaksi pengeluaran barang tercatat. Mulai dengan membuat DO baru dari shipper/customer."
+        action-label="Buat DO Baru"
+        action-icon="plus"
+        @action="showCreate = true"
+      />
       <div v-else class="divide-y divide-slate-100 dark:divide-slate-800">
         <div v-for="order in outboundStore.orders" :key="order.id" class="p-4 hover:bg-slate-50/60 dark:hover:bg-slate-950/40 transition-colors space-y-3">
           <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">

@@ -3,42 +3,38 @@
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <div class="flex items-center gap-2">
-          <span class="px-2.5 py-1 text-xs font-bold rounded-md bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-            Master Data Enterprise · Fase 4
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border border-violet-200/70 dark:border-violet-800">
+            Master Data &bull; Kamus Sistem
           </span>
-          <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Master Referensi Sistem
-          </h1>
         </div>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+          Master Referensi Sistem
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
           Konsol terpadu pengelolaan kamus data master: Tipe Kargo, Kemasan, Satuan &amp; Konversi UOM, Tipe Armada, Dokumen, dan Template Cetak.
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2.5">
         <button
           type="button"
           @click="loadActiveTab"
           :disabled="loading"
-          class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition flex items-center gap-1.5"
+          class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-xs transition cursor-pointer"
         >
-          <svg class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refresh
+          <AppIcon name="refresh" custom-class="w-3.5 h-3.5" :class="{ 'animate-spin': loading }" />
+          <span>Refresh</span>
         </button>
 
         <button
           v-if="activeTab !== 'uom_conv'"
           type="button"
           @click="openAddModal"
-          class="px-4 py-2 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow transition flex items-center gap-2"
+          class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-sky-600 hover:bg-sky-700 text-white shadow-sm hover:shadow transition cursor-pointer"
         >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Tambah {{ currentTabLabel }}
+          <AppIcon name="plus" custom-class="w-4 h-4" />
+          <span>Tambah {{ currentTabLabel }}</span>
         </button>
 
         <button

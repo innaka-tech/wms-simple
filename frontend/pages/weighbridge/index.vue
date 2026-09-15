@@ -20,7 +20,7 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <div class="flex items-center space-x-2">
-          <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+          <span class="px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800">
             Bulk &amp; Fleet Logistics
           </span>
           <span class="text-xs text-slate-400 dark:text-slate-500">· Stasiun Timbangan Truk</span>
@@ -34,18 +34,20 @@
       <div class="flex items-center gap-2.5 shrink-0">
         <button
           type="button"
-          @click="openCreateModal"
-          class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5 cursor-pointer"
+          @click="refreshData"
+          :disabled="weighbridgeStore.isLoading"
+          class="inline-flex items-center gap-1.5 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer disabled:opacity-50"
         >
-          <span>+ Timbang Masuk (Gross)</span>
+          <AppIcon name="refresh" custom-class="w-3.5 h-3.5" />
+          <span>Refresh</span>
         </button>
         <button
           type="button"
-          @click="refreshData"
-          :disabled="weighbridgeStore.isLoading"
-          class="px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+          @click="openCreateModal"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold shadow-sm hover:shadow transition cursor-pointer"
         >
-          <span>Refresh</span>
+          <AppIcon name="plus" custom-class="w-4 h-4" />
+          <span>Timbang Masuk (Gross)</span>
         </button>
       </div>
     </div>

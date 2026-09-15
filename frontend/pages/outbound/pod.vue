@@ -17,31 +17,39 @@
     </div>
 
     <!-- Header & Order Destination -->
-    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-2 transition-colors">
-      <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Fase 4 — Delivery & Billing • Checkpoint: POD → POD_VERIFIED → INVOICE → LUNAS</p>
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div class="flex items-center space-x-2 flex-wrap">
+    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs space-y-3 transition-colors">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 border border-violet-200/60 dark:border-violet-800/60 mb-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+            <span>Fase 4 — Delivery & Billing • Checkpoint POD → POD_VERIFIED</span>
+          </div>
+          <h2 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+            <div class="w-7 h-7 rounded-lg bg-violet-50 dark:bg-violet-950/50 flex items-center justify-center text-violet-600 dark:text-violet-400 border border-violet-200/60 dark:border-violet-800/60 shadow-xs">
+              <AppIcon name="check" custom-class="w-4 h-4" />
+            </div>
+            <span>Elektronik Proof of Delivery (e-POD)</span>
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Verifikasi serah terima fisik kargo di lokasi customer dengan bukti foto dan tanda tangan digital.</p>
+        </div>
+        <div class="flex items-center gap-2">
           <input
             v-model="orderNumberInput"
             @keydown.enter="lookupWaybill"
             type="text"
             placeholder="Masukkan No. Order (ORD-...)"
-            class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none w-56"
+            class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-xs font-mono font-semibold text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none w-56 shadow-xs"
           />
-          <button type="button" @click="lookupWaybill" class="px-3 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition cursor-pointer">
+          <button type="button" @click="lookupWaybill" class="px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition cursor-pointer shadow-xs">
             Cari SJ / Resi
           </button>
         </div>
-        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center space-x-1.5">
-          <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-          <span>Program KDMP Cold Chain</span>
-        </span>
       </div>
-      <div v-if="matchedWaybill" class="flex items-center gap-2 flex-wrap p-2.5 rounded-md bg-blue-50/60 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-        <AppIcon name="printer" custom-class="w-4 h-4 text-blue-600 dark:text-blue-400" />
-        <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{{ matchedWaybill.sj_number }}</span>
+      <div v-if="matchedWaybill" class="flex items-center gap-2 flex-wrap p-2.5 rounded-lg bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/70 dark:border-sky-800/60">
+        <AppIcon name="printer" custom-class="w-4 h-4 text-sky-600 dark:text-sky-400" />
+        <span class="text-xs font-mono font-bold text-sky-700 dark:text-sky-300">{{ matchedWaybill.sj_number }}</span>
         <span class="text-xs font-mono font-bold text-slate-900 dark:text-white">RESI: {{ matchedWaybill.resi_number }}</span>
-        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{{ matchedWaybill.status }}</span>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{{ matchedWaybill.status }}</span>
       </div>
       <p v-if="lookupMessage" class="text-[11px] text-amber-600 dark:text-amber-400 font-medium">{{ lookupMessage }}</p>
       <div v-if="matchedOrder" class="flex items-center gap-2 flex-wrap">

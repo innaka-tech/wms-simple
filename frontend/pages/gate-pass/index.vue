@@ -17,23 +17,27 @@
     </div>
 
     <!-- Header & Mode Switcher -->
-    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
+    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
       <div>
-        <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-          <AppIcon name="truck" custom-class="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          <span>Gate Pass: Keluar-Masuk Truk</span>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/70 dark:border-sky-800">
+            Pos Keamanan &amp; Gerbang Truk
+          </span>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+          <AppIcon name="truck" custom-class="w-5 h-5 text-sky-600 dark:text-sky-400" />
+          <span>Gate Pass: Keluar-Masuk Armada</span>
         </h2>
-        <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Fase 3 — Outbound • Checkpoint: FLEET_DEPARTED / VENDOR_EXIT</p>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pencatatan Odometer awal/akhir, level BBM solar, dan validasi Surat Jalan sah.</p>
       </div>
 
       <!-- Mode Switcher Tabs -->
-      <div class="flex p-1 bg-slate-100 dark:bg-slate-950 rounded-md border border-slate-200 dark:border-slate-800 self-stretch md:self-auto min-w-[280px]">
+      <div class="flex p-1 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200/80 dark:border-slate-800 self-stretch md:self-auto min-w-[280px]">
         <button 
           type="button" 
           @click="activeTab = 'departure'"
-          class="flex-1 py-2 px-4 rounded-lg text-xs font-semibold transition text-center flex items-center justify-center space-x-1.5 cursor-pointer"
-          :class="activeTab === 'departure' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
+          class="flex-1 py-2 px-3.5 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center space-x-1.5 cursor-pointer"
+          :class="activeTab === 'departure' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
         >
           <AppIcon name="logout" custom-class="w-3.5 h-3.5" />
           <span>Gate Out (Keluar)</span>
@@ -41,20 +45,20 @@
         <button 
           type="button" 
           @click="activeTab = 'return'"
-          class="flex-1 py-2 px-4 rounded-lg text-xs font-semibold transition text-center flex items-center justify-center space-x-1.5 cursor-pointer"
-          :class="activeTab === 'return' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
+          class="flex-1 py-2 px-3.5 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center space-x-1.5 cursor-pointer"
+          :class="activeTab === 'return' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
         >
           <AppIcon name="inbound" custom-class="w-3.5 h-3.5" />
           <span>Gate In (Kembali)</span>
-          <span v-if="departedLogs.length > 0" class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+          <span v-if="departedLogs.length > 0" class="ml-1 px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
             {{ departedLogs.length }}
           </span>
         </button>
         <button 
           type="button" 
           @click="activeTab = 'vendor'"
-          class="flex-1 py-2 px-4 rounded-lg text-xs font-semibold transition text-center flex items-center justify-center space-x-1.5 cursor-pointer"
-          :class="activeTab === 'vendor' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
+          class="flex-1 py-2 px-3.5 rounded-lg text-xs font-semibold transition-all text-center flex items-center justify-center space-x-1.5 cursor-pointer"
+          :class="activeTab === 'vendor' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
         >
           <AppIcon name="truck" custom-class="w-3.5 h-3.5" />
           <span>Truk Vendor</span>
