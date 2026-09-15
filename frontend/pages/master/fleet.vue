@@ -243,7 +243,9 @@ async function submit() {
 }
 
 async function deactivate(v) {
-  if (!confirm(`Nonaktifkan kendaraan ${v.plate_number}? Tidak akan muncul di pilihan gate pass.`)) return;
+  const { confirmAction } = useSwal();
+  const ok = await confirmAction('Nonaktifkan Kendaraan?', `Nonaktifkan kendaraan ${v.plate_number}? Tidak akan muncul di pilihan gate pass.`, { icon: 'warning' });
+  if (!ok) return;
   await masterStore.updateVehicle(v.id, { is_active: false });
 }
 

@@ -143,7 +143,7 @@ debulkingRoutes.post('/', optionalAuth, async (c) => {
       }
     }
 
-    const conversionNumber = `DEBULK-${Date.now().toString().slice(-8)}`;
+    const conversionNumber = `DEBULK${Date.now().toString().slice(-8)}`;
     const totalInWeight = inputs.reduce((sum: number, item: any) => sum + parseFloat(item.weight_kg), 0);
     const totalOutWeight = outputs.reduce((sum: number, item: any) => sum + parseFloat(item.weight_kg), 0);
     const shrinkageLossKg = totalInWeight - totalOutWeight;

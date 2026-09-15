@@ -220,6 +220,230 @@ fleetRoutes.get('/logs', async (c) => {
   return c.json({ success: true, data: result.rows });
 });
 
+// 2b. Unified Document Lookup for Gate Pass & Checkpoint (SJ, RESI, ORD, MNF)
+fleetRoutes.get('/lookup-doc/:number', async (c) => {
+  const rawNumber = (c.req.param('number') || '').trim().toUpperCase();
+  if (rawNumber.length < 3) {
+    return c.json({ success: false, message: 'Nomor dokumen terlalu pendek (minimal 3 karakter)' }, 400);
+  }
+
+  const wild = `%${rawNumber}%`;
+
+  // 1. Search in Waybills (Surat Jalan & Resi)
+  const wbRes = await query(
+    `SELECT w.*, 
+            oo.id AS order_id, oo.order_number, oo.status AS order_status,
+            oo.recipient_name, oo.recipient_phone, oo.destination_address, oo.destination_city,
+            oo.vehicle_id, oo.driver_name,
+            c.name AS customer_name,
+            wh.name AS warehouse_name
+     FROM waybills w
+     LEFT JOIN outbound_orders oo ON w.reference_id = oo.id AND w.reference_type = 'OUTBOUND_ORDER'
+     LEFT JOIN customers c ON oo.customer_id = c.id
+     LEFT JOIN warehouses wh ON oo.warehouse_id = wh.id
+     WHERE UPPER(w.sj_number) = $1 OR UPPER(w.resi_number) = $1 OR w.sj_number ILIKE $2 OR w.resi_number ILIKE $2
+     ORDER BY (UPPER(w.sj_number) = $1 OR UPPER(w.resi_number) = $1) DESC, w.issued_at DESC
+     LIMIT 1`,
+    [rawNumber, wild]
+  );
+
+  if (wbRes.rows.length > 0) {
+    const wb = wbRes.rows[0];
+    let items: any[] = [];
+    let packages: any[] = [];
+
+    if (wb.order_id) {
+      const itemsRes = await query(
+        `SELECT oi.*, p.sku_code, p.name AS product_name, p.weight_kg_per_unit
+         FROM outbound_items oi
+         JOIN products p ON oi.product_id = p.id
+         WHERE oi.outbound_order_id = $1`,
+        [wb.order_id]
+      );
+      items = itemsRes.rows;
+
+      const pkgRes = await query(
+        `SELECT pkg.*, mpt.name AS packaging_type_name
+         FROM packages pkg
+         LEFT JOIN master_packaging_types mpt ON pkg.packaging_type_id = mpt.id
+         WHERE pkg.outbound_order_id = $1
+         ORDER BY pkg.created_at ASC`,
+        [wb.order_id]
+      );
+      packages = pkgRes.rows;
+    }
+
+    const totalWeight = packages.length > 0
+      ? packages.reduce((acc, p) => acc + (Number(p.weight_kg) || 0), 0)
+      : items.reduce((acc, it) => acc + ((Number(it.ordered_qty) || 0) * (Number(it.weight_kg_per_unit) || 1)), 0);
+
+    return c.json({
+      success: true,
+      data: {
+        found: true,
+        doc_type: 'WAYBILL',
+        reference_type: 'OUTBOUND_ORDER',
+        reference_id: wb.order_id || wb.reference_id,
+        reference_number: wb.sj_number,
+        waybill_number: wb.sj_number,
+        sj_number: wb.sj_number,
+        resi_number: wb.resi_number,
+        order_number: wb.order_number,
+        status: wb.status,
+        order_status: wb.order_status || 'PACKED',
+        customer_name: wb.customer_name || 'Customer Pengirim',
+        recipient_name: wb.recipient_name || 'Consignee',
+        recipient_phone: wb.recipient_phone || '-',
+        destination_address: wb.destination_address || '-',
+        destination_city: wb.destination_city || '-',
+        warehouse_name: wb.warehouse_name,
+        driver_name: wb.driver_name,
+        vehicle_id: wb.vehicle_id,
+        items,
+        packages,
+        total_packages: packages.length,
+        total_items: items.length,
+        total_weight_kg: Number(totalWeight.toFixed(1)),
+        issued_by: wb.issued_by_name,
+        issued_at: wb.issued_at,
+        is_ready_gate_out: ['PACKED', 'SHIPPED'].includes(wb.order_status) || wb.status === 'ISSUED'
+      }
+    });
+  }
+
+  // 2. Search in Outbound Orders
+  const ordRes = await query(
+    `SELECT oo.*, 
+            w.sj_number, w.resi_number, w.status AS waybill_status, w.issued_by_name,
+            c.name AS customer_name,
+            wh.name AS warehouse_name
+     FROM outbound_orders oo
+     LEFT JOIN waybills w ON w.reference_id = oo.id AND w.reference_type = 'OUTBOUND_ORDER' AND w.status != 'VOID'
+     LEFT JOIN customers c ON oo.customer_id = c.id
+     LEFT JOIN warehouses wh ON oo.warehouse_id = wh.id
+     WHERE UPPER(oo.order_number) = $1 OR oo.order_number ILIKE $2
+     ORDER BY (UPPER(oo.order_number) = $1) DESC, oo.created_at DESC
+     LIMIT 1`,
+    [rawNumber, wild]
+  );
+
+  if (ordRes.rows.length > 0) {
+    const ord = ordRes.rows[0];
+    const itemsRes = await query(
+      `SELECT oi.*, p.sku_code, p.name AS product_name, p.weight_kg_per_unit
+       FROM outbound_items oi
+       JOIN products p ON oi.product_id = p.id
+       WHERE oi.outbound_order_id = $1`,
+      [ord.id]
+    );
+    const pkgRes = await query(
+      `SELECT pkg.*, mpt.name AS packaging_type_name
+       FROM packages pkg
+       LEFT JOIN master_packaging_types mpt ON pkg.packaging_type_id = mpt.id
+       WHERE pkg.outbound_order_id = $1
+       ORDER BY pkg.created_at ASC`,
+      [ord.id]
+    );
+
+    const totalWeight = pkgRes.rows.length > 0
+      ? pkgRes.rows.reduce((acc, p) => acc + (Number(p.weight_kg) || 0), 0)
+      : itemsRes.rows.reduce((acc, it) => acc + ((Number(it.ordered_qty) || 0) * (Number(it.weight_kg_per_unit) || 1)), 0);
+
+    return c.json({
+      success: true,
+      data: {
+        found: true,
+        doc_type: 'OUTBOUND_ORDER',
+        reference_type: 'OUTBOUND_ORDER',
+        reference_id: ord.id,
+        reference_number: ord.sj_number || ord.order_number,
+        waybill_number: ord.sj_number || '',
+        sj_number: ord.sj_number || null,
+        resi_number: ord.resi_number || null,
+        order_number: ord.order_number,
+        status: ord.status,
+        order_status: ord.status,
+        customer_name: ord.customer_name || 'Customer Pengirim',
+        recipient_name: ord.recipient_name,
+        recipient_phone: ord.recipient_phone || '-',
+        destination_address: ord.destination_address,
+        destination_city: ord.destination_city || '-',
+        warehouse_name: ord.warehouse_name,
+        driver_name: ord.driver_name,
+        vehicle_id: ord.vehicle_id,
+        items: itemsRes.rows,
+        packages: pkgRes.rows,
+        total_packages: pkgRes.rows.length,
+        total_items: itemsRes.rows.length,
+        total_weight_kg: Number(totalWeight.toFixed(1)),
+        issued_by: ord.issued_by_name || ord.created_by_name,
+        issued_at: ord.created_at,
+        is_ready_gate_out: ['PACKED', 'SHIPPED'].includes(ord.status)
+      }
+    });
+  }
+
+  // 3. Search in Cross-Dock Manifests
+  const mnfRes = await query(
+    `SELECT m.*, 
+            w1.name AS origin_warehouse_name,
+            w2.name AS destination_warehouse_name,
+            v.plate_number AS vehicle_plate
+     FROM cross_dock_manifests m
+     LEFT JOIN warehouses w1 ON m.source_warehouse_id = w1.id
+     LEFT JOIN warehouses w2 ON m.destination_warehouse_id = w2.id
+     LEFT JOIN vehicles v ON m.vehicle_id = v.id
+     WHERE UPPER(m.manifest_number) = $1 OR m.manifest_number ILIKE $2
+     ORDER BY (UPPER(m.manifest_number) = $1) DESC, m.created_at DESC
+     LIMIT 1`,
+    [rawNumber, wild]
+  );
+
+  if (mnfRes.rows.length > 0) {
+    const mnf = mnfRes.rows[0];
+    const itemsRes = await query(
+      `SELECT mi.*, p.sku_code, p.name AS product_name
+       FROM cross_dock_items mi
+       JOIN products p ON mi.product_id = p.id
+       WHERE mi.manifest_id = $1`,
+      [mnf.id]
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        found: true,
+        doc_type: 'CROSS_DOCK_MANIFEST',
+        reference_type: 'CROSS_DOCK_MANIFEST',
+        reference_id: mnf.id,
+        reference_number: mnf.manifest_number,
+        waybill_number: mnf.manifest_number,
+        order_number: mnf.manifest_number,
+        status: mnf.status,
+        order_status: mnf.status,
+        customer_name: 'Internal Transfer Hub',
+        recipient_name: mnf.destination_warehouse_name || 'Hub Tujuan',
+        recipient_phone: '-',
+        destination_address: `Transfer ke ${mnf.destination_warehouse_name || 'Gudang Tujuan'}`,
+        destination_city: '-',
+        warehouse_name: mnf.origin_warehouse_name,
+        driver_name: mnf.driver_name,
+        vehicle_id: mnf.vehicle_id,
+        items: itemsRes.rows,
+        packages: [],
+        total_packages: 0,
+        total_items: itemsRes.rows.length,
+        total_weight_kg: 0,
+        issued_by: mnf.driver_name || 'Petugas Dock',
+        issued_at: mnf.created_at,
+        is_ready_gate_out: ['LOADED', 'DEPARTED'].includes(mnf.status)
+      }
+    });
+  }
+
+  return c.json({ success: false, message: `Dokumen "${rawNumber}" tidak ditemukan dalam sistem.` }, 404);
+});
+
 // 3. Get Fleet Exit Log Detail + Checkpoints
 fleetRoutes.get('/logs/:id', async (c) => {
   const id = c.req.param('id');

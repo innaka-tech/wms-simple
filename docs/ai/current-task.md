@@ -1,9 +1,82 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** ACTIVE TASK — Production Deploy innaka LIVE (v4.6.1) + Semua Gap Audit Tertutup  
-**Database:** Host PostgreSQL 16 (`wms_simple_db` on `localhost:5432` / `127.0.0.1:5432`)  
-**Version:** 4.6.1  
-**Status:** FULL CHAIN VERIFIED + DEPLOYED (http://104.64.221.233:8090) — sisa: thermal fallback, HTTPS, ganti password seed  
+**Current Status:** PHASE 4 MASTER REFERENSI & ALERT CENTER COMPLETED (v5.2.0)  
+**Database:** Host PostgreSQL 16 (`wms_simple_db` & `wms_simple_test_db` on `127.0.0.1:5432`, user: `postgres`, pw: `fadh`)  
+**Version:** 5.2.0  
+**Status:** ALL PHASES OF MASTER PLAN FULLY IMPLEMENTED & VERIFIED (28 Vitest Suites, 191/191 Passed, Nuxt 3 Production Build Clean 1.76 MB, Browser Verified)  
+
+---
+
+## 0. Sesi 2026-09-15 (Eksekusi Fase 4 Master Plan & UI Redesign v5.2.0):
+
+1. [x] **Konsol Master Referensi Sistem Terpadu (`/master/references`):**
+   - **Backend API Master Data CRUD:**
+     - Tipe Kargo (`master_cargo_types`): GET, POST, PUT, DELETE (soft-deactivate).
+     - Tipe Kemasan (`master_packaging_types`): GET, POST, PUT, DELETE.
+     - Satuan UOM (`master_uom`): GET, POST, PUT, DELETE.
+     - **Aturan Konversi Antar-Satuan UOM (`master_uom_conversions`):** POST, PUT, DELETE untuk konversi rasio (misal: 1 TON = 1.000 KG, 1 JUMBOSACK = 1.000 KG) terintegrasi rumus operasional.
+     - Tipe Armada (`master_vehicle_types`): GET, POST, PUT, DELETE.
+     - Tipe Dokumen (`master_document_types`): GET, POST, PUT, DELETE.
+     - Template Cetak (`master_print_templates`): GET, POST, PUT, DELETE, PUT default.
+   - **Frontend UI Master Referensi (`frontend/pages/master/references.vue`):**
+     - Tab navigasi dinamis: Tipe Kargo, Tipe Kemasan, Satuan UOM, Aturan Konversi UOM, Tipe Armada, Tipe Dokumen, Template Cetak.
+     - Form Add & Edit Modal untuk setiap entitas referensi dengan sanitasi kode *non-hyphen* otomatis.
+     - Tabel khusus Aturan Konversi UOM lengkap dengan satuan asal, tujuan, multiplier, rumus perbandingan, dan modal tambah/edit.
+     - Dialog konfirmasi hapus/nonaktifkan terintegrasi SweetAlert2 (`useSwal().confirmAction()`).
+
+2. [x] **Pusat Notifikasi & Operational Alert Center (`frontend/components/AppHeader.vue` & `backend/src/routes/alerts.ts`):**
+   - **Backend Alert Center Endpoints:**
+     - `GET /api/alerts`: filter status (`is_resolved`), keparahan (`severity: CRITICAL|WARNING|INFO`), dan gudang (`warehouse_id`).
+     - `GET /api/alerts/summary`: kalkulasi ringkasan agregat alert aktif.
+     - `POST /api/alerts`: endpoint pembuatan alert manual/sistemik terverifikasi Zod schema.
+     - `POST /api/alerts/:id/resolve`: resolusi alert individual atomik.
+     - `POST /api/alerts/resolve-all`: resolusi serentak seluruh alert aktif dengan catatan resolusi.
+     - `POST /api/alerts/scan-overdue`: pemindaian proaktif armada pool berstatus `DEPARTED` yang melewati `expected_return_time` dan otomatis menerbitkan alert `CRITICAL`.
+   - **Frontend Header Alert Center:**
+     - Dropdown popover modern dengan indikator badge aktif berdenyut (animated pulse).
+     - Filter cepat per tingkat keparahan: Semua, Kritis, Peringatan.
+     - Tombol "Scan Anomali" dan "Selesaikan Semua" dengan feedback SweetAlert2.
+
+3. [x] **Konsistensi Redesign Antarmuka & SweetAlert2:**
+   - Dark sidebar slate-900 konsisten, header terpadu tanpa distorsi, dan standarisasi token CSS di `main.css`.
+   - Penggantian seluruh `window.alert()` / `confirm()` menjadi SweetAlert2 modal responsif di seluruh halaman aplikasi.
+
+4. [x] **Rangkaian Pengujian Otomatis & Quality Gates:**
+   - Membangun `backend/tests/integration/alerts.routes.test.ts` (6/6 tests passing).
+   - Memperluas `backend/tests/integration/master.routes.test.ts` (13/13 tests passing).
+   - **Hasil Pengujian Total:** **28 passed (28 suites), 191 passed (191 tests), 0 failed, 0 skipped**.
+   - **TypeScript Compiler:** `npx tsc --noEmit` bersih (0 error).
+   - **Frontend Build:** Nuxt 3 / Nitro / Vite 7 sukses (1.76 MB clean bundle).
+   - **Verifikasi Visual Browser Subagent:** Verifikasi live antarmuka `/master/references`, tab konversi UOM, dan popover Alert Center sukses ditangkap sebagai artefak visual.
+
+---
+
+## 0. Sesi 2026-09-14 (Fase Eksekusi Penuh Master Plan v5.0.0):
+
+1. [x] **Fase 5: Penutupan Penuh Operasional & Fisik (Jembatan Timbang, Packing Koli, Alokasi Rak, UOM Auto-Conversion):**
+   - **Modul Jembatan Timbang Truk / Weighbridge Station Console (Gap Tabel 19):**
+     - Backend API `GET /api/weighbridge`, `POST /api/weighbridge` (Gross Masuk, nomor tiket non-hyphen `WBXXXXXXXX`), `PUT /api/weighbridge/:id/second-weight` (Tare Keluar & auto-kalkulasi Net Cargo Weight).
+     - Frontend UI `/weighbridge`: Simulator sensor digital RS-232, tombol Zero/Tare/Gross, tab tiket aktif vs riwayat selesai, modal timbang masuk & keluar, dan cetak struk thermal `printWeighbridgeReceipt`.
+     - Pinia store `useWeighbridgeStore` dan integrasi menu navigasi di `useAuthStore`.
+     - Vitest integration test `weighbridge.routes.test.ts` (5/5 tests passed).
+   - **Modul Packing Interaktif & Pencatatan Koli Fisik (Gap Tabel 28 & Pelacakan Unit KDMP):**
+     - Backend API `POST /api/outbound/:id/pack` menyimpan `packaging_type_id` ke tabel `packages`.
+     - Modal interaktif Packing & Koli Fisik di `/outbound`: Multi-koli dengan kode non-hyphen (`BOX...`), pilihan tipe kemasan dari `master_packaging_types`, berat riil (KG), dimensi (PxLxT cm), serta pengikatan Serial Number (`SN...`) dan Tag Aset Balai Desa (`KDMP...`) untuk kargo chiller pendingin.
+     - Panel expandable rincian item order & daftar koli fisik pada daftar delivery order.
+   - **Saran Lokasi Rak Saat Outbound Picking (Gap Tabel 9):**
+     - Modal picking interaktif di `/outbound` menampilkan daftar lokasi rak gudang (`warehouse_locations`) untuk alokasi pengambilan barang tanpa *blind warehouse*.
+   - **Auto-Kalkulasi Rasio Konversi UOM pada Debulking (Gap Tabel 4):**
+     - Menghubungkan tabel `master_uom_conversions` ke formulir Debulking (`/debulking`).
+     - Fitur 1-klik "Terapkan Rasio UOM" untuk mengonversi kuantitas parent bulky menjadi kuantitas output kemasan ritel secara presisi.
+2. [x] **Fase 1 s/d 4 (Standardisasi Non-Hyphen, TMS Trips, Karantina, Opname, Master Referensi, Alert Center):**
+   - Standardisasi format tanpa tanda strip pada seluruh kode SKU dan nomor dokumen (`generateDocumentNumber`).
+   - TMS Multi-Drop Dispatcher (`/tms/trips`) & Overload Guard (proteksi ODOL kapasitas berat & kubikasi).
+   - Area Karantina & QC Disposisi (`/stock/quarantine`) dan Stock Opname Cycle Count (`/stock/opname`).
+   - Master Referensi Terpadu (`/master/references`) dan Lonceng Peringatan Operasional (Alert Center).
+3. [x] **Quality Gate Verifikasi:**
+   - Vitest test suites: **24 passed (24), 155 passed (155), 0 failed, 0 skipped**.
+   - Frontend Nuxt 3 production build (`nuxt build`): Sukses, 0 error (1.76 MB).
+   - Browser Subagent Live Verification: Seluruh halaman baru (`/weighbridge`, `/outbound`, `/debulking`, `/tms/trips`, `/stock/quarantine`, `/stock/opname`, `/master/references`, Alert popover) terverifikasi berjalan sempurna secara visual dan interaktif.
 
 ---
 

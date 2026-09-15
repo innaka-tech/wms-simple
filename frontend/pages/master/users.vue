@@ -207,7 +207,11 @@ async function submit() {
 
 async function toggleActive(u) {
   const target = u.is_active !== false ? false : true;
-  if (!target && !confirm(`Nonaktifkan akun @${u.username}? Petugas tidak akan bisa login.`)) return;
+  if (!target) {
+    const { confirmAction } = useSwal();
+    const ok = await confirmAction('Nonaktifkan Akun?', `Nonaktifkan akun @${u.username}? Petugas tidak akan bisa login.`, { icon: 'warning' });
+    if (!ok) return;
+  }
   await masterStore.updateUser(u.id, { is_active: target });
 }
 

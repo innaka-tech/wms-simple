@@ -19,6 +19,7 @@ import { stockRoutes } from './routes/stock.js';
 import { weighbridgeRoutes } from './routes/weighbridge.js';
 import { checkpointRoutes } from './routes/checkpoints.js';
 import { alertRoutes } from './routes/alerts.js';
+import { tmsRoutes } from './routes/tms.js';
 
 import { Context, Next } from 'hono';
 import { authenticate } from './middlewares/auth.js';
@@ -104,6 +105,7 @@ export function createApp() {
   app.route('/api/weighbridge', weighbridgeRoutes);
   app.route('/api/checkpoints', checkpointRoutes);
   app.route('/api/alerts', alertRoutes);
+  app.route('/api/tms', tmsRoutes);
 
   // Central RFC 7807 Error Handling Middleware
   app.onError((err, c) => {

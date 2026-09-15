@@ -69,7 +69,7 @@ export async function adjustStock(params: RecordStockMovementParams) {
     }
 
     const qtyAfter = qtyBefore + params.qty_change;
-    if (qtyAfter < 0 && params.movement_type !== 'ADJUSTMENT') {
+    if (qtyAfter < 0 && params.movement_type !== 'ADJUSTMENT' && params.movement_type !== 'STOCK_OPNAME_RECONCILE') {
       throw new Error(`Stok tidak mencukupi untuk SKU ${params.product_id}. Saldo saat ini: ${qtyBefore}, pengurangan: ${Math.abs(params.qty_change)}`);
     }
 
@@ -112,6 +112,25 @@ export async function adjustStock(params: RecordStockMovementParams) {
              last_updated = CURRENT_TIMESTAMP
          WHERE warehouse_id = $1 AND product_id = $2`,
         [params.warehouse_id, params.product_id, params.qty_change]
+      );
+    } else if (params.movement_type === 'POD_REJECT_REVERSAL') {
+      // POD ditolak admin: barang kembali dari in_transit ke on_hand gudang asal (restock)
+      await client.query(
+        `UPDATE stock_levels 
+         SET qty_in_transit = qty_in_transit - $3,
+             qty_on_hand = qty_on_hand + $3,
+             last_updated = CURRENT_TIMESTAMP
+         WHERE warehouse_id = $1 AND product_id = $2`,
+        [params.warehouse_id, params.product_id, Math.abs(params.qty_change)]
+      );
+    } else if (params.movement_type === 'POD_REJECT_QUARANTINE') {
+      // POD ditolak admin & masuk karantina: barang keluar dari in_transit, diisolasi di karantina
+      await client.query(
+        `UPDATE stock_levels 
+         SET qty_in_transit = qty_in_transit - $3,
+             last_updated = CURRENT_TIMESTAMP
+         WHERE warehouse_id = $1 AND product_id = $2`,
+        [params.warehouse_id, params.product_id, Math.abs(params.qty_change)]
       );
     } else if (params.movement_type === 'CROSS_DOCK_IN') {
       await client.query(

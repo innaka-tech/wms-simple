@@ -123,6 +123,22 @@
                 </p>
               </div>
             </div>
+
+            <!-- Auto-Kalkulasi UOM Helper Banner (Gap Table 4) -->
+            <div v-if="calculatedSuggestedOutputQty > 0" class="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div class="text-[11px] text-blue-800 dark:text-blue-300">
+                <span v-if="matchingConversion">Rasio Master UOM: 1 {{ inputUomCode }} = {{ matchingConversion.conversion_factor }} {{ outputUomCode }}</span>
+                <span v-else>Estimasi Berat: {{ totalInputWeight.toLocaleString() }} KG &div; {{ outputWeightPerUnit }} KG/unit</span>
+                <span class="block font-bold mt-0.5">Saran Output: {{ calculatedSuggestedOutputQty }} {{ outputUomCode }}</span>
+              </div>
+              <button
+                type="button"
+                @click="applyAutoCalculation"
+                class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-semibold transition shrink-0 cursor-pointer shadow-2xs"
+              >
+                Terapkan Rasio UOM
+              </button>
+            </div>
           </div>
         </div>
 
@@ -229,6 +245,30 @@ const shrinkagePct = computed(() => {
   return ((shrinkageKg.value / totalInputWeight.value) * 100).toFixed(2)
 })
 const isShrinkageHigh = computed(() => parseFloat(shrinkagePct.value) > 1.0)
+
+// Auto-conversion calculation based on master_uom_conversions or unit weights
+const matchingConversion = computed(() => {
+  if (!inputUom.value || !outputUom.value) return null
+  return masterStore.conversions?.find(
+    c => c.from_uom_id === inputUom.value?.id && c.to_uom_id === outputUom.value?.id
+  ) || null
+})
+
+const calculatedSuggestedOutputQty = computed(() => {
+  if (matchingConversion.value && inputQty.value > 0) {
+    return Number((inputQty.value * Number(matchingConversion.value.conversion_factor)).toFixed(2))
+  }
+  if (totalInputWeight.value > 0 && outputWeightPerUnit.value > 0) {
+    return Number((totalInputWeight.value / outputWeightPerUnit.value).toFixed(2))
+  }
+  return 0
+})
+
+function applyAutoCalculation() {
+  if (calculatedSuggestedOutputQty.value > 0) {
+    outputQty.value = calculatedSuggestedOutputQty.value
+  }
+}
 
 async function loadOpenOrders() {
   isLoadingOrders.value = true

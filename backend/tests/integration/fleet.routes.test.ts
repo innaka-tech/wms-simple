@@ -239,7 +239,7 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
         .mockResolvedValueOnce({   // INSERT vendor_vehicle_exit_logs
           rows: [{
             id: 'vlog-1',
-            log_number: 'VEND-OUT-12345678',
+            log_number: 'VENDOUT12345678',
             vendor_name: 'PT Ekspedisi Jaya',
             plate_number: 'B 8765 XYZ',
             waybill_number: 'RESI-TEST1234',
@@ -265,7 +265,7 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
 
       expect(res.status).toBe(201);
       const bodyRes = await res.json();
-      expect(bodyRes.data.log_number).toMatch(/^VEND-OUT-/);
+      expect(bodyRes.data.log_number).toMatch(/^VENDOUT/);
       expect(checkpointService.recordCheckpoint).toHaveBeenCalledWith(
         expect.objectContaining({
           step_code: 'VENDOR_EXIT',
@@ -345,7 +345,7 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
 
   it('GET /api/fleet/vendor-exits should return vendor exit logs list', async () => {
     vi.mocked(db.query).mockResolvedValueOnce({
-      rows: [{ id: 'vlog-1', log_number: 'VEND-OUT-12345678', vendor_name: 'PT Ekspedisi Jaya' }]
+      rows: [{ id: 'vlog-1', log_number: 'VENDOUT12345678', vendor_name: 'PT Ekspedisi Jaya' }]
     } as any);
 
     const res = await app.request('/api/fleet/vendor-exits');
@@ -353,6 +353,70 @@ describe('Fleet Gate Pass API Routes Integration Tests', () => {
     const bodyRes = await res.json();
     expect(bodyRes.success).toBe(true);
     expect(bodyRes.data).toHaveLength(1);
-    expect(bodyRes.data[0].log_number).toMatch(/^VEND-OUT-/);
+    expect(bodyRes.data[0].log_number).toMatch(/^VENDOUT/);
+  });
+
+  describe('GET /api/fleet/lookup-doc/:number (Unified Document Lookup for Gate Pass)', () => {
+    it('should return 400 if search term is less than 3 characters', async () => {
+      const res = await app.request('/api/fleet/lookup-doc/SJ');
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.message).toContain('minimal 3 karakter');
+    });
+
+    it('should return 200 with verified document details when waybill is found', async () => {
+      vi.mocked(db.query)
+        .mockResolvedValueOnce({
+          rows: [{
+            id: 'wb-1',
+            sj_number: 'SJT2AC1QCW',
+            resi_number: 'RESI12345',
+            status: 'ISSUED',
+            reference_type: 'OUTBOUND_ORDER',
+            reference_id: 'ord-1',
+            order_id: 'ord-1',
+            order_number: 'ORDTAXVDL80',
+            order_status: 'PACKED',
+            recipient_name: 'fadh dwi Samn S',
+            destination_address: 'Jl. Ahmad Yani No. 10',
+            destination_city: 'Jakarta',
+            customer_name: 'PT Mitra Sukses',
+            warehouse_name: 'Gudang Utama'
+          }]
+        } as any)
+        .mockResolvedValueOnce({
+          rows: [{ id: 'oi-1', sku_code: 'SKU001', product_name: 'Minyak Goreng', ordered_qty: 10, weight_kg_per_unit: 1.0 }]
+        } as any)
+        .mockResolvedValueOnce({
+          rows: [{ id: 'pkg-1', package_number: 'PKG-01', weight_kg: 10.0, packaging_type_name: 'Kardus' }]
+        } as any);
+
+      const res = await app.request('/api/fleet/lookup-doc/SJT2AC1QCW');
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.success).toBe(true);
+      expect(body.data.found).toBe(true);
+      expect(body.data.doc_type).toBe('WAYBILL');
+      expect(body.data.reference_number).toBe('SJT2AC1QCW');
+      expect(body.data.recipient_name).toBe('fadh dwi Samn S');
+      expect(body.data.items).toHaveLength(1);
+      expect(body.data.packages).toHaveLength(1);
+      expect(body.data.is_ready_gate_out).toBe(true);
+    });
+
+    it('should return 404 when document is not found across waybills, orders, or manifests', async () => {
+      vi.mocked(db.query)
+        .mockResolvedValueOnce({ rows: [] } as any) // waybills
+        .mockResolvedValueOnce({ rows: [] } as any) // outbound_orders
+        .mockResolvedValueOnce({ rows: [] } as any); // cross_dock_manifests
+
+      const res = await app.request('/api/fleet/lookup-doc/SJNONEXISTENT');
+      expect(res.status).toBe(404);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.message).toContain('tidak ditemukan');
+    });
   });
 });
+

@@ -10,7 +10,9 @@ export interface Vehicle {
   status: 'AVAILABLE' | 'IN_USE' | 'MAINTENANCE';
   driver_name?: string;
   last_odometer_km?: number;
+  is_active?: boolean;
 }
+
 
 export interface GatePassLog {
   id: string;
@@ -88,6 +90,10 @@ export const useGatePassStore = defineStore('gatePass', {
       fuel_level_out: string;
       departure_security_officer: string;
       departure_notes?: string;
+      reference_type?: string;
+      reference_id?: string;
+      reference_number?: string;
+      waybill_number?: string;
     }) {
       this.isLoading = true;
       this.errorMessage = '';

@@ -80,7 +80,7 @@
         <div class="grid grid-cols-2 gap-3">
           <label class="block col-span-1">
             <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kode SKU *</span>
-            <input v-model="form.sku_code" required :disabled="editing" class="input mt-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs" placeholder="KDMP-CHILLER-300L" />
+            <input v-model="form.sku_code" required :disabled="editing" class="input mt-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs" placeholder="KDMPCHILLER300L" />
           </label>
           <label class="block col-span-1">
             <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Nama Item *</span>

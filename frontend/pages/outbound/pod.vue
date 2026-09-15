@@ -50,9 +50,21 @@
         <span class="text-[11px] text-slate-500">{{ matchedOrder.customer_name }}</span>
         <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold border" :class="orderStatusTone(matchedOrder.status)">{{ matchedOrder.status }}</span>
       </div>
-      <div>
-        <h3 class="font-bold text-slate-900 dark:text-slate-100 text-base">Balai Desa Sukamaju (Koperasi Desa Merah Putih)</h3>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Kargo Khusus: 2 Unit Showcase Display KDMP Chiller (Aturan Upright Only & Tail-Lift Validated)</p>
+      <div v-if="matchedOrder" class="pt-2 border-t border-slate-100 dark:border-slate-800">
+        <h3 class="font-bold text-slate-900 dark:text-slate-100 text-base">
+          {{ matchedOrder.recipient_name }}
+        </h3>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          Tujuan: {{ matchedOrder.destination_address }}<span v-if="matchedOrder.destination_city">, {{ matchedOrder.destination_city }}</span>
+          <span v-if="orderItemsSummary"> · Kargo: {{ orderItemsSummary }}</span>
+        </p>
+        <div v-if="isKdmpColdChain" class="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+          <span>Program Khusus KDMP Cold Chain (Aturan Upright Only &amp; Tail-Lift Validated)</span>
+        </div>
+      </div>
+      <div v-else class="pt-1">
+        <p class="text-xs text-slate-400 italic">Cari nomor order di atas untuk memuat rincian serah terima barang (e-POD).</p>
       </div>
     </div>
 
@@ -111,11 +123,32 @@
           <input v-model="verifierName" type="text" :placeholder="authStore.user?.full_name || 'Nama admin'"
                  class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none" />
         </label>
-        <label v-if="showRejectInput" class="block space-y-1">
-          <span class="text-[11px] font-semibold text-rose-600 dark:text-rose-400">Alasan Penolakan (wajib, maks 500 karakter)</span>
-          <textarea v-model="rejectionReason" rows="2" maxlength="500" placeholder="Contoh: foto tidak jelas, qty fisik kurang dari surat jalan…"
-                    class="w-full bg-slate-50 dark:bg-slate-950 border border-rose-300 dark:border-rose-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none"></textarea>
-        </label>
+        <div v-if="showRejectInput" class="space-y-2">
+          <label class="block space-y-1">
+            <span class="text-[11px] font-semibold text-rose-600 dark:text-rose-400">Alasan Penolakan (wajib, maks 500 karakter)</span>
+            <textarea v-model="rejectionReason" rows="2" maxlength="500" placeholder="Contoh: barang rusak fisik, foto tidak jelas, toko tutup…"
+                      class="w-full bg-slate-50 dark:bg-slate-950 border border-rose-300 dark:border-rose-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none"></textarea>
+          </label>
+          <div class="space-y-1">
+            <span class="text-[11px] font-semibold text-slate-700 dark:text-slate-300">Tindakan Alokasi Fisik Barang:</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label class="flex items-center gap-2 p-2 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 transition">
+                <input type="radio" v-model="rejectionDisposition" value="RESTOCK" class="text-rose-600" />
+                <div>
+                  <span class="font-semibold block text-slate-800 dark:text-slate-200">Restock ke Gudang</span>
+                  <span class="text-[10px] text-slate-400 block">Barang utuh kembali ke on_hand</span>
+                </div>
+              </label>
+              <label class="flex items-center gap-2 p-2 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 text-xs cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-900/30 transition">
+                <input type="radio" v-model="rejectionDisposition" value="QUARANTINE" class="text-amber-600" />
+                <div>
+                  <span class="font-semibold block text-amber-800 dark:text-amber-200">Isolasi Karantina (QC)</span>
+                  <span class="text-[10px] text-amber-600 dark:text-amber-400 block">Barang rusak/cacat perlu periksa</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
         <div class="flex flex-col sm:flex-row gap-2">
           <button type="button" :disabled="outboundStore.isLoading" @click="handleVerify('ACCEPTED')"
                   class="flex-1 py-2.5 rounded-md bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer flex items-center justify-center space-x-1.5">
@@ -171,11 +204,18 @@
           </button>
         </div>
 
-        <div class="text-[11px] text-slate-400 space-y-1 bg-slate-50 dark:bg-slate-950 p-3 rounded-md border border-slate-200 dark:border-slate-800">
+        <div v-if="isKdmpColdChain" class="text-[11px] text-slate-400 space-y-1 bg-slate-50 dark:bg-slate-950 p-3 rounded-md border border-slate-200 dark:border-slate-800">
           <p class="font-semibold text-slate-600 dark:text-slate-300">SOP Distribusi Showcase KDMP:</p>
           <ul class="list-disc list-inside space-y-0.5 text-slate-500 dark:text-slate-400">
             <li>Dilarang merebahkan unit (wajib posisi vertikal / tegak).</li>
             <li>Resting time minimal 2 jam sebelum dihidupkan kompresornya.</li>
+          </ul>
+        </div>
+        <div v-else class="text-[11px] text-slate-400 space-y-1 bg-slate-50 dark:bg-slate-950 p-3 rounded-md border border-slate-200 dark:border-slate-800">
+          <p class="font-semibold text-slate-600 dark:text-slate-300">SOP Serah Terima Pengiriman:</p>
+          <ul class="list-disc list-inside space-y-0.5 text-slate-500 dark:text-slate-400">
+            <li>Pastikan koli/kemasan utuh dan segel pengaman tidak rusak.</li>
+            <li>Cek kesesuaian fisik kargo dengan Surat Jalan dan Nomor Resi resmi.</li>
           </ul>
         </div>
       </div>
@@ -190,15 +230,31 @@
         <!-- Signature Pad Component -->
         <SignaturePad @update:signature="sig => signatureData = sig" />
 
-        <div class="space-y-1.5 pt-1">
-          <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Penerima (Consignee):</label>
-          <input 
-            v-model="recipientName" 
-            type="text" 
-            required
-            placeholder="Contoh: Bpk. Suparman (Ketua Koperasi)"
-            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none"
-          />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <div class="space-y-1.5">
+            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Penerima (Consignee):</label>
+            <input 
+              v-model="recipientName" 
+              type="text" 
+              required
+              placeholder="Contoh: Bpk. Suparman"
+              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none"
+            />
+          </div>
+          <div class="space-y-1.5">
+            <div class="flex justify-between items-center">
+              <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Qty Diterima Fisik:</label>
+              <span v-if="orderTotalQty" class="text-[10px] text-slate-400 font-mono">Order: {{ orderTotalQty }}</span>
+            </div>
+            <input 
+              v-model.number="deliveredQtyInput" 
+              type="number" 
+              min="1"
+              required
+              placeholder="Qty fisik diterima"
+              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 dark:text-slate-100 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none"
+            />
+          </div>
         </div>
 
         <!-- Submit Button -->
@@ -218,7 +274,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import SignaturePad from '~/components/SignaturePad.vue'
 import { useOutboundStore } from '~/stores/outbound'
 import { useWaybillStore } from '~/stores/waybill'
@@ -237,6 +293,7 @@ const photoDataUrl = ref('')
 const photoTakenAt = ref('')
 const signatureData = ref('')
 const recipientName = ref('')
+const deliveredQtyInput = ref(null)
 
 // Foto kamera/file → base64 (dikompres biar payload ringan)
 function onPhotoCaptured(e) {
@@ -270,6 +327,29 @@ const lookupMessage = ref('')
 const verifierName = ref('')
 const showRejectInput = ref(false)
 const rejectionReason = ref('')
+const rejectionDisposition = ref('RESTOCK')
+
+const orderTotalQty = computed(() => {
+  if (!matchedOrder.value || !Array.isArray(matchedOrder.value.items)) return 0
+  return matchedOrder.value.items.reduce((sum, it) => {
+    const qty = Number(it.packed_qty || it.picked_qty || it.ordered_qty || 0)
+    return sum + qty
+  }, 0)
+})
+
+const orderItemsSummary = computed(() => {
+  if (!matchedOrder.value || !Array.isArray(matchedOrder.value.items)) return ''
+  return matchedOrder.value.items.map(it => {
+    const qty = Number(it.packed_qty || it.picked_qty || it.ordered_qty || 0)
+    return `${qty}x ${it.product_name || it.sku_code || 'Item'}`
+  }).join(', ')
+})
+
+const isKdmpColdChain = computed(() => {
+  if (!matchedOrder.value) return false
+  const text = JSON.stringify(matchedOrder.value).toLowerCase()
+  return text.includes('chiller') || text.includes('showcase') || text.includes('kdmp')
+})
 
 function orderStatusTone(s) {
   return {
@@ -299,7 +379,12 @@ async function lookupWaybill() {
     playAudioFeedback('SUCCESS')
     try {
       const res = await apiFetch(`/outbound/${found.reference_id}`)
-      if (res.success) matchedOrder.value = res.data
+      if (res.success) {
+        matchedOrder.value = res.data
+        recipientName.value = matchedOrder.value.recipient_name || ''
+        const total = orderTotalQty.value
+        deliveredQtyInput.value = total > 0 ? total : 1
+      }
     } catch { /* panel verifikasi cukup tersembunyi bila detail gagal dimuat */ }
   } else {
     lookupMessage.value = 'Surat Jalan untuk nomor order itu tidak ditemukan — pastikan SJ + resi sudah terbit.'
@@ -325,6 +410,7 @@ async function handleVerify(decision) {
       body: {
         status: decision,
         rejection_reason: decision === 'REJECTED' ? rejectionReason.value.trim() : undefined,
+        rejection_disposition: decision === 'REJECTED' ? rejectionDisposition.value : undefined,
         actor_name: verifierName.value.trim()
       }
     })
@@ -333,6 +419,7 @@ async function handleVerify(decision) {
     if (res.success) matchedOrder.value = res.data
     showRejectInput.value = false
     rejectionReason.value = ''
+    rejectionDisposition.value = 'RESTOCK'
   } catch (err) {
     outboundStore.errorMessage = err.detail || err.message
     playAudioFeedback('ERROR')
@@ -363,6 +450,7 @@ async function handleSubmitPod() {
 
   const orderId = matchedWaybill.value.reference_id
   const actor = authStore.user?.full_name || 'Driver Pengiriman'
+  const finalDeliveredQty = Number(deliveredQtyInput.value) > 0 ? Number(deliveredQtyInput.value) : (orderTotalQty.value || 1)
   try {
     await apiFetch(`/outbound/${orderId}/pod`, {
       method: 'POST',
@@ -370,15 +458,18 @@ async function handleSubmitPod() {
         recipient_name: recipientName.value.trim(),
         pod_photo_url: photoDataUrl.value,
         signature_photo_url: signatureData.value,
-        delivered_qty: 1,
+        delivered_qty: finalDeliveredQty,
         actor_name: actor,
         notes: `Resi ${matchedWaybill.value.resi_number} / SJ ${matchedWaybill.value.sj_number} • Foto ${photoTakenAt.value}`
       }
     })
     playAudioFeedback('SUCCESS')
-    outboundStore.successMessage = `POD Berhasil Dikirim! Diterima oleh ${recipientName.value}. Status Order DELIVERED — menunggu verifikasi admin sebelum penagihan.`
+    outboundStore.successMessage = `POD Berhasil Dikirim! Diterima oleh ${recipientName.value} (Qty: ${finalDeliveredQty}). Status Order DELIVERED — menunggu verifikasi admin sebelum penagihan.`
     photoDataUrl.value = ''
     signatureData.value = ''
+    deliveredQtyInput.value = null
+    const res = await apiFetch(`/outbound/${orderId}`)
+    if (res.success) matchedOrder.value = res.data
   } catch (err) {
     outboundStore.errorMessage = err.detail || err.message
     playAudioFeedback('ERROR')
