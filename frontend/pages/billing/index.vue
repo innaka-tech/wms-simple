@@ -17,25 +17,51 @@
     </div>
 
     <!-- Header -->
-    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-colors">
-      <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-0.5">Fase 4 — Delivery & Billing • Checkpoint: INVOICE → PAYMENT → LUNAS</p>
-      <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-        <AppIcon name="stock" custom-class="w-5 h-5 text-purple-600 dark:text-purple-400" />
-        <span>Faktur &amp; Pembayaran</span>
+    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs transition-colors">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md bg-violet-50 dark:bg-violet-950/40 text-violet-700 dark:text-violet-300 border border-violet-200/70 dark:border-violet-800">
+          Billing &amp; Keuangan 3PL
+        </span>
+      </div>
+      <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+        <AppIcon name="stock" custom-class="w-5 h-5 text-violet-600 dark:text-violet-400" />
+        <span>Faktur Penagihan &amp; Pembayaran</span>
       </h2>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">POD terverifikasi → terbit Invoice (Rupiah) → pembayaran diterima = LUNAS. Akhir rantai transaksi.</p>
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
-        <div class="p-3 rounded-md bg-rose-500/5 border border-rose-500/20">
-          <p class="text-[10px] font-semibold uppercase tracking-wider text-rose-500">Outstanding / Piutang</p>
-          <p class="text-lg md:text-xl font-mono font-bold text-rose-600 dark:text-rose-400 mt-1">Rp {{ formatIDR(billingStore.outstandingTotal) }}</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">POD terverifikasi → terbit Faktur Invoice → pembayaran diterima = LUNAS. Audit trail keuangan terintegrasi.</p>
+      
+      <!-- Metric Cards (Pastel Palette) -->
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3.5 mt-4">
+        <div class="p-4 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-900/40 shadow-xs flex items-start justify-between">
+          <div>
+            <p class="text-[11px] font-medium text-rose-700 dark:text-rose-300">Outstanding / Piutang</p>
+            <p class="text-lg md:text-xl font-mono font-bold text-rose-800 dark:text-rose-200 mt-1">Rp {{ formatIDR(billingStore.outstandingTotal) }}</p>
+            <span class="text-[10px] text-rose-600/70 dark:text-rose-400/60 font-medium">Menunggu Pelunasan</span>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-rose-100/80 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0">
+            <AppIcon name="alert-triangle" custom-class="w-4 h-4" />
+          </div>
         </div>
-        <div class="p-3 rounded-md bg-emerald-500/5 border border-emerald-500/20">
-          <p class="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">Payment Received (LUNAS)</p>
-          <p class="text-lg md:text-xl font-mono font-bold text-emerald-600 dark:text-emerald-400 mt-1">Rp {{ formatIDR(billingStore.paidTotal) }}</p>
+
+        <div class="p-4 rounded-xl bg-teal-50/50 dark:bg-teal-950/20 border border-teal-200/70 dark:border-teal-900/40 shadow-xs flex items-start justify-between">
+          <div>
+            <p class="text-[11px] font-medium text-teal-700 dark:text-teal-300">Payment Received (LUNAS)</p>
+            <p class="text-lg md:text-xl font-mono font-bold text-teal-800 dark:text-teal-200 mt-1">Rp {{ formatIDR(billingStore.paidTotal) }}</p>
+            <span class="text-[10px] text-teal-600/70 dark:text-teal-400/60 font-medium">Pembayaran Sah Terkonfirmasi</span>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-teal-100/80 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0">
+            <AppIcon name="check-circle" custom-class="w-4 h-4" />
+          </div>
         </div>
-        <div class="p-3 rounded-md bg-slate-500/5 border border-slate-500/20">
-          <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Invoice Aktif</p>
-          <p class="text-lg md:text-xl font-mono font-bold text-slate-700 dark:text-slate-200 mt-1">{{ billingStore.invoices.filter(i => i.status !== 'VOID').length }}</p>
+
+        <div class="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 shadow-xs flex items-start justify-between">
+          <div>
+            <p class="text-[11px] font-medium text-slate-600 dark:text-slate-300">Invoice Terbit</p>
+            <p class="text-lg md:text-xl font-mono font-bold text-slate-800 dark:text-slate-200 mt-1">{{ billingStore.invoices.filter(i => i.status !== 'VOID').length }}</p>
+            <span class="text-[10px] text-slate-400 font-medium">Total Dokumen Tagihan</span>
+          </div>
+          <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+            <AppIcon name="file-text" custom-class="w-4 h-4" />
+          </div>
         </div>
       </div>
     </div>

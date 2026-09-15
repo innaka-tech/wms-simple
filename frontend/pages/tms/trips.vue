@@ -4,100 +4,132 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <div class="flex items-center gap-2">
-          <span class="px-2.5 py-1 text-xs font-bold rounded-md bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+          <span class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/70 dark:border-sky-800">
             TMS Enterprise
           </span>
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Trip Dispatcher & Multi-Drop
+            Trip Dispatcher &amp; Multi-Drop
           </h1>
         </div>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
           Konsolidasi Delivery Order ke armada truk, validasi proteksi muatan (Overload Guard), dan pelacakan surat tugas perjalanan.
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2.5">
         <button
+          type="button"
           @click="loadTrips"
-          class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+          class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-xs transition"
+          title="Perbarui data"
         >
-          Refresh
+          <AppIcon name="refresh-cw" custom-class="w-3.5 h-3.5" />
+          <span>Refresh</span>
         </button>
         <button
+          type="button"
           @click="openCreateModal"
-          class="px-4 py-2 text-xs font-semibold rounded-lg bg-primary-600 hover:bg-primary-700 text-white shadow-sm hover:shadow transition flex items-center gap-2"
+          class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-sky-600 hover:bg-sky-700 text-white shadow-sm hover:shadow transition"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
-          Buat Surat Tugas Jalan (Trip)
+          <AppIcon name="plus" custom-class="w-4 h-4" />
+          <span>Buat Surat Tugas Jalan (Trip)</span>
         </button>
       </div>
     </div>
 
-    <!-- Metric Cards -->
+    <!-- Metric Cards (Pastel Palette) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-      <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Perjalanan</p>
-        <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ trips.length }}</p>
-        <span class="text-[10px] text-slate-400 font-mono">Surat Tugas Diterbitkan</span>
+      <!-- Total Perjalanan -->
+      <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Perjalanan</p>
+          <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ trips.length }}</p>
+          <span class="text-[11px] text-slate-400">Surat Tugas Diterbitkan</span>
+        </div>
+        <div class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+          <AppIcon name="truck" custom-class="w-4.5 h-4.5" />
+        </div>
       </div>
 
-      <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-xs font-medium text-amber-600 dark:text-amber-400">Armada Siap Berangkat</p>
-        <p class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
-          {{ trips.filter(t => t.status === 'PLANNED').length }}
-        </p>
-        <span class="text-[10px] text-slate-400 font-mono">Status PLANNED</span>
+      <!-- Armada Siap Berangkat (Pastel Amber) -->
+      <div class="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-900/40 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-amber-700 dark:text-amber-300">Armada Siap Berangkat</p>
+          <p class="text-2xl font-bold text-amber-800 dark:text-amber-200 mt-1">
+            {{ trips.filter(t => t.status === 'PLANNED').length }}
+          </p>
+          <span class="text-[11px] text-amber-600/70 dark:text-amber-400/60 font-medium">Status Terjadwal (PLANNED)</span>
+        </div>
+        <div class="w-9 h-9 rounded-lg bg-amber-100/80 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+          <AppIcon name="clock" custom-class="w-4.5 h-4.5" />
+        </div>
       </div>
 
-      <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-xs font-medium text-blue-600 dark:text-blue-400">Dalam Perjalanan (En-Route)</p>
-        <p class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-          {{ trips.filter(t => t.status === 'IN_TRANSIT').length }}
-        </p>
-        <span class="text-[10px] text-slate-400 font-mono">Status IN_TRANSIT</span>
+      <!-- Dalam Perjalanan (Pastel Sky) -->
+      <div class="p-4 rounded-xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-200/70 dark:border-sky-900/40 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-sky-700 dark:text-sky-300">Dalam Perjalanan</p>
+          <p class="text-2xl font-bold text-sky-800 dark:text-sky-200 mt-1">
+            {{ trips.filter(t => t.status === 'IN_TRANSIT').length }}
+          </p>
+          <span class="text-[11px] text-sky-600/70 dark:text-sky-400/60 font-medium">En-Route di Jalan (IN_TRANSIT)</span>
+        </div>
+        <div class="w-9 h-9 rounded-lg bg-sky-100/80 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 flex items-center justify-center shrink-0">
+          <AppIcon name="navigation" custom-class="w-4.5 h-4.5" />
+        </div>
       </div>
 
-      <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Selesai Terkirim</p>
-        <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-          {{ trips.filter(t => t.status === 'COMPLETED').length }}
-        </p>
-        <span class="text-[10px] text-slate-400 font-mono">Semua Titik Drop Tuntas</span>
+      <!-- Selesai Terkirim (Pastel Teal) -->
+      <div class="p-4 rounded-xl bg-teal-50/50 dark:bg-teal-950/20 border border-teal-200/70 dark:border-teal-900/40 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-teal-700 dark:text-teal-300">Selesai Terkirim</p>
+          <p class="text-2xl font-bold text-teal-800 dark:text-teal-200 mt-1">
+            {{ trips.filter(t => t.status === 'COMPLETED').length }}
+          </p>
+          <span class="text-[11px] text-teal-600/70 dark:text-teal-400/60 font-medium">Semua Titik Drop Tuntas</span>
+        </div>
+        <div class="w-9 h-9 rounded-lg bg-teal-100/80 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0">
+          <AppIcon name="check-circle" custom-class="w-4.5 h-4.5" />
+        </div>
       </div>
     </div>
 
     <!-- Status Tabs Filter -->
-    <div class="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+    <div class="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl w-fit border border-slate-200/80 dark:border-slate-700/60">
       <button
         v-for="tab in ['ALL', 'PLANNED', 'IN_TRANSIT', 'COMPLETED']"
         :key="tab"
         @click="activeStatusFilter = tab"
-        class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
+        class="px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all"
         :class="activeStatusFilter === tab 
-          ? 'bg-primary-50 dark:bg-primary-950 text-primary-600 dark:text-primary-400 border border-primary-200 dark:border-primary-800' 
+          ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200/60 dark:border-slate-700' 
           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
       >
-        {{ tab === 'ALL' ? 'Semua Status' : tab }}
+        {{ tab === 'ALL' ? 'Semua Status' : tab === 'PLANNED' ? 'Rencana (Planned)' : tab === 'IN_TRANSIT' ? 'Dalam Perjalanan' : 'Selesai Terkirim' }}
       </button>
     </div>
 
     <!-- Trip List Cards -->
-    <div v-if="loading" class="text-center py-12 text-sm text-slate-400">
-      Memuat daftar penugasan armada TMS...
+    <div v-if="loading" class="text-center py-12 text-sm text-slate-400 flex flex-col items-center justify-center gap-2">
+      <AppIcon name="refresh-cw" custom-class="w-5 h-5 animate-spin text-sky-600" />
+      <span>Memuat daftar penugasan armada TMS...</span>
     </div>
 
-    <div v-else-if="filteredTrips.length === 0" class="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-      <p class="text-sm font-semibold text-slate-600 dark:text-slate-400">Belum ada surat tugas perjalanan pada filter ini.</p>
-      <p class="text-xs text-slate-400 mt-1">Klik tombol "Buat Surat Tugas Jalan" untuk menjadwalkan rute pengiriman.</p>
-    </div>
+    <AppEmptyState
+      v-else-if="filteredTrips.length === 0"
+      icon="truck"
+      title="Belum Ada Surat Tugas Perjalanan"
+      description="Tidak ada penugasan armada pada filter status ini. Jadwalkan rute pengiriman armada baru dengan menekan tombol di bawah."
+      action-label="Buat Surat Tugas Jalan (Trip)"
+      action-icon="plus"
+      @action="openCreateModal"
+    />
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
         v-for="trip in filteredTrips"
         :key="trip.id"
-        class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between gap-4"
+        class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 shadow-xs hover:shadow-md transition flex flex-col justify-between gap-4"
       >
         <div class="space-y-3">
           <div class="flex items-start justify-between gap-2">
@@ -106,19 +138,19 @@
               <p class="text-xs text-slate-500 dark:text-slate-400">{{ trip.warehouse_name }}</p>
             </div>
             <span
-              class="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase"
+              class="px-2.5 py-0.5 text-[10px] font-bold rounded-full uppercase border"
               :class="{
-                'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300': trip.status === 'PLANNED',
-                'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300': trip.status === 'IN_TRANSIT',
-                'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300': trip.status === 'COMPLETED'
+                'bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60': trip.status === 'PLANNED',
+                'bg-sky-50 dark:bg-sky-950/30 text-sky-700 dark:text-sky-300 border-sky-200/60 dark:border-sky-800/60': trip.status === 'IN_TRANSIT',
+                'bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 border-teal-200/60 dark:border-teal-800/60': trip.status === 'COMPLETED'
               }"
             >
-              {{ trip.status }}
+              {{ trip.status === 'PLANNED' ? 'TERJADWAL' : trip.status === 'IN_TRANSIT' ? 'EN-ROUTE' : 'SELESAI' }}
             </span>
           </div>
 
           <!-- Vehicle & Driver Card Info -->
-          <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
+          <div class="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs space-y-1.5">
             <div class="flex justify-between items-center">
               <span class="text-slate-500 dark:text-slate-400">Armada Truk:</span>
               <span class="font-bold text-slate-800 dark:text-slate-200 font-mono">{{ trip.plate_number }} ({{ trip.vehicle_type_name }})</span>
@@ -129,7 +161,7 @@
             </div>
             <div class="flex justify-between items-center">
               <span class="text-slate-500 dark:text-slate-400">Titik Drop:</span>
-              <span class="font-bold text-primary-600 dark:text-primary-400">
+              <span class="font-semibold text-sky-700 dark:text-sky-300">
                 {{ trip.delivered_stops || 0 }} / {{ trip.total_stops || 0 }} Selesai
               </span>
             </div>
@@ -156,18 +188,22 @@
         <!-- Action Footer -->
         <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 gap-2">
           <button
+            type="button"
             @click="openDetailModal(trip.id)"
-            class="px-3 py-1.5 text-xs font-semibold text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 rounded-lg transition"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-950/50 rounded-lg transition"
           >
-            Lihat Rute & POD Drop
+            <AppIcon name="map-pin" custom-class="w-3.5 h-3.5" />
+            <span>Lihat Rute &amp; POD Drop</span>
           </button>
 
           <button
             v-if="trip.status === 'PLANNED'"
+            type="button"
             @click="dispatchTrip(trip.id)"
-            class="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 rounded-lg shadow-xs transition"
           >
-            Berangkatkan
+            <AppIcon name="send" custom-class="w-3.5 h-3.5" />
+            <span>Berangkatkan</span>
           </button>
         </div>
       </div>
@@ -313,15 +349,21 @@
           </span>
 
           <div class="flex items-center gap-2">
-            <button @click="showCreateModal = false" class="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <button
+              type="button"
+              @click="showCreateModal = false"
+              class="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition"
+            >
               Batal
             </button>
             <button
+              type="button"
               @click="submitCreateTrip"
               :disabled="submitting || isOverloaded || selectedOrderIds.length === 0 || !form.vehicle_id"
-              class="px-4 py-2 text-xs font-semibold rounded-lg bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white transition"
+              class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white shadow-xs transition cursor-pointer"
             >
-              {{ submitting ? 'Menerbitkan...' : 'Terbitkan Surat Tugas TMS' }}
+              <AppIcon v-if="submitting" name="refresh-cw" custom-class="w-3.5 h-3.5 animate-spin" />
+              <span>{{ submitting ? 'Menerbitkan...' : 'Terbitkan Surat Tugas TMS' }}</span>
             </button>
           </div>
         </div>

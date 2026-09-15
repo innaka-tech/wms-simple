@@ -4,67 +4,89 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <div class="flex items-center gap-2">
-          <span class="px-2.5 py-1 text-xs font-bold rounded-md bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-            Kualitas & Isolasi Fisik
+          <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800">
+            Kualitas &amp; Isolasi Fisik
           </span>
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Karantina & Retur Barang (QC)
+            Karantina &amp; Retur Barang (QC)
           </h1>
         </div>
-        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+        <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
           Pengelolaan isolasi barang retur POD, barang rusak (*damage*), pemeriksaan QC berkala, serta disposisi restock/scrap.
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2.5">
         <button
+          type="button"
           @click="loadQuarantineRecords"
-          class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+          class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/60 shadow-xs transition"
+          title="Perbarui data"
         >
-          Refresh
+          <AppIcon name="refresh-cw" custom-class="w-3.5 h-3.5" />
+          <span>Refresh</span>
         </button>
         <button
+          type="button"
           @click="openCreateModal"
-          class="px-4 py-2 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-sm hover:shadow transition flex items-center gap-2"
+          class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shadow-sm hover:shadow transition"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          Tahan Barang ke Karantina
+          <AppIcon name="plus" custom-class="w-4 h-4" />
+          <span>Tahan Barang ke Karantina</span>
         </button>
       </div>
     </div>
 
-    <!-- Summary Metrics -->
+    <!-- Summary Metrics (Pastel Palette) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-      <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Kasus Karantina</p>
-        <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ records.length }}</p>
-        <span class="text-[10px] text-slate-400 font-mono">Semua Riwayat Isolasi</span>
+      <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total Kasus Karantina</p>
+          <p class="text-2xl font-bold text-slate-900 dark:text-white mt-1">{{ records.length }}</p>
+          <span class="text-[11px] text-slate-400">Semua Riwayat Isolasi</span>
+        </div>
+        <div class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+          <AppIcon name="archive" custom-class="w-4.5 h-4.5" />
+        </div>
       </div>
 
-      <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-xs font-medium text-rose-600 dark:text-rose-400">Menunggu Pemeriksaan (QC)</p>
-        <p class="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1">
-          {{ records.filter(r => r.inspection_status === 'PENDING').length }}
-        </p>
-        <span class="text-[10px] text-slate-400 font-mono">Perlu Keputusan Disposisi</span>
+      <div class="p-4 rounded-xl bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/70 dark:border-rose-900/40 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-rose-700 dark:text-rose-300">Menunggu QC</p>
+          <p class="text-2xl font-bold text-rose-800 dark:text-rose-200 mt-1">
+            {{ records.filter(r => r.inspection_status === 'PENDING').length }}
+          </p>
+          <span class="text-[11px] text-rose-600/70 dark:text-rose-400/60 font-medium">Perlu Keputusan Disposisi</span>
+        </div>
+        <div class="w-9 h-9 rounded-lg bg-rose-100/80 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 flex items-center justify-center shrink-0">
+          <AppIcon name="alert-triangle" custom-class="w-4.5 h-4.5" />
+        </div>
       </div>
 
-      <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-xs font-medium text-emerald-600 dark:text-emerald-400">Rilis Kembali (Restock)</p>
-        <p class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-          {{ records.filter(r => r.disposition === 'RETURN_TO_STOCK').length }}
-        </p>
-        <span class="text-[10px] text-slate-400 font-mono">Kembali ke Stok Layak Jual</span>
+      <div class="p-4 rounded-xl bg-teal-50/50 dark:bg-teal-950/20 border border-teal-200/70 dark:border-teal-900/40 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-teal-700 dark:text-teal-300">Rilis Restock</p>
+          <p class="text-2xl font-bold text-teal-800 dark:text-teal-200 mt-1">
+            {{ records.filter(r => r.disposition === 'RETURN_TO_STOCK').length }}
+          </p>
+          <span class="text-[11px] text-teal-600/70 dark:text-teal-400/60 font-medium">Kembali Layak Jual</span>
+        </div>
+        <div class="w-9 h-9 rounded-lg bg-teal-100/80 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0">
+          <AppIcon name="check-circle" custom-class="w-4.5 h-4.5" />
+        </div>
       </div>
 
-      <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <p class="text-xs font-medium text-slate-600 dark:text-slate-300">Dimusnahkan / Retur Vendor</p>
-        <p class="text-2xl font-bold text-slate-700 dark:text-slate-300 mt-1">
-          {{ records.filter(r => r.disposition === 'DISPOSE_SCRAP' || r.disposition === 'RETURN_TO_VENDOR').length }}
-        </p>
-        <span class="text-[10px] text-slate-400 font-mono">Scrap / Vendor Return</span>
+      <div class="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-start justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-600 dark:text-slate-300">Scrap / Pemusnahan</p>
+          <p class="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">
+            {{ records.filter(r => r.disposition === 'DISPOSE_SCRAP').length }}
+          </p>
+          <span class="text-[11px] text-slate-400 font-medium">Penghapusan Buku Berita Acara</span>
+        </div>
+        <div class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+          <AppIcon name="trash-2" custom-class="w-4.5 h-4.5" />
+        </div>
       </div>
     </div>
 
@@ -89,10 +111,15 @@
         Memuat daftar catatan karantina...
       </div>
 
-      <div v-else-if="filteredRecords.length === 0" class="p-12 text-center">
-        <p class="text-sm font-semibold text-slate-600 dark:text-slate-400">Tidak ada barang karantina pada filter ini.</p>
-        <p class="text-xs text-slate-400 mt-1">Area isolasi saat ini bersih dan tidak ada barang bermasalah.</p>
-      </div>
+      <AppEmptyState
+        v-else-if="filteredRecords.length === 0"
+        icon="shield-check"
+        title="Tidak Ada Barang di Area Karantina"
+        description="Area isolasi saat ini bersih dan tidak ada barang bermasalah atau menunggu pemeriksaan QC."
+        action-label="Tahan Barang Baru"
+        action-icon="plus"
+        @action="openCreateModal"
+      />
 
       <div v-else class="overflow-x-auto">
         <table class="w-full text-left text-xs">
@@ -286,9 +313,10 @@
           <button
             @click="submitInspect"
             :disabled="submitting"
-            class="px-4 py-2 text-xs font-semibold rounded-lg bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white transition"
+            class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white shadow-xs transition cursor-pointer"
           >
-            {{ submitting ? 'Memproses...' : 'Simpan Keputusan QC' }}
+            <AppIcon v-if="submitting" name="refresh-cw" custom-class="w-3.5 h-3.5 animate-spin" />
+            <span>{{ submitting ? 'Memproses...' : 'Simpan Keputusan QC' }}</span>
           </button>
         </div>
       </div>

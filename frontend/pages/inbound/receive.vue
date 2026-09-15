@@ -13,13 +13,19 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
       <div>
-        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Receiving (Penerimaan Dock)</h2>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Fase 1 · buat PO → terima fisik (tally) → simpan ke rak. Stok baru bertambah saat putaway.</p>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200/70 dark:border-teal-800">
+            Inbound Logistics &bull; Penerimaan Barang
+          </span>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white">Receiving (Penerimaan Dock)</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Fase 1 · buat PO → terima fisik (tally) → simpan ke rak. Stok baru bertambah saat putaway.</p>
       </div>
       <button type="button" @click="showCreate = !showCreate"
-              class="px-3 py-2 rounded-md text-xs font-semibold transition shrink-0"
-              :class="showCreate ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200' : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900'">
-        {{ showCreate ? 'Tutup' : '+ PO Masuk Baru' }}
+              class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer shrink-0"
+              :class="showCreate ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700' : 'bg-sky-600 hover:bg-sky-700 text-white'">
+        <AppIcon :name="showCreate ? 'x' : 'plus'" custom-class="w-3.5 h-3.5" />
+        <span>{{ showCreate ? 'Tutup Form' : 'PO Masuk Baru' }}</span>
       </button>
     </div>
 
@@ -46,11 +52,11 @@
           <select v-model="it.product_id" class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none">
             <option v-for="p in products" :key="p.id" :value="p.id">{{ p.sku_code }} — {{ p.name }}</option>
           </select>
-          <input v-model.number="it.ordered_qty" type="number" min="1" placeholder="Qty Order"
+          <input v-model.number="it.ordered_qty" type="number" min="1" placeholder="Qty"
                  class="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
-          <button v-if="form.items.length > 1" type="button" @click="form.items.splice(idx, 1)" class="text-slate-400 hover:text-rose-500 text-sm px-1">✕</button>
+          <button v-if="form.items.length > 1" type="button" @click="form.items.splice(idx, 1)" class="text-slate-400 hover:text-rose-500 text-sm px-1 cursor-pointer">✕</button>
         </div>
-        <button type="button" @click="form.items.push({ product_id: products[0]?.id, ordered_qty: 1 })" class="text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline">+ Tambah baris barang</button>
+        <button type="button" @click="form.items.push({ product_id: '', ordered_qty: 1 })" class="text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer">+ Tambah baris item</button>
       </div>
       <button type="button" :disabled="inboundStore.isLoading" @click="submitCreate"
               class="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer">
@@ -59,9 +65,20 @@
     </div>
 
     <!-- Daftar PO -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden transition-colors">
-      <div v-if="inboundStore.isLoading && inboundStore.orders.length === 0" class="p-8 text-center text-xs text-slate-400">Memuat PO...</div>
-      <div v-else-if="inboundStore.orders.length === 0" class="p-8 text-center text-xs text-slate-400">Belum ada PO Inbound. Buat PO terlebih dulu.</div>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl overflow-hidden transition-colors shadow-xs">
+      <div v-if="inboundStore.isLoading && inboundStore.orders.length === 0" class="p-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
+        <AppIcon name="refresh" custom-class="w-5 h-5 animate-spin text-sky-600" />
+        <span>Memuat data PO masuk...</span>
+      </div>
+      <AppEmptyState
+        v-else-if="inboundStore.orders.length === 0"
+        icon="inbound"
+        title="Belum Ada PO Inbound"
+        description="Belum ada transaksi penerimaan barang tercatat di dock gudang. Buat PO masuk baru dari supplier."
+        action-label="PO Masuk Baru"
+        action-icon="plus"
+        @action="showCreate = true"
+      />
       <div v-else class="divide-y divide-slate-100 dark:divide-slate-800">
         <div v-for="po in inboundStore.orders" :key="po.id" class="px-4 py-3">
           <div class="flex flex-col lg:flex-row lg:items-center gap-2.5">

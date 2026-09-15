@@ -17,15 +17,19 @@
     </div>
 
     <!-- Header & Order Picker -->
-    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-3 transition-colors">
-      <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Fase 2 — Warehouse Operation • Repacking On-Demand</p>
+    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs space-y-3 transition-colors">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800">
+          Operasional Gudang &bull; Repacking
+        </span>
+      </div>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <h3 class="font-bold text-slate-900 dark:text-slate-100 text-base">Debulking &amp; Repacking</h3>
-        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Toleransi Susut: &le; 1.00%</span>
+        <h3 class="font-bold text-slate-900 dark:text-slate-100 text-xl">Debulking &amp; Repacking Fisik</h3>
+        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Toleransi Susut: &le; 1.00%</span>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400">
         Konversi Parent SKU (Jumbo Bag / Drum / Pack Besar) menjadi Child SKU (Karung Retail).
-        Work order ini <span class="font-semibold text-slate-700 dark:text-slate-300">tertaut ke Delivery Order</span> — repacking hanya dikerjakan setelah ada permintaan kirim (docs/09 Prinsip 2).
+        Work order ini <span class="font-semibold text-slate-700 dark:text-slate-300">tertaut ke Delivery Order</span> — repacking dikerjakan sesuai order kirim.
       </p>
 
       <div class="space-y-1.5 pt-1">

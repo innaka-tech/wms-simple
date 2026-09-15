@@ -64,38 +64,66 @@
 
     <!-- ═══ TAB 1: SALDO STOK (BALANCE) ═══ -->
     <template v-if="activeTab === 'balance'">
-      <!-- Stock KPI Summary Bar -->
+      <!-- Stock KPI Summary Bar (Pastel Palette) -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-        <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <p class="text-[10px] uppercase font-semibold text-slate-400">Total SKU Terdaftar</p>
-          <p class="text-xl md:text-2xl font-bold font-mono text-slate-900 dark:text-slate-100 mt-1">{{ filteredList.length }} <span class="text-xs font-normal text-slate-400">SKU</span></p>
+        <div class="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-start justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-500 dark:text-slate-400">Total SKU Terdaftar</p>
+            <p class="text-2xl font-bold font-mono text-slate-900 dark:text-slate-100 mt-1">{{ filteredList.length }} <span class="text-xs font-normal text-slate-400">SKU</span></p>
+            <span class="text-[11px] text-slate-400">Katalog Barang Aktif</span>
+          </div>
+          <div class="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0">
+            <AppIcon name="stock" custom-class="w-4.5 h-4.5" />
+          </div>
         </div>
-        <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <p class="text-[10px] uppercase font-semibold text-slate-400">Total Unit On-Hand</p>
-          <p class="text-xl md:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{{ totalOnHand }} <span class="text-xs font-normal text-slate-400">Unit/Kg</span></p>
+
+        <div class="p-4 rounded-xl bg-teal-50/50 dark:bg-teal-950/20 border border-teal-200/70 dark:border-teal-900/40 shadow-sm flex items-start justify-between">
+          <div>
+            <p class="text-xs font-medium text-teal-700 dark:text-teal-300">Unit On-Hand Fisik</p>
+            <p class="text-2xl font-bold font-mono text-teal-800 dark:text-teal-200 mt-1">{{ totalOnHand }} <span class="text-xs font-normal text-teal-600/70">Unit</span></p>
+            <span class="text-[11px] text-teal-600/70 dark:text-teal-400/60 font-medium">Tersedia di Rak</span>
+          </div>
+          <div class="w-9 h-9 rounded-lg bg-teal-100/80 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0">
+            <AppIcon name="check-circle" custom-class="w-4.5 h-4.5" />
+          </div>
         </div>
-        <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <p class="text-[10px] uppercase font-semibold text-slate-400">Qty Reserved</p>
-          <p class="text-xl md:text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">{{ totalReserved }} <span class="text-xs font-normal text-slate-400">Unit</span></p>
+
+        <div class="p-4 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-900/40 shadow-sm flex items-start justify-between">
+          <div>
+            <p class="text-xs font-medium text-amber-700 dark:text-amber-300">Qty Reserved (DO)</p>
+            <p class="text-2xl font-bold font-mono text-amber-800 dark:text-amber-200 mt-1">{{ totalReserved }} <span class="text-xs font-normal text-amber-600/70">Unit</span></p>
+            <span class="text-[11px] text-amber-600/70 dark:text-amber-400/60 font-medium">Teralokasi Pengiriman</span>
+          </div>
+          <div class="w-9 h-9 rounded-lg bg-amber-100/80 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+            <AppIcon name="clock" custom-class="w-4.5 h-4.5" />
+          </div>
         </div>
-        <div class="p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <p class="text-[10px] uppercase font-semibold text-slate-400">Qty In-Transit</p>
-          <p class="text-xl md:text-2xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-1">{{ totalInTransit }} <span class="text-xs font-normal text-slate-400">Unit</span></p>
+
+        <div class="p-4 rounded-xl bg-sky-50/50 dark:bg-sky-950/20 border border-sky-200/70 dark:border-sky-900/40 shadow-sm flex items-start justify-between">
+          <div>
+            <p class="text-xs font-medium text-sky-700 dark:text-sky-300">Qty In-Transit</p>
+            <p class="text-2xl font-bold font-mono text-sky-800 dark:text-sky-200 mt-1">{{ totalInTransit }} <span class="text-xs font-normal text-sky-600/70">Unit</span></p>
+            <span class="text-[11px] text-sky-600/70 dark:text-sky-400/60 font-medium">Dalam Perjalanan Truk</span>
+          </div>
+          <div class="w-9 h-9 rounded-lg bg-sky-100/80 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 flex items-center justify-center shrink-0">
+            <AppIcon name="truck" custom-class="w-4.5 h-4.5" />
+          </div>
         </div>
       </div>
 
       <!-- Loading State -->
-      <div v-if="stockStore.isLoading" class="p-12 text-center text-slate-500 dark:text-slate-400 text-xs">
-        <div class="w-8 h-8 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
-        Memuat saldo stok dari database...
+      <div v-if="stockStore.isLoading" class="p-12 text-center text-slate-500 dark:text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+        <AppIcon name="refresh" custom-class="w-5 h-5 animate-spin text-sky-600" />
+        <span>Memuat saldo stok dari database...</span>
       </div>
 
       <!-- Empty State -->
-      <div v-else-if="filteredList.length === 0" class="p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg">
-        <AppIcon name="stock" custom-class="w-8 h-8 mx-auto text-slate-300 dark:text-slate-600" />
-        <p class="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-2">{{ searchQuery ? 'Tidak ada SKU yang cocok dengan pencarian.' : 'Belum ada stok tercatat di gudang ini.' }}</p>
-        <p class="text-[11px] text-slate-400 mt-1">{{ searchQuery ? 'Coba kata kunci lain.' : 'Stok muncul otomatis setelah proses Receiving & Putaway selesai.' }}</p>
-      </div>
+      <AppEmptyState
+        v-else-if="filteredList.length === 0"
+        icon="stock"
+        :title="searchQuery ? 'Tidak Ada SKU yang Cocok' : 'Belum Ada Stok di Gudang Ini'"
+        :description="searchQuery ? 'Coba ubah kata kunci pencarian kode SKU atau nama barang.' : 'Saldo stok akan terisi otomatis setelah proses Receiving (Inbound) dan Putaway rak selesai.'"
+      />
 
       <!-- DESKTOP TABLE VIEW -->
       <div v-else class="hidden md:block bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden shadow-sm transition-colors">
