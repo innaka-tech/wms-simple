@@ -14,11 +14,37 @@ export interface User {
   warehouse_code?: string | null;
 }
 
+export type NavItemCode =
+  | 'dashboard'
+  | 'stock'
+  | 'stock_quarantine'
+  | 'stock_opname'
+  | 'gate_pass'
+  | 'inbound'
+  | 'putaway'
+  | 'debulking'
+  | 'weighbridge'
+  | 'outbound_pod'
+  | 'outbound_orders'
+  | 'waybills'
+  | 'tms_trips'
+  | 'billing'
+  | 'checkpoints'
+  | 'crossdock'
+  | 'crossdoc'
+  | 'master_products'
+  | 'master_warehouses'
+  | 'master_racks'
+  | 'master_customers'
+  | 'master_fleet'
+  | 'master_references'
+  | 'master_users';
+
 export interface NavItem {
   name: string;
   path: string;
   icon: string;
-  code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing' | 'checkpoints' | 'crossdock' | 'crossdoc' | 'master_products' | 'master_warehouses' | 'master_customers' | 'master_users' | 'master_fleet';
+  code: NavItemCode;
   roles: UserRole[];
 }
 
