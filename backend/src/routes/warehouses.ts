@@ -259,6 +259,9 @@ warehouseRoutes.post('/:id/locations/batch', authenticate, requireRole(ADMIN_ROL
 warehouseRoutes.delete('/:id', authenticate, requireRole(ADMIN_ROLES), async (c) => {
   const user = c.get('user' as any) as UserTokenPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ success: false, message: 'ID gudang wajib disertakan' }, 400);
+  }
   const whRes = await query(`SELECT * FROM warehouses WHERE id = $1`, [id]);
   if (whRes.rows.length === 0) {
     return c.json({ success: false, message: 'Gudang tidak ditemukan' }, 404);

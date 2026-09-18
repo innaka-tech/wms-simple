@@ -137,6 +137,9 @@ productRoutes.put('/:id', authenticate, requireRole(ADMIN_ROLES), async (c) => {
 productRoutes.delete('/:id', authenticate, requireRole(ADMIN_ROLES), async (c) => {
   const user = c.get('user' as any) as UserTokenPayload;
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ success: false, message: 'ID barang wajib disertakan' }, 400);
+  }
   const pRes = await query(`SELECT * FROM products WHERE id = $1`, [id]);
   if (pRes.rows.length === 0) {
     return c.json({ success: false, message: 'Barang (SKU) tidak ditemukan' }, 404);
