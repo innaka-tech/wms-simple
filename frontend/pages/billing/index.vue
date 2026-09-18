@@ -77,18 +77,29 @@
           <p class="text-xs font-mono font-bold text-slate-900 dark:text-white">{{ order.order_number }}</p>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ order.recipient_name }} • {{ order.customer_name }}</p>
         </div>
-        <input
-          v-model="amountByOrder[order.id]"
-          type="number"
-          min="1"
-          placeholder="Nilai faktur (Rp, opsional)"
-          class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none w-full md:w-56"
-        />
+        <div class="flex items-center gap-2 w-full md:w-auto">
+          <input
+            v-model="amountByOrder[order.id]"
+            type="number"
+            min="1"
+            required
+            placeholder="Nilai faktur (Rp, wajib diisi)"
+            class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:border-blue-500 focus:outline-none w-full md:w-48 font-mono"
+          />
+          <button
+            type="button"
+            title="Hitung estimasi tagihan otomatis"
+            @click="autoFillAmount(order)"
+            class="px-2.5 py-2 text-[10px] bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded border border-slate-200 dark:border-slate-700 font-semibold whitespace-nowrap transition cursor-pointer"
+          >
+            Auto Estimasi
+          </button>
+        </div>
         <button
           type="button"
           :disabled="billingStore.isLoading"
           @click="handleIssueInvoice(order)"
-          class="px-3.5 py-2 rounded-md bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer shadow-2xs"
+          class="px-3.5 py-2 rounded-md bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer shadow-2xs whitespace-nowrap"
         >
           Terbitkan Faktur
         </button>
@@ -120,7 +131,9 @@
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">Order {{ inv.order_number || '-' }} • {{ inv.recipient_name || '-' }}</p>
           </div>
           <div class="text-xs font-mono shrink-0 md:text-right">
-            <p class="font-bold text-slate-900 dark:text-white">Rp {{ formatIDR(inv.amount) }}</p>
+            <p class="font-bold" :class="inv.amount ? 'text-slate-900 dark:text-white' : 'text-amber-600 dark:text-amber-400'">
+              {{ inv.amount ? `Rp ${formatIDR(inv.amount)}` : 'Nominal Belum Ditentukan' }}
+            </p>
             <p class="text-[10px] text-slate-400">Terbayar: Rp {{ formatIDR(inv.total_paid || 0) }}</p>
           </div>
           <button
@@ -206,10 +219,22 @@ function openPayment(inv) {
   paymentForm.method = 'TRANSFER'
 }
 
+function autoFillAmount(order) {
+  // Hitung estimasi tagihan: default ekspedisi Rp 150.000 atau berbasis berat kargo
+  const baseTariff = 150000
+  const weight = Number(order.total_weight_kg || 0)
+  const estimated = weight > 0 ? Math.max(baseTariff, Math.round(weight * 25000)) : baseTariff
+  amountByOrder[order.id] = String(estimated)
+}
+
 async function handleIssueInvoice(order) {
   const actor = authStore.user?.full_name || 'Admin Adm'
   const raw = amountByOrder[order.id]
-  const amount = raw && Number(raw) > 0 ? Number(raw) : null
+  const amount = Number(raw)
+  if (!amount || amount <= 0) {
+    billingStore.errorMessage = 'Nilai faktur wajib diisi dan harus lebih dari Rp 0'
+    return
+  }
   await billingStore.issueInvoice(order.id, amount, actor, `Faktur untuk order ${order.order_number}`)
   amountByOrder[order.id] = ''
 }

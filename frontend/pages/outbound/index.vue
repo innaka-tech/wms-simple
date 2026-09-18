@@ -255,6 +255,11 @@
           <button type="button" @click="showPickingModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm">✕</button>
         </div>
 
+        <div v-if="outboundStore.errorMessage" class="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 flex items-center space-x-2">
+          <AppIcon name="alert" custom-class="w-4 h-4 shrink-0" />
+          <span>{{ outboundStore.errorMessage }}</span>
+        </div>
+
         <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
           <div v-for="(it, idx) in pickingItems" :key="it.id" class="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg space-y-2">
             <div class="flex justify-between items-start">
@@ -262,8 +267,11 @@
                 <div class="text-xs font-bold text-slate-900 dark:text-white">{{ it.product_name }}</div>
                 <div class="text-[11px] font-mono text-slate-500">SKU: {{ it.sku_code }}</div>
               </div>
-              <div class="text-right">
-                <span class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">Order: {{ it.ordered_qty }} Unit</span>
+              <div class="text-right space-y-0.5">
+                <div class="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">Order: {{ it.ordered_qty }} Unit</div>
+                <div class="text-[10px] font-mono font-semibold" :class="it.stock_on_hand >= it.ordered_qty ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
+                  Tersedia di Rak: {{ it.stock_on_hand }}
+                </div>
               </div>
             </div>
 
@@ -495,6 +503,7 @@ const availableLocations = ref([])
 
 async function openPickingModal(order) {
   pickingOrder.value = order
+  outboundStore.errorMessage = ''
   try {
     const res = await apiFetch(`/outbound/${order.id}`)
     if (res.success) {
@@ -504,6 +513,7 @@ async function openPickingModal(order) {
         product_name: it.product_name,
         sku_code: it.sku_code,
         ordered_qty: Number(it.ordered_qty),
+        stock_on_hand: Number(it.stock_on_hand ?? 0),
         picked_qty: Number(it.picked_qty) > 0 ? Number(it.picked_qty) : Number(it.ordered_qty),
         location_id: it.location_id || (availableLocations.value[0]?.id || null)
       }))
@@ -523,6 +533,10 @@ async function handleSubmitPicking() {
     feedback.value = { type: 'ok', text: `${pickingOrder.value.order_number} — picking selesai, barang siap dikemas.` }
     if (expandedOrderId.value === pickingOrder.value.id) {
       await toggleOrderDetail(pickingOrder.value)
+    }
+  } else {
+    if (outboundStore.errorMessage) {
+      feedback.value = { type: 'error', text: outboundStore.errorMessage }
     }
   }
 }
@@ -599,10 +613,12 @@ function clearFeedback() {
   feedback.value = { type: '', text: '' }
   waybillStore.errorMessage = ''
   waybillStore.successMessage = ''
+  outboundStore.errorMessage = ''
   outboundStore.successMessage = ''
 }
 function syncFeedback() {
-  if (waybillStore.errorMessage) feedback.value = { type: 'error', text: waybillStore.errorMessage }
+  if (outboundStore.errorMessage) feedback.value = { type: 'error', text: outboundStore.errorMessage }
+  else if (waybillStore.errorMessage) feedback.value = { type: 'error', text: waybillStore.errorMessage }
   else if (waybillStore.successMessage) feedback.value = { type: 'ok', text: waybillStore.successMessage }
   else if (outboundStore.successMessage) feedback.value = { type: 'ok', text: outboundStore.successMessage }
 }

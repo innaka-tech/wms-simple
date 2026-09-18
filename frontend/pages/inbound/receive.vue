@@ -121,20 +121,16 @@
                 </select>
               </div>
 
-              <!-- Step 3: putaway -->
-              <div v-else-if="po.status === 'RECEIVED'" class="flex flex-wrap items-center gap-2">
-                <input v-model.number="putawayDraft[item.id].storage_qty" type="number" min="0" :max="item.received_qty" placeholder="Qty ke rak"
-                       class="w-24 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
-                <select v-if="putawayDraft[item.id].storage_qty > 0" v-model="putawayDraft[item.id].location_id"
-                        class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:outline-none font-medium">
-                  <option value="">-- Pilih Rak Lokasi --</option>
-                  <option v-for="loc in warehouseLocations" :key="loc.id" :value="loc.id">
-                    Zona {{ loc.zone }} • Aisle {{ loc.aisle }} • Rak {{ loc.rack }}-{{ loc.bin }}
-                  </option>
-                </select>
-                <input v-model.number="putawayDraft[item.id].cross_dock_qty" type="number" min="0" :max="item.received_qty" placeholder="Qty cross-dock"
-                       class="w-28 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-md px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
-                <span class="text-[10px] text-slate-400">rak + cross-dock = {{ item.received_qty }} (wajib)</span>
+              <!-- Status info saat RECEIVED -->
+              <div v-else-if="po.status === 'RECEIVED'" class="text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between">
+                <span>Diterima fisik di dock: <strong class="text-emerald-600 dark:text-emerald-400 font-mono">{{ item.received_qty }} Unit</strong> (Kondisi: {{ item.item_condition || 'GOOD' }})</span>
+                <span class="text-[10px] text-amber-600 dark:text-amber-400 font-semibold bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/20">Siap Putaway</span>
+              </div>
+
+              <!-- Status info saat PUTAWAY_COMPLETED -->
+              <div v-else-if="po.status === 'PUTAWAY_COMPLETED'" class="text-xs text-slate-600 dark:text-slate-300 flex items-center justify-between">
+                <span>Tersimpan di rak: <strong class="text-emerald-600 dark:text-emerald-400 font-mono">{{ item.storage_qty || item.received_qty }} Unit</strong></span>
+                <span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">✓ Di Rak Gudang</span>
               </div>
             </div>
 
@@ -144,11 +140,24 @@
               <input v-model="driverName" placeholder="Nama pengemudi (driver)" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none" />
             </div>
 
-            <button type="button" :disabled="inboundStore.isLoading" @click="po.status === 'CREATED' ? submitReceive(po) : submitPutaway(po)"
-                    class="px-4 py-2 rounded-md text-white text-xs font-semibold transition disabled:opacity-50 cursor-pointer"
-                    :class="po.status === 'CREATED' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'">
-              {{ po.status === 'CREATED' ? 'Konfirmasi Receiving Fisik (PO_RECEIVED)' : 'Selesaikan Putaway (stok masuk rak)' }}
-            </button>
+            <!-- Tombol Aksi Sesuai Status -->
+            <div class="flex items-center gap-2 pt-1">
+              <button v-if="po.status === 'CREATED'" type="button" :disabled="inboundStore.isLoading" @click="submitReceive(po)"
+                      class="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition disabled:opacity-50 cursor-pointer">
+                {{ inboundStore.isLoading ? 'Memproses...' : 'Konfirmasi Receiving Fisik (PO_RECEIVED)' }}
+              </button>
+
+              <NuxtLink v-else-if="po.status === 'RECEIVED'" to="/inbound/putaway"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition shadow-xs">
+                <AppIcon name="warehouse" custom-class="w-3.5 h-3.5" />
+                <span>Lanjutkan ke Menu Putaway (Penempatan Rak) &rarr;</span>
+              </NuxtLink>
+
+              <div v-else-if="po.status === 'PUTAWAY_COMPLETED'" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200/60 dark:border-emerald-800">
+                <AppIcon name="check" custom-class="w-3.5 h-3.5" />
+                <span>Putaway Telah Selesai (Stok Fisik Tersimpan di Rak)</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

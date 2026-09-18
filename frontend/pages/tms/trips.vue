@@ -390,13 +390,14 @@
           </div>
 
           <ThermalPrintButton
-            :data="{
+            :receipt-data="{
               title: 'SURAT TUGAS PERJALANAN TMS',
               no_order: currentTrip.trip_number,
               petugas: currentTrip.driver_name,
               tujuan: currentTrip.stops?.[0]?.destination_address || 'Multi-Drop',
               items: currentTrip.stops?.map(s => ({ nama: s.recipient_name, qty: s.weight_kg + ' KG' })) || []
             }"
+            receipt-type="TMS_TRIP"
             label="Cetak Surat Tugas"
           />
         </div>

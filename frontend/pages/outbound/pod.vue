@@ -231,37 +231,78 @@
       <!-- 2. Signature Pad & Sign-off Panel -->
       <div class="p-5 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg space-y-4 shadow-sm transition-colors">
         <div class="border-b border-slate-100 dark:border-slate-800 pb-2 flex justify-between items-center">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Tanda Tangan Digital Penerima (e-POD)</h4>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Bukti &amp; Tanda Tangan Serah Terima (e-POD)</h4>
           <span class="text-xs font-mono text-slate-500 dark:text-slate-400 font-semibold">BAST Digital</span>
         </div>
 
+        <!-- Mode Pemenuhan BAST -->
+        <div class="flex gap-4 items-center bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-200 dark:border-slate-800">
+          <label class="flex items-center space-x-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300">
+            <input type="radio" value="SIGNATURE" v-model="proofMethod" class="text-slate-900 dark:text-slate-100" />
+            <span>Tanda Tangan Kanvas Digital</span>
+          </label>
+          <label class="flex items-center space-x-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300">
+            <input type="radio" value="REPRESENTATIVE" v-model="proofMethod" class="text-slate-900 dark:text-slate-100" />
+            <span>Diwakilkan / Pos Satpam / Stempel Toko</span>
+          </label>
+        </div>
+
         <!-- Signature Pad Component -->
-        <SignaturePad @update:signature="sig => signatureData = sig" />
+        <div v-if="proofMethod === 'SIGNATURE'">
+          <SignaturePad @update:signature="sig => signatureData = sig" />
+        </div>
+        <div v-else class="p-4 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 rounded-md text-xs text-blue-800 dark:text-blue-300 space-y-1">
+          <p class="font-semibold flex items-center space-x-1.5">
+            <AppIcon name="check-circle" custom-class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>Metode Serah Terima: Diwakilkan / Pos Keamanan</span>
+          </p>
+          <p class="text-[11px] text-blue-700 dark:text-blue-400">
+            Tanda tangan kanvas tidak diwajibkan. Pastikan foto fisik barang pada langkah 1 memuat foto stempel basah penerima, foto kartu identitas (KTP/ID Badge), atau nota tanda terima fisik perwakilan.
+          </p>
+        </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
           <div class="space-y-1.5">
-            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Penerima (Consignee):</label>
+            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Nama Penerima / Perwakilan:</label>
             <input 
               v-model="recipientName" 
               type="text" 
               required
-              placeholder="Contoh: Bpk. Suparman"
+              placeholder="Contoh: Bpk. Suparman / Satpam Pos 1"
               class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none"
             />
           </div>
           <div class="space-y-1.5">
             <div class="flex justify-between items-center">
               <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Qty Diterima Fisik:</label>
-              <span v-if="orderTotalQty" class="text-[10px] text-slate-400 font-mono">Order: {{ orderTotalQty }}</span>
+              <span v-if="orderTotalQty" class="text-[10px] text-slate-400 font-mono">Max Order: {{ orderTotalQty }}</span>
             </div>
             <input 
               v-model.number="deliveredQtyInput" 
               type="number" 
               min="1"
+              :max="orderTotalQty || undefined"
               required
               placeholder="Qty fisik diterima"
               class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 dark:text-slate-100 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none"
             />
+          </div>
+        </div>
+
+        <!-- Toggle Selisih Fisik / Kerusakan -->
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="checkbox" v-model="hasDiscrepancy" class="rounded border-slate-300 text-amber-600 focus:ring-amber-500" />
+            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Ada Selisih Fisik / Kerusakan Barang</span>
+          </label>
+          <div v-if="hasDiscrepancy" class="space-y-1">
+            <label class="text-[11px] font-medium text-amber-700 dark:text-amber-400">Catatan Selisih / Kerusakan Fisik:</label>
+            <textarea
+              v-model="discrepancyNotes"
+              rows="2"
+              placeholder="Jelaskan detail barang kurang, cacat, kardus sobek, atau selisih kuantitas..."
+              class="w-full bg-amber-50/50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-md p-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
+            ></textarea>
           </div>
         </div>
 
@@ -302,6 +343,9 @@ const photoTakenAt = ref('')
 const signatureData = ref('')
 const recipientName = ref('')
 const deliveredQtyInput = ref(null)
+const proofMethod = ref('SIGNATURE')
+const hasDiscrepancy = ref(false)
+const discrepancyNotes = ref('')
 
 // Foto kamera/file → base64 (dikompres biar payload ringan)
 function onPhotoCaptured(e) {
@@ -448,13 +492,13 @@ async function handleSubmitPod() {
     playAudioFeedback('ERROR')
     return
   }
-  if (!signatureData.value) {
-    outboundStore.errorMessage = 'Tanda tangan penerima wajib — minta penerima tanda tangan di kotak e-POD.'
+  if (proofMethod.value === 'SIGNATURE' && !signatureData.value) {
+    outboundStore.errorMessage = 'Tanda tangan penerima wajib — minta penerima tanda tangan di kotak e-POD atau pilih opsi Diwakilkan / Pos Satpam.'
     playAudioFeedback('ERROR')
     return
   }
   if (!recipientName.value.trim()) {
-    outboundStore.errorMessage = 'Nama penerima (consignee) wajib diisi.'
+    outboundStore.errorMessage = 'Nama penerima (consignee) / perwakilan wajib diisi.'
     playAudioFeedback('ERROR')
     return
   }
@@ -462,14 +506,23 @@ async function handleSubmitPod() {
   const orderId = matchedWaybill.value.reference_id
   const actor = authStore.user?.full_name || 'Driver Pengiriman'
   const finalDeliveredQty = Number(deliveredQtyInput.value) > 0 ? Number(deliveredQtyInput.value) : (orderTotalQty.value || 1)
+
+  if (orderTotalQty.value > 0 && finalDeliveredQty > orderTotalQty.value) {
+    outboundStore.errorMessage = `Qty diterima fisik (${finalDeliveredQty}) tidak boleh melebihi jumlah pesanan (${orderTotalQty.value}).`
+    playAudioFeedback('ERROR')
+    return
+  }
+
   try {
     await apiFetch(`/outbound/${orderId}/pod`, {
       method: 'POST',
       body: {
         recipient_name: recipientName.value.trim(),
         pod_photo_url: photoDataUrl.value,
-        signature_photo_url: signatureData.value,
+        signature_photo_url: proofMethod.value === 'SIGNATURE' ? signatureData.value : 'DIWAKILKAN_STEMPEL_POS',
+        proof_type: proofMethod.value,
         delivered_qty: finalDeliveredQty,
+        discrepancy_notes: hasDiscrepancy.value ? discrepancyNotes.value.trim() : undefined,
         actor_name: actor,
         notes: `Resi ${matchedWaybill.value.resi_number} / SJ ${matchedWaybill.value.sj_number} • Foto ${photoTakenAt.value}`
       }
@@ -479,6 +532,9 @@ async function handleSubmitPod() {
     photoDataUrl.value = ''
     signatureData.value = ''
     deliveredQtyInput.value = null
+    hasDiscrepancy.value = false
+    discrepancyNotes.value = ''
+    proofMethod.value = 'SIGNATURE'
     const res = await apiFetch(`/outbound/${orderId}`)
     if (res.success) matchedOrder.value = res.data
   } catch (err) {

@@ -38,6 +38,7 @@ Seluruh arsitektur, standar, diagram alur terpadu, dan spesifikasi sistem terdok
 - [standards/05_Versioning_and_Release_Standard.md](standards/05_Versioning_and_Release_Standard.md) — Standar SemVer 2.0.0, Database Migration Versioning, API URI Versioning, dan Format CHANGELOG.
 - [11_System_Quality_and_Security_Audit_Report.md](11_System_Quality_and_Security_Audit_Report.md) — **Laporan Audit Resmi**: Bebas AI Slop, ISO 25010 Clean Code, ISO 9241 Mobile UI, 80/80 Tests Passing, dan Audit OWASP Top 10 Web / AI.
 - [12_Comprehensive_Architecture_Audit_and_TMS_WMS_Master_Plan.md](12_Comprehensive_Architecture_Audit_and_TMS_WMS_Master_Plan.md) — **Master Plan Audit Arsitektur, Relasi DB-Aplikasi, dan Integrasi TMS (Transportation Management System)**.
+- [13_UAT_Testing_Analysis_and_Fix_Action_Plan.md](13_UAT_Testing_Analysis_and_Fix_Action_Plan.md) — **Laporan Analisis Hasil Pengujian Lapangan (UAT Cek Fadh) & Rencana Perbaikan Sistem (11 Temuan)**.
 
 ### 1.5 Protokol Tata Kelola & Agen AI
 - [`AGENTS.md`](../AGENTS.md) — Protokol Wajib Agen AI: Urutan pembacaan dokumen sebelum tindakan dan guardrails kepatuhan.

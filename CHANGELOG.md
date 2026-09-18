@@ -5,6 +5,64 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [5.4.0] - 2026-09-18
+
+### Added
+- **Enterprise Visual Rack Digital Twin & Spatial Layout (`/master/racks`):**
+  - Halaman terdedikasi `frontend/pages/master/racks.vue` untuk pemantauan denah spasial gudang, kapasitas tonase, dan tingkat okupansi rak secara real-time.
+  - Komponen visual interaktif `WarehouseRackVisualizer.vue` dengan pemisahan Zona Fisik (Zona A Dry Pallet Racks bertingkat, Zona B Heavy Staging 5 Ton, Zona C Cold Storage Chiller -2°C s/d +4°C, Zona D Fast-Moving Transit).
+  - Tampilan visual multi-tier rak (Level A/B/C), indikator ketersediaan slot (🟢 Kosong, 🟡 Terisi Sebagian, 🔴 Penuh), dan label SKU tersimpan.
+  - Fitur Batch Generator Rak Massal (`POST /api/warehouses/:id/locations/batch`) untuk mempercepat pembuatan lorong, bay, dan tier tanpa input manual berulang.
+  - Pendaftaran menu `Denah & Tata Letak Rak` di bawah Master Data pada `frontend/stores/auth.ts`.
+  - Tautan cepat "🗺️ Denah Spasial Rak" di setiap kartu gudang pada `master/warehouses.vue`.
+- **Smart Putaway Suggestion Engine (`/inbound/putaway`):**
+  - Algoritma rekomendasi cerdas penempatan kargo berbasis karakteristik fisik barang (KDMP dingin ke Zona C Chiller, kargo curah/1 ton ke Zona B Heavy Floor Staging, sembako/karton ke Zona A Dry Pallet Rack).
+  - Modal Interactive Visual Bin Picker dengan preview slot dan satu tombol "Gunakan Rekomendasi".
+
+### Fixed
+- **Resolusi Data Item Inbound & Putaway:**
+  - Menambahkan subquery agregat JSON `items` pada `GET /api/inbound` di `backend/src/routes/inbound.ts` sehingga daftar SKU dan kuantitas barang fisik diterima dock selalu dimuat lengkap ke antarmuka Putaway.
+
+## [5.3.0] - 2026-09-18
+
+### Added
+- **Menu & Halaman Putaway Mandiri (`/inbound/putaway`):**
+  - Mendaftarkan submenu "Putaway (Penempatan Rak)" di bawah modul Inbound pada `frontend/stores/auth.ts`.
+  - Halaman terdedikasi `frontend/pages/inbound/putaway.vue` dengan tab status (Menunggu Putaway vs Selesai), pemilahan alokasi Cross-Docking vs Storage Rak Gudang, pemilihan lokasi bin/rak, dan konfirmasi dialog SweetAlert2.
+  - Shortcut akses cepat Putaway pada dashboard utama (`frontend/pages/index.vue`).
+- **Driver Cetak Lembar Kerja & Dokumen Lapangan:**
+  - Driver printer thermal ESC/POS untuk Lembar Kerja Stock Opname (`printOpnameWorksheet`), Surat Tugas & Manifest TMS Trip (`printTmsTripManifest`), dan Resi Standar (`printGenericReceipt`) di `frontend/composables/useThermalPrinter.ts`.
+  - Tombol cetak browser format A4 / HVS (`window.print()`) dengan stylesheet `@media print` rapi untuk lembar hitung fisik lorong rak opname di `frontend/pages/stock/opname.vue`.
+- **Soft-Deactivate & Hapus Master Data:**
+  - Endpoint `DELETE /api/warehouses/:id` dan `DELETE /api/products/:id` dengan audit integritas relasi: jika entitas memiliki riwayat ledger/transaksi, sistem melakukan *soft-deactivation* (`is_active = false`), dan menolak jika masih ada stok aktif.
+  - Aksi "Hapus / Nonaktifkan" dengan dialog SweetAlert2 di `master/warehouses.vue` dan `master/products.vue`.
+- **Penomoran Otomatis Master Customer:**
+  - Auto-generate kode customer terurut (`CUST001`, `CUST002`, dst.) dan tombol regenerasi di `master/customers.vue`.
+- **Fleksibilitas e-POD & Catatan Selisih Fisik:**
+  - Pilihan metode serah terima e-POD: Tanda Tangan Kanvas Digital vs Diwakilkan / Pos Satpam / Stempel Toko di `outbound/pod.vue`.
+  - Toggle pencatatan kerusakan/selisih barang fisik dan integrasi catatan ke audit checkpoint.
+
+### Fixed
+- **Double-Putaway Inbound Guard:**
+  - Proteksi backend di `POST /api/inbound/:id/putaway` untuk menolak status `PUTAWAY_COMPLETED` (409 Conflict) dan non-`RECEIVED` (400), mencegah mutasi saldo fisik berulang.
+  - Sembunyikan tombol putaway di halaman receiving dan gantikan dengan badge hijau permanen serta tautan ke halaman Putaway.
+- **Unfreezing Outbound Picking Confirmation:**
+  - Memperbaiki penanganan `outboundStore.errorMessage` pada `syncFeedback()` di `outbound/index.vue`, memunculkan alert merah interaktif di dalam modal saat stok di rak tidak mencukupi.
+  - Menampilkan stok on-hand gudang secara real-time pada modal konfirmasi picking.
+- **Normalisasi Prop ThermalPrintButton:**
+  - Mendukung prop ganda `:receipt-data` dan `:data` di `ThermalPrintButton.vue` dengan auto-routing template agar cetak di Stock Opname dan TMS Trip tidak gagal diam-diam.
+- **Sequence Penomoran Sesi Stock Opname:**
+  - Standardisasi format penomoran sesi opname berbasis kode gudang dan tanggal berurut (`OPNAME{WH_CODE}{YYYYMMDD}{SEQ}`) di `backend/src/routes/stock.ts`.
+- **Standardisasi Istilah Role (RBAC):**
+  - Menyeragamkan label "Peran" menjadi "Role (RBAC)" di formulir, subtitle, dan middleware otentikasi.
+- **Validasi Nilai Faktur & Pelunasan Billing:**
+  - Mewajibkan nominal faktur $> 0$ sebelum diterbitkan, menyediakan tombol estimasi tagihan otomatis berbasis kargo/tarif standar di `billing/index.vue`.
+  - Menolak penerimaan pembayaran jika nilai faktur bernilai Rp 0 di backend `billing.ts`.
+- **Validasi Kuantitas Diterima e-POD:**
+  - Membatasi kuantitas fisik e-POD (`delivered_qty`) dengan batas atas `:max="orderTotalQty"` dan validasi backend agar tidak melampaui jumlah pesanan.
+
+---
+
 ## [5.2.0] - 2026-09-15
 
 ### Added

@@ -1,10 +1,10 @@
 {
   "project": "wms-simple",
-  "version": "5.2.0",
-  "status": "master_plan_phase_4_and_ui_redesign_completed",
+  "version": "5.3.0",
+  "status": "uat_field_testing_fixes_completed",
   "phase": "full_enterprise_operational_closure",
   "progress": 100,
-  "last_updated": "2026-09-15T13:35:00+07:00",
+  "last_updated": "2026-09-18T22:40:00+07:00",
   "database": {
     "target": "postgresql_host_global_stack",
     "driver": "node-postgres (pg Pool)",
@@ -79,8 +79,8 @@
   "test_metrics": {
     "framework": "Vitest 4.1.11",
     "total_test_suites": 28,
-    "total_tests": 191,
-    "passed": 191,
+    "total_tests": 192,
+    "passed": 192,
     "failed": 0,
     "e2e_chain": "transaction-chain.e2e.test.ts & inbound-crossdock-chain.e2e.test.ts (PostgreSQL nyata 100% lulus)",
     "domain_service_coverage": "96.0%",

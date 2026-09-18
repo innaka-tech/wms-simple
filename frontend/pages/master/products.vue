@@ -78,9 +78,10 @@
               <span v-if="Number(p.total_in_transit) > 0" class="ml-1.5 text-[10px] text-cyan-600 dark:text-cyan-400">+{{ formatQty(p.total_in_transit) }} transit</span>
             </td>
             <td class="px-4 py-3 text-right text-slate-600 dark:text-slate-300">{{ formatQty(p.min_stock_qty) }}</td>
-            <td class="px-4 py-3 text-right">
+            <td class="px-4 py-3 text-right space-x-2 whitespace-nowrap">
               <button v-if="canManage" type="button" @click="openForm(p)" class="text-blue-600 dark:text-blue-400 hover:underline font-semibold">Ubah</button>
-              <span v-else class="text-slate-300 dark:text-slate-600">—</span>
+              <button v-if="canManage" type="button" @click="handleDeleteProduct(p)" class="text-rose-600 dark:text-rose-400 hover:underline font-semibold">Hapus</button>
+              <span v-else-if="!canManage" class="text-slate-300 dark:text-slate-600">—</span>
             </td>
           </tr>
         </tbody>
@@ -144,8 +145,11 @@
 </template>
 
 <script setup>
+import { useSwal } from '~/composables/useSwal';
+
 const masterStore = useMasterStore();
 const authStore = useAuthStore();
+const swal = useSwal();
 
 const canManage = computed(() => ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'].includes(authStore.user?.role));
 const showForm = ref(false);
@@ -175,6 +179,23 @@ async function submit() {
     ? await masterStore.updateProduct(editing.value.id, payload)
     : await masterStore.createProduct(payload);
   if (ok) showForm.value = false;
+}
+
+async function handleDeleteProduct(p) {
+  const confirmed = await swal.confirmAction({
+    title: `Hapus / Nonaktifkan SKU?`,
+    text: `Barang "${p.name}" (${p.sku_code}) akan dihapus bila belum ada mutasi, atau dinonaktifkan bila memiliki riwayat transaksi di buku besar.`,
+    confirmButtonText: 'Ya, Lanjutkan',
+    cancelButtonText: 'Batal'
+  });
+  if (!confirmed) return;
+
+  const ok = await masterStore.deleteProduct(p.id);
+  if (ok) {
+    swal.showSuccess('Berhasil', masterStore.successMessage || 'Barang berhasil diproses');
+  } else {
+    swal.showError('Gagal', masterStore.errorMessage || 'Gagal memproses barang');
+  }
 }
 
 function formatQty(v) {
