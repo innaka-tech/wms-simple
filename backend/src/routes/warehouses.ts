@@ -48,7 +48,22 @@ warehouseRoutes.get('/:id', async (c) => {
   if (whRes.rows.length === 0) {
     return c.json({ success: false, message: 'Warehouse not found' }, 404);
   }
-  const locRes = await query(`SELECT * FROM warehouse_locations WHERE warehouse_id = $1 ORDER BY zone, aisle, rack, bin`, [id]);
+  const locRes = await query(`
+    SELECT wl.*,
+      COALESCE(
+        (SELECT SUM(ii.storage_qty) FROM inbound_items ii WHERE ii.location_id = wl.id),
+        0
+      ) as stored_qty,
+      (
+        SELECT string_agg(DISTINCT p.sku_code || ' (' || p.name || ')', ', ') 
+        FROM inbound_items ii 
+        JOIN products p ON ii.product_id = p.id 
+        WHERE ii.location_id = wl.id AND ii.storage_qty > 0
+      ) as current_occupants
+    FROM warehouse_locations wl
+    WHERE wl.warehouse_id = $1
+    ORDER BY wl.zone, wl.aisle, wl.rack, wl.bin
+  `, [id]);
   return c.json({ success: true, data: { ...whRes.rows[0], locations: locRes.rows } });
 });
 
@@ -200,4 +215,97 @@ warehouseRoutes.post('/:id/locations', authenticate, requireRole(ADMIN_ROLES), a
   });
 
   return c.json({ success: true, data: created }, 201);
+});
+
+// Batch generate storage locations (admin only)
+warehouseRoutes.post('/:id/locations/batch', authenticate, requireRole(ADMIN_ROLES), async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload;
+  const warehouseId = c.req.param('id');
+  const body = await c.req.json();
+  const { zone, aisle, racks_count = 1, tiers = ['A', 'B', 'C'], location_type = 'STANDARD_RACK', max_weight_capacity_kg = 2000, max_volume_capacity_cbm = 5.0 } = body;
+
+  if (!zone || !aisle) {
+    return c.json({ success: false, message: 'Zona dan Aisle wajib diisi' }, 400);
+  }
+
+  const whRes = await query(`SELECT id, code FROM warehouses WHERE id = $1`, [warehouseId]);
+  if (whRes.rows.length === 0) {
+    return c.json({ success: false, message: 'Warehouse not found' }, 404);
+  }
+
+  let createdCount = 0;
+  for (let r = 1; r <= Number(racks_count); r++) {
+    const rackStr = String(r).padStart(2, '0');
+    for (const binStr of tiers) {
+      const dup = await query(
+        `SELECT 1 FROM warehouse_locations WHERE warehouse_id = $1 AND zone = $2 AND aisle = $3 AND rack = $4 AND bin = $5`,
+        [warehouseId, zone.toUpperCase(), aisle, rackStr, binStr.toUpperCase()]
+      );
+      if (dup.rows.length === 0) {
+        await query(
+          `INSERT INTO warehouse_locations (id, warehouse_id, zone, aisle, rack, bin, location_type, max_weight_capacity_kg, max_volume_capacity_cbm)
+           VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8)`,
+          [warehouseId, zone.toUpperCase(), aisle, rackStr, binStr.toUpperCase(), location_type, max_weight_capacity_kg, max_volume_capacity_cbm]
+        );
+        createdCount++;
+      }
+    }
+  }
+
+  return c.json({ success: true, message: `Berhasil membuat ${createdCount} lokasi rak baru`, created_count: createdCount });
+});
+
+// Delete or Soft-Deactivate Warehouse (admin only)
+warehouseRoutes.delete('/:id', authenticate, requireRole(ADMIN_ROLES), async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload;
+  const id = c.req.param('id');
+  const whRes = await query(`SELECT * FROM warehouses WHERE id = $1`, [id]);
+  if (whRes.rows.length === 0) {
+    return c.json({ success: false, message: 'Gudang tidak ditemukan' }, 404);
+  }
+  const wh = whRes.rows[0];
+
+  // Cek saldo stok fisik aktif di gudang ini
+  const stockRes = await query(
+    `SELECT COALESCE(SUM(qty_on_hand), 0) AS total_qty FROM stock_levels WHERE warehouse_id = $1`,
+    [id]
+  );
+  const totalStock = Number(stockRes.rows[0]?.total_qty || 0);
+  if (totalStock > 0) {
+    return c.json({
+      success: false,
+      message: `Gudang '${wh.name}' tidak dapat dihapus/dinonaktifkan karena masih memiliki saldo stok aktif (${totalStock} unit).`
+    }, 409);
+  }
+
+  // Cek apakah ada riwayat transaksi (orders/PO/mutasi)
+  const orderRes = await query(
+    `SELECT 
+      (SELECT COUNT(*) FROM inbound_orders WHERE warehouse_id = $1) +
+      (SELECT COUNT(*) FROM outbound_orders WHERE warehouse_id = $1) AS trx_count`,
+    [id]
+  );
+  const trxCount = Number(orderRes.rows[0]?.trx_count || 0);
+
+  if (trxCount > 0) {
+    // Soft-deactivate to protect immutable audit trail
+    await query(`UPDATE warehouses SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [id]);
+    await recordCheckpoint({
+      entity_type: 'WAREHOUSE',
+      entity_id: id,
+      entity_number: wh.code,
+      step_code: 'WAREHOUSE_DEACTIVATED',
+      step_label: 'Master gudang dinonaktifkan',
+      actor_id: user.id,
+      actor_name: user.full_name,
+      actor_role: user.role,
+      notes: `Gudang ${wh.name} dinonaktifkan (memiliki ${trxCount} riwayat transaksi)`
+    });
+    return c.json({ success: true, message: `Gudang '${wh.name}' berhasil dinonaktifkan (arsip audit tersimpan)`, action: 'deactivated' });
+  }
+
+  // Jika bersih tanpa transaksi, hard delete
+  await query(`DELETE FROM warehouse_locations WHERE warehouse_id = $1`, [id]);
+  await query(`DELETE FROM warehouses WHERE id = $1`, [id]);
+  return c.json({ success: true, message: `Gudang '${wh.name}' berhasil dihapus permanen`, action: 'deleted' });
 });

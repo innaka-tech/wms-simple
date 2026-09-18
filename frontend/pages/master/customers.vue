@@ -100,8 +100,18 @@
         <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ editing ? 'Ubah Customer' : 'Registrasi Customer Baru' }}</h3>
         <div class="grid grid-cols-2 gap-3">
           <label class="block">
-            <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kode *</span>
-            <input v-model="form.code" required class="mt-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs" placeholder="CUST-KDMP" />
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kode Customer *</span>
+              <button
+                v-if="!editing"
+                type="button"
+                @click="form.code = generateCustomerCode()"
+                class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer"
+              >
+                Auto Generate
+              </button>
+            </div>
+            <input v-model="form.code" required class="mt-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs font-mono font-bold" placeholder="CUST001" />
           </label>
           <label class="block">
             <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Tipe *</span>
@@ -162,6 +172,20 @@ const emptyForm = () => ({
 });
 const form = ref(emptyForm());
 
+function generateCustomerCode() {
+  const existingCodes = masterStore.customers.map(c => c.code || '').filter(Boolean);
+  let maxNum = 0;
+  for (const c of existingCodes) {
+    const match = c.match(/^CUST(\d+)$/i);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (n > maxNum) maxNum = n;
+    }
+  }
+  const nextNum = maxNum > 0 ? maxNum + 1 : (masterStore.customers.length + 1);
+  return `CUST${String(nextNum).padStart(3, '0')}`;
+}
+
 function openForm(cu = null) {
   editing.value = cu;
   form.value = cu
@@ -171,7 +195,7 @@ function openForm(cu = null) {
         contact_email: cu.contact_email || '', address: cu.address || '',
         is_active: cu.is_active !== false
       }
-    : emptyForm();
+    : { ...emptyForm(), code: generateCustomerCode() };
   showForm.value = true;
 }
 

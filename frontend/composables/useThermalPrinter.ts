@@ -504,6 +504,97 @@ export function useThermalPrinter() {
     return printReceiptViaBrowser(`TiketTimbang-${data.ticket_number}`, rows);
   }
 
+  async function printOpnameWorksheet(data: {
+    title?: string;
+    no_order?: string;
+    petugas?: string;
+    tujuan?: string;
+    items?: Array<{ nama: string; qty: string }>;
+  }) {
+    const rows: ReceiptRow[] = [
+      { text: 'WMS SIMPLE ENTERPRISE', bold: true, size: 'large', align: 'center' },
+      { text: data.title || 'LEMBAR KERJA STOCK OPNAME', align: 'center', bold: true },
+      { text: (data.tujuan || 'GUDANG UTAMA').toUpperCase(), align: 'center' },
+      { type: 'double-divider' },
+      { type: 'row', left: 'NO. SESI:', right: data.no_order || 'OPNAME', bold: true },
+      { type: 'row', left: 'PETUGAS:', right: data.petugas || 'Staf Opname' },
+      { type: 'row', left: 'TANGGAL:', right: new Date().toLocaleDateString('id-ID') },
+      { type: 'divider' },
+      { text: 'DAFTAR BARANG (HITUNG FISIK):', bold: true },
+      { type: 'divider' }
+    ];
+
+    if (data.items && data.items.length) {
+      for (const item of data.items) {
+        rows.push(
+          { text: item.nama, bold: true },
+          { type: 'row', left: '  Sistem: ' + item.qty, right: 'Fisik: [ ___ ]' }
+        );
+      }
+    } else {
+      rows.push({ text: '(Tidak ada daftar barang)', align: 'center' });
+    }
+
+    rows.push(
+      { type: 'double-divider' },
+      { type: 'spacer' },
+      { text: 'Tanda Tangan Checker / Supervisor:', align: 'center' },
+      { type: 'spacer' },
+      { type: 'spacer' },
+      { text: '( ____________________ )', align: 'center' },
+      { text: 'Waktu Cetak: ' + new Date().toLocaleTimeString('id-ID'), align: 'center' }
+    );
+
+    return printReceiptViaBrowser(`Opname-${data.no_order || 'Sheet'}`, rows);
+  }
+
+  async function printTmsTripManifest(data: {
+    title?: string;
+    no_order?: string;
+    petugas?: string;
+    tujuan?: string;
+    items?: Array<{ nama: string; qty: string }>;
+  }) {
+    const rows: ReceiptRow[] = [
+      { text: 'WMS SIMPLE ENTERPRISE', bold: true, size: 'large', align: 'center' },
+      { text: data.title || 'SURAT TUGAS TRIP TMS', align: 'center', bold: true },
+      { type: 'double-divider' },
+      { type: 'row', left: 'NO. TRIP:', right: data.no_order || 'TRIP', bold: true },
+      { type: 'row', left: 'SUPIR:', right: data.petugas || '-' },
+      { type: 'row', left: 'TUJUAN:', right: data.tujuan || 'Multi-Drop' },
+      { type: 'row', left: 'WAKTU:', right: new Date().toLocaleString('id-ID') },
+      { type: 'divider' },
+      { text: 'DAFTAR DROP & PENERIMA:', bold: true },
+      { type: 'divider' }
+    ];
+
+    if (data.items && data.items.length) {
+      for (const item of data.items) {
+        rows.push({ type: 'row', left: item.nama, right: item.qty });
+      }
+    }
+
+    rows.push(
+      { type: 'double-divider' },
+      { type: 'spacer' },
+      { text: 'Supir / Penerima Lapangan', align: 'center' },
+      { type: 'spacer' },
+      { text: '( ____________________ )', align: 'center' }
+    );
+
+    return printReceiptViaBrowser(`TMS-${data.no_order || 'Trip'}`, rows);
+  }
+
+  async function printGenericReceipt(title: string, data: any) {
+    if (data.title?.includes('OPNAME') || data.no_order?.startsWith('OPNAME')) {
+      return printOpnameWorksheet(data);
+    }
+    if (data.title?.includes('TMS') || data.no_order?.startsWith('TRIP')) {
+      return printTmsTripManifest(data);
+    }
+    return printGatePassReceipt(data);
+  }
+
   return {
     isConnected,
     isPrinting,
@@ -514,7 +605,10 @@ export function useThermalPrinter() {
     printGatePassReceipt,
     printSuratJalanSwap,
     printWaybillReceipt,
-    printWeighbridgeReceipt
+    printWeighbridgeReceipt,
+    printOpnameWorksheet,
+    printTmsTripManifest,
+    printGenericReceipt
   };
 }
 

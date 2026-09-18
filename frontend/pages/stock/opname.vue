@@ -236,16 +236,27 @@
             </p>
           </div>
 
-          <ThermalPrintButton
-            :data="{
-              title: 'LEMBAR KERJA STOCK OPNAME',
-              no_order: currentSession.opname_number,
-              petugas: currentSession.created_by_name,
-              tujuan: currentSession.warehouse_name,
-              items: currentSession.items?.map(i => ({ nama: i.sku_code, qty: i.physical_qty + ' ' + i.unit })) || []
-            }"
-            label="Cetak Lembar Kerja"
-          />
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              @click="printWorksheetA4"
+              class="px-3 py-2 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow-2xs cursor-pointer"
+            >
+              <AppIcon name="printer" custom-class="w-3.5 h-3.5" />
+              <span>Cetak Lembar A4</span>
+            </button>
+            <ThermalPrintButton
+              :receipt-data="{
+                title: 'LEMBAR KERJA STOCK OPNAME',
+                no_order: currentSession.opname_number,
+                petugas: currentSession.created_by_name,
+                tujuan: currentSession.warehouse_name,
+                items: currentSession.items?.map(i => ({ nama: i.sku_code + ' - ' + i.product_name, qty: (i.physical_qty != null ? i.physical_qty : i.system_qty) + ' ' + (i.unit || 'UNIT') })) || []
+              }"
+              receipt-type="OPNAME"
+              label="Cetak Struk Thermal"
+            />
+          </div>
         </div>
 
         <div class="p-4 overflow-y-auto flex-1">
@@ -461,7 +472,34 @@ async function reconcileSession(sessionId) {
   }
 }
 
+function printWorksheetA4() {
+  if (typeof window !== 'undefined') {
+    window.print()
+  }
+}
+
 onMounted(async () => {
   await Promise.all([loadSessions(), loadWarehouses()])
 })
 </script>
+
+<style>
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .fixed.inset-0.z-50,
+  .fixed.inset-0.z-50 * {
+    visibility: visible;
+  }
+  .fixed.inset-0.z-50 {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    background: white !important;
+    color: black !important;
+  }
+}
+</style>

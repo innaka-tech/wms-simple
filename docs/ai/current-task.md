@@ -1,13 +1,89 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** PHASE 4 MASTER REFERENSI & ALERT CENTER COMPLETED (v5.2.0)  
+**Current Status:** ENTERPRISE VISUAL WAREHOUSE RACK DIGITAL TWIN & SMART PUTAWAY SUGGESTION ENGINE (v5.4.0)  
 **Database:** Host PostgreSQL 16 (`wms_simple_db` & `wms_simple_test_db` on `127.0.0.1:5432`, user: `postgres`, pw: `fadh`)  
-**Version:** 5.2.0  
-**Status:** ALL PHASES OF MASTER PLAN FULLY IMPLEMENTED & VERIFIED (28 Vitest Suites, 191/191 Passed, Nuxt 3 Production Build Clean 1.76 MB, Browser Verified)  
+**Version:** 5.4.0  
+**Status:** FULL ENTERPRISE SPATIAL 2D/3D WAREHOUSE RACK SYSTEM & SMART PUTAWAY ENGINE DEPLOYED (28 Vitest Suites, 192/192 Passed)  
 
 ---
 
-## 0. Sesi 2026-09-15 (Eksekusi Fase 4 Master Plan & UI Redesign v5.2.0):
+## 0. Sesi 2026-09-18 (Enterprise Visual Rack Digital Twin & Smart Putaway Engine v5.4.0):
+
+1. [x] **Resolusi Bug Data SKU Inbound & Putaway:**
+   - Memperbaiki `GET /api/inbound` di `backend/src/routes/inbound.ts` dengan subquery `json_agg` untuk menyertakan daftar `items` (SKU, nama produk, penerimaan dock, status alokasi rak).
+   - Menghilangkan bug "Total: 0 SKU barang fisik diterima di dock" pada `/inbound/putaway`.
+2. [x] **Topologi Rak Multi-Zona Realistis (Database Seeding):**
+   - Mengisi 22 bin/slot realistis di Gudang Utama Jakarta Hub (`WH-JKT-01`):
+     - **Zona A (Dry / Sembako / Karton):** Aisle 01 & 02, Rak 01 & 02, Tingkat A (Ground), B (Mid), C (Top).
+     - **Zona B (Heavy Floor Staging & Bulky Area):** Aisle 01 & 02, Rak 01 (Bin A & B) kapasitas 5.000 KG untuk jumbo bag 1 ton.
+     - **Zona C (Cold Storage Room Chiller -2°C s/d +4°C):** Aisle 01, Rak 01 & 02 (Bin A & B) untuk komoditas pertanian segar & susu KDMP.
+     - **Zona D (Cross-Dock & Fast-Moving Transit):** Aisle 01, Rak 01 (Bin A & B) kapasitas 4.000 KG.
+3. [x] **Komponen Visualisasi Denah Spasial Rak (`WarehouseRackVisualizer.vue`):**
+   - Visualisasi rak bertingkat (Bay & Tier) 2D/Spasial berdasar Zona Fisik -> Lorong (Aisle) -> Kolom (Bay) -> Slot (Bin).
+   - Indikator status okupansi real-time: 🟢 Tersedia (Kosong), 🟡 Terisi Sebagian, 🔴 Penuh.
+   - Gauge kapasitas berat maksimum (kg/ton) dan nama SKU yang sedang disimpan.
+   - Efek suara interaktif & feedback haptik saat pemilihan slot rak fisik.
+4. [x] **Konsol Manajemen Denah Spasial Rak Terpusat (`/master/racks`):**
+   - Halaman `frontend/pages/master/racks.vue` sebagai Digital Twin spasial gudang.
+   - Metric dashboard: Total Slot Aktif, Lorong & Bay, Kapasitas Total (Tonase), Tingkat Okupansi (%).
+   - Fitur Batch Generator Rak Massal (`POST /api/warehouses/:id/locations/batch`) untuk ekspansi lorong/bay tanpa input manual satu per satu.
+   - Filter pencarian kode bin atau SKU tersimpan secara instan.
+   - Pendaftaran menu di sidebar `frontend/stores/auth.ts` di bawah Master Data.
+5. [x] **Smart Putaway Suggestion Engine di Alokasi Rak (`/inbound/putaway`):**
+   - Rekomendasi lokasi otomatis cerdas:
+     - Barang dingin/KDMP $\to$ Zona C (Cold Storage Chiller).
+     - Barang berat/1 Ton Jumbo Bag $\to$ Zona B (Heavy Duty Floor Staging).
+     - Sembako/Dry Goods $\to$ Zona A Tier B/A (Pallet Rack).
+   - Tombol satu klik "Gunakan Rekomendasi" dan tombol "🗺️ Buka Denah Visual Rak" yang memicu Interactive Visual Bin Picker Modal.
+6. [x] **Tautan Cepat dari Master Gudang (`/master/warehouses`):**
+   - Tombol "🗺️ Denah Spasial Rak" di setiap kartu gudang untuk lompat langsung ke denah visual.
+7. [x] **Verifikasi Mutu & Kualitas:**
+   - Vitest backend: 28 test suites, 192 passed (100% pass rate).
+   - Pengujian visual browser subagent terverifikasi mulus pada kedua halaman.
+
+---
+
+## 1. Sesi 2026-09-18 (Resolusi 11 Temuan UAT Lapangan & Action Plan v5.3.0):
+
+1. [x] **Menu Inbound Terputus & Halaman Putaway Mandiri (`/inbound/putaway`):**
+   - Submenu "Putaway (Penempatan Rak)" didaftarkan di `frontend/stores/auth.ts` di bawah menu Inbound.
+   - Halaman `frontend/pages/inbound/putaway.vue` dibuat lengkap dengan tab "Menunggu Putaway" vs "Selesai", pemilihan rak/lokasi gudang, pembagian cross-dock vs storage, dan konfirmasi SweetAlert2.
+   - Shortcut akses cepat Putaway ditambahkan ke dashboard `frontend/pages/index.vue`.
+2. [x] **Double-Putaway Inbound Guard:**
+   - Proteksi backend di `POST /api/inbound/:id/putaway`: menolak status `PUTAWAY_COMPLETED` (409 Conflict) dan non-`RECEIVED` (400) untuk mencegah mutasi saldo ganda.
+   - Halaman `/inbound/receive` diperbarui: tombol putaway dihilangkan jika PO berstatus `PUTAWAY_COMPLETED` dan digantikan lencana hijau serta link ke `/inbound/putaway`.
+3. [x] **Unfreezing Outbound Picking Confirmation:**
+   - Perbaikan `syncFeedback()` di `frontend/pages/outbound/index.vue` untuk memeriksa `outboundStore.errorMessage`.
+   - Alert interaktif merah di dalam modal dan tampilan stok on-hand gudang secara real-time.
+4. [x] **Perbaikan Cetak Lembar Kerja Stock Opname & TMS Trip:**
+   - Normalisasi prop `ThermalPrintButton.vue` mendukung `:receipt-data` dan `:data` sekaligus.
+   - Handler cetak lembar kerja opname (`printOpnameWorksheet`) dan TMS trip (`printTmsTripManifest`) di `frontend/composables/useThermalPrinter.ts`.
+   - Tombol cetak browser format A4 (`window.print()`) dengan CSS print layout di `frontend/pages/stock/opname.vue`.
+5. [x] **Sequence Format Dokumen Stock Opname:**
+   - Penomoran sesi opname berformat `OPNAME{whCode}{YYYYMMDD}{seq}` di `backend/src/routes/stock.ts`.
+6. [x] **Standardisasi Istilah: "Role (RBAC)":**
+   - Mengganti seluruh kata "Peran" menjadi "Role (RBAC)" pada formulir, subtitle, dan middleware otentikasi.
+7. [x] **Soft-Deactivate & Hapus Master Warehouse & SKU:**
+   - Endpoint `DELETE /api/warehouses/:id` dan `DELETE /api/products/:id` dengan audit integritas relasi: jika entitas memiliki riwayat transaksi/ledger, sistem mengubah `is_active = false`, menolak jika ada stok aktif, atau hard-delete jika bersih.
+   - Tombol "Hapus / Nonaktifkan" dengan dialog konfirmasi SweetAlert2 di `master/warehouses.vue` dan `master/products.vue`.
+8. [x] **Auto-Generate Kode Customer:**
+   - Auto-generate kode `CUST001`, `CUST002` dan tombol generate di `frontend/pages/master/customers.vue`.
+9. [x] **Klarifikasi Jam Sistem vs Jam Input (Audit Trail Compliance):**
+   - Penegasan audit trail kepatuhan OWASP A04 dan Dokumen 07: seluruh stempel mutasi fisik wajib `CURRENT_TIMESTAMP`, sedangkan perencanaan menggunakan input tanggal manual.
+10. [x] **Validasi Kuantitas e-POD & Fleksibilitas Serah Terima:**
+    - Kuantitas fisik diterima (`delivered_qty`) dibatasi `:max="orderTotalQty"` dengan validasi backend $> 0$ dan $\le$ total pesanan.
+    - Pilihan metode serah terima: Tanda Tangan Kanvas Digital vs Diwakilkan / Pos Satpam / Stempel Toko.
+    - Toggle pencatatan kerusakan/selisih barang fisik dan integrasi catatan ke checkpoint.
+11. [x] **Validasi Nilai Faktur & Pelunasan Billing:**
+    - Input nominal faktur di `frontend/pages/billing/index.vue` wajib diisi ($> 0$), dilengkapi tombol "Auto Estimasi".
+    - Backend menolak pembayaran jika faktur bernilai Rp 0 atau tidak valid.
+12. [x] **Verifikasi Mutu & Rangkaian Pengujian:**
+    - Vitest backend: 28 test suites, 192 tests passing (100% pass rate).
+    - Frontend build: Nuxt 3 production build clean (1.77 MB).
+
+---
+
+## 1. Sesi 2026-09-15 (Eksekusi Fase 4 Master Plan & UI Redesign v5.2.0):
 
 1. [x] **Konsol Master Referensi Sistem Terpadu (`/master/references`):**
    - **Backend API Master Data CRUD:**

@@ -95,6 +95,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'],
     children: [
       { name: 'Receiving (Penerimaan Dock)', path: '/inbound/receive', icon: 'inbound', code: 'inbound', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Putaway (Penempatan Rak)', path: '/inbound/putaway', icon: 'warehouse', code: 'putaway', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
       { name: 'Cross-Dock Antar-Gudang', path: '/crossdock', icon: 'debulking', code: 'crossdock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
     ]
   },
@@ -149,7 +150,8 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'],
     children: [
       { name: 'Barang (SKU)', path: '/master/products', icon: 'box', code: 'master_products', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
-      { name: 'Gudang & Rak', path: '/master/warehouses', icon: 'warehouse', code: 'master_warehouses', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
+      { name: 'Gudang & Fasilitas', path: '/master/warehouses', icon: 'warehouse', code: 'master_warehouses', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
+      { name: 'Denah & Tata Letak Rak', path: '/master/racks', icon: 'warehouse', code: 'master_racks', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
       { name: 'Customer & Vendor', path: '/master/customers', icon: 'users', code: 'master_customers', roles: ['SUPER_ADMIN', 'ADMIN_ADM'] },
       { name: 'Armada Pool', path: '/master/fleet', icon: 'truck', code: 'master_fleet', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
       { name: 'Master Referensi', path: '/master/references', icon: 'warehouse', code: 'master_references', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },

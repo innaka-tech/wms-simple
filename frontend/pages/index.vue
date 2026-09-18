@@ -189,6 +189,7 @@ const alurOperasional = computed(() => [
 const daftarModul = computed(() => {
   const all = [
     { to: '/inbound/receive', label: 'Receiving (Penerimaan Dock)', hint: 'Fase 1 · scan & tally kedatangan', dot: 'bg-teal-400', badge: inboundAktif.value || '', access: 'inbound' },
+    { to: '/inbound/putaway', label: 'Putaway (Penempatan Rak)', hint: 'Fase 1 · alokasi rak penyimpanan', dot: 'bg-emerald-400', badge: '', access: 'inbound' },
     { to: '/debulking', label: 'Debulking & Repacking', hint: 'Fase 2 · konversi kemasan curah', dot: 'bg-amber-400', badge: repackAktif.value || '', access: 'debulking' },
     { to: '/outbound', label: 'Delivery Order & Surat Jalan', hint: 'Fase 3 · DO, SJ + resi semua jalur', dot: 'bg-sky-400', badge: siapKirim.value || '', access: 'outbound_orders' },
     { to: '/waybills', label: 'Surat Jalan & Resi', hint: 'Fase 3 · semua dokumen keluar', dot: 'bg-sky-400', badge: '', access: 'waybills' },

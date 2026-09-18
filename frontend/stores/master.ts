@@ -105,6 +105,38 @@ export const useMasterStore = defineStore('master', {
       finally { this.isLoading = false; }
     },
 
+    async deleteWarehouse(id: string) {
+      this.isLoading = true; this._reset();
+      try {
+        const res = await useWmsApi().apiFetch(`/warehouses/${id}`, { method: 'DELETE' });
+        if (this._apply(res, res.message || 'Gudang berhasil dihapus/dinonaktifkan')) {
+          await this.fetchWarehouses();
+          return true;
+        }
+        return false;
+      } catch (err: any) {
+        return this._err(err, 'Gagal menghapus gudang');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async deleteProduct(id: string) {
+      this.isLoading = true; this._reset();
+      try {
+        const res = await useWmsApi().apiFetch(`/products/${id}`, { method: 'DELETE' });
+        if (this._apply(res, res.message || 'Barang berhasil dihapus/dinonaktifkan')) {
+          await this.fetchProducts();
+          return true;
+        }
+        return false;
+      } catch (err: any) {
+        return this._err(err, 'Gagal menghapus barang');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
     async createLocation(warehouseId: string, payload: any) {
       this.isLoading = true; this._reset();
       try {

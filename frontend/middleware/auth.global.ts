@@ -21,7 +21,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
   // Verify RBAC access for the requested route
   if (!authStore.canAccessRoute(to.path)) {
     console.warn(`[RBAC Guard] Access Denied: User role '${authStore.user?.role}' is not authorized for route '${to.path}'`);
-    authStore.errorMessage = `Akses Ditolak: Peran '${authStore.roleLabel}' tidak memiliki izin untuk membuka halaman tersebut.`;
+    authStore.errorMessage = `Akses Ditolak: Role '${authStore.roleLabel}' tidak memiliki izin untuk membuka halaman tersebut.`;
     return navigateTo('/');
   }
 });

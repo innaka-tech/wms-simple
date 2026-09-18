@@ -390,7 +390,43 @@ stockRoutes.post('/opname', optionalAuth, async (c) => {
   const actor_id = user?.id || null;
   const actor_role = user?.role || 'WH_STAFF';
 
-  const opnameNumber = generateDocumentNumber('OPNAME', 6);
+  // Format penomoran berurut: OPNAME + KODE_GUDANG + YYYYMMDD + SEQ (Contoh: OPNAMEWHJKT0120260918001)
+  let whCode = 'WH';
+  try {
+    const whRes = await query(`SELECT code FROM warehouses WHERE id = $1`, [warehouse_id]);
+    if (whRes?.rows?.[0]?.code) {
+      whCode = whRes.rows[0].code.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    }
+  } catch {
+    whCode = 'WH';
+  }
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+
+  let nextSeq = '001';
+  try {
+    const countRes = await query(
+      `SELECT COUNT(*) as count FROM stock_opname_sessions 
+       WHERE warehouse_id = $1 AND opname_number LIKE $2`,
+      [warehouse_id, `OPNAME${whCode}${dateStr}%`]
+    );
+    if (countRes?.rows?.[0]?.count != null) {
+      nextSeq = String(Number(countRes.rows[0].count) + 1).padStart(3, '0');
+    }
+  } catch {
+    nextSeq = '001';
+  }
+  let opnameNumber = `OPNAME${whCode}${dateStr}${nextSeq}`;
+
+  // Pastikan unik jika ada collision
+  try {
+    for (let i = 1; i <= 5; i++) {
+      const dup = await query(`SELECT 1 FROM stock_opname_sessions WHERE opname_number = $1`, [opnameNumber]);
+      if (!dup?.rows || dup.rows.length === 0) break;
+      opnameNumber = `OPNAME${whCode}${dateStr}${String(Number(nextSeq) + i).padStart(3, '0')}`;
+    }
+  } catch {
+    // fallback
+  }
 
   const client = await pool.connect();
   try {

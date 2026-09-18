@@ -46,12 +46,14 @@ outboundRoutes.get('/:id', async (c) => {
 
   const itemsRes = await query(
     `SELECT oi.*, p.sku_code, p.name AS product_name, p.default_uom_id AS unit, p.weight_kg_per_unit AS weight_kg,
-            wl.zone, wl.aisle, wl.rack, wl.bin
+            wl.zone, wl.aisle, wl.rack, wl.bin,
+            COALESCE(sl.qty_on_hand, 0) AS stock_on_hand
      FROM outbound_items oi
      JOIN products p ON oi.product_id = p.id
      LEFT JOIN warehouse_locations wl ON oi.location_id = wl.id
+     LEFT JOIN stock_levels sl ON sl.product_id = oi.product_id AND sl.warehouse_id = $2
      WHERE oi.outbound_order_id = $1`,
-    [id]
+    [id, orderRes.rows[0].warehouse_id]
   );
 
   const pkgRes = await query(
@@ -360,14 +362,24 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
   const user = c.get('user' as any) as UserTokenPayload | undefined;
   const id = c.req.param('id');
   const body = await c.req.json();
-  const { recipient_name, pod_photo_url, signature_photo_url, delivered_qty, notes, actor_name: bodyActorName, actor_id: bodyActorId } = body;
+  const { recipient_name, pod_photo_url, signature_photo_url, delivered_qty, notes, actor_name: bodyActorName, actor_id: bodyActorId, proof_type, discrepancy_notes } = body;
 
   const actor_name = (user?.full_name || bodyActorName || 'Driver Ekspedisi').trim();
   const actor_id = user?.id || bodyActorId;
   const actor_role = user?.role || 'DRIVER';
 
-  if (!pod_photo_url || !signature_photo_url) {
+  if (!pod_photo_url) {
+    return c.json({ success: false, message: 'Foto serah terima fisik wajib diunggah' }, 400);
+  }
+
+  const isRepresentative = proof_type === 'REPRESENTATIVE' || body.is_representative;
+  const finalSignature = signature_photo_url || (isRepresentative ? 'DIWAKILKAN_STEMPEL_POS' : '');
+  if (!finalSignature) {
     return c.json({ success: false, message: 'Foto serah terima fisik dan TTD penerima wajib diunggah' }, 400);
+  }
+
+  if (delivered_qty !== undefined && delivered_qty !== null && Number(delivered_qty) <= 0) {
+    return c.json({ success: false, message: 'Jumlah barang diterima (delivered qty) harus lebih dari 0' }, 400);
   }
 
   const orderRes = await query(`SELECT * FROM outbound_orders WHERE id = $1`, [id]);
@@ -402,7 +414,7 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
         id, outbound_order_id, pod_number, recipient_name, pod_photo_url,
         signature_photo_url, delivered_qty, status
       ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, 'ACCEPTED')`,
-      [id, podNumber, recipient_name || order.recipient_name, pod_photo_url, signature_photo_url, delivered_qty || 1]
+      [id, podNumber, recipient_name || order.recipient_name, pod_photo_url, finalSignature, delivered_qty || 1]
     );
 
     // docs/09 v3.2.0 FASE 3: kartu stok jadi DALAM PERJALANAN saat barang berangkat.
@@ -410,6 +422,14 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
     // sudah keluar rak sejak picking, sekarang resmi dalam pengiriman).
     // Fallback: tanpa packed_qty (order lama), pakai picked_qty agar ledger tetap konsisten.
     const itemsShipRes = await client.query(`SELECT product_id, packed_qty, picked_qty FROM outbound_items WHERE outbound_order_id = $1`, [id]);
+
+    const totalOrdered = itemsShipRes.rows.reduce((sum: number, it: any) => sum + (Number(it.packed_qty) || Number(it.picked_qty) || 0), 0);
+    const numDelivered = Number(delivered_qty);
+    if (totalOrdered > 0 && numDelivered > 0 && numDelivered > totalOrdered) {
+      await client.query('ROLLBACK');
+      return c.json({ success: false, message: `Jumlah fisik diterima (${numDelivered}) tidak boleh melebihi jumlah pesanan (${totalOrdered})` }, 400);
+    }
+
     for (const item of itemsShipRes.rows) {
       const shipQty = Number(item.packed_qty) > 0 ? Number(item.packed_qty) : (Number(item.picked_qty) > 0 ? Number(item.picked_qty) : null);
       if (!shipQty) continue;
@@ -435,6 +455,12 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
 
     await client.query('COMMIT');
 
+    const combinedNotes = [
+      notes || `Diterima oleh ${recipient_name || order.recipient_name}`,
+      discrepancy_notes ? `[SELISIH/KERUSAKAN]: ${discrepancy_notes}` : null,
+      isRepresentative ? '[METODE]: Diwakilkan / Pos Satpam' : null
+    ].filter(Boolean).join(' • ');
+
     // Record Checkpoint 4 (Delivered)
     await recordCheckpoint({
       entity_type: 'OUTBOUND_ORDER',
@@ -445,8 +471,8 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
       actor_id: actor_id || null,
       actor_name: actor_name,
       actor_role: actor_role,
-      notes: notes || `Diterima oleh ${recipient_name || order.recipient_name}`,
-      photo_urls: [pod_photo_url, signature_photo_url]
+      notes: combinedNotes,
+      photo_urls: [pod_photo_url, finalSignature]
     });
 
     return c.json({ success: true, message: 'POD submitted successfully' });

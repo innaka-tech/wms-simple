@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useThermalPrinter } from '~/composables/useThermalPrinter'
 
 const props = defineProps({
@@ -23,25 +23,55 @@ const props = defineProps({
   },
   receiptData: {
     type: Object,
-    required: true
+    default: null
+  },
+  data: {
+    type: Object,
+    default: null
   },
   receiptType: {
     type: String,
-    default: 'GATE_PASS'
+    default: 'AUTO'
   }
 })
 
 const emit = defineEmits(['printed'])
 
-const { isPrinting, printGatePassReceipt, printSuratJalanSwap } = useThermalPrinter()
+const {
+  isPrinting,
+  printGatePassReceipt,
+  printSuratJalanSwap,
+  printWaybillReceipt,
+  printWeighbridgeReceipt,
+  printOpnameWorksheet,
+  printTmsTripManifest,
+  printGenericReceipt
+} = useThermalPrinter()
+
 const justPrinted = ref(false)
 
+const payload = computed(() => props.receiptData || props.data || {})
+
 async function triggerPrint() {
-  if (props.receiptType === 'GATE_PASS') {
-    await printGatePassReceipt(props.receiptData)
-  } else if (props.receiptType === 'SURAT_JALAN_SWAP') {
-    await printSuratJalanSwap(props.receiptData)
+  const d = payload.value
+  const t = props.receiptType
+
+  if (t === 'OPNAME' || d.title?.includes('OPNAME') || d.no_order?.startsWith('OPNAME')) {
+    await printOpnameWorksheet(d)
+  } else if (t === 'TMS_TRIP' || d.title?.includes('TMS') || d.no_order?.startsWith('TRIP')) {
+    await printTmsTripManifest(d)
+  } else if (t === 'SURAT_JALAN_SWAP') {
+    await printSuratJalanSwap(d)
+  } else if (t === 'WAYBILL') {
+    await printWaybillReceipt(d)
+  } else if (t === 'WEIGHBRIDGE') {
+    await printWeighbridgeReceipt(d)
+  } else if (t === 'GATE_PASS') {
+    await printGatePassReceipt(d)
+  } else {
+    await printGenericReceipt(props.label, d)
   }
+
   justPrinted.value = true
   emit('printed')
   setTimeout(() => {
