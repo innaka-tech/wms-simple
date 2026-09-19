@@ -5,6 +5,33 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [5.4.2] - 2026-09-19
+
+### Changed
+- **Redesain Antarmuka Surat Jalan & Resi (`/waybills`):**
+  - Mengganti layout dasar lawas yang terbatas `max-w-6xl` dengan **Enterprise Unified Header Card** yang konsisten dengan modul TMS, Billing, dan e-POD.
+  - Menambahkan **4 Kartu Metrik Pastel** interaktif: Total Surat Jalan, Baru Diterbitkan (ISSUED / Siap Berangkat), Dalam Perjalanan (IN_TRANSIT / En-Route), dan Selesai Serah Terima (POD_VERIFIED).
+  - Menambahkan **Bilah Filter Tab Status Interaktif** (`SEMUA`, `ISSUED`, `PRINTED`, `IN_TRANSIT`, `POD_VERIFIED`, `VOID`) lengkap dengan indikator badge counter real-time.
+  - Mengintegrasikan **Pencarian Cepat & Barcode Scanner Otomatis (`useBarcodeScanner`)** untuk pencarian nomor SJ, nomor resi, nomor order, nama penerima, atau kota tujuan.
+  - Memperbarui tabel data dengan badge mono resmi, penyalinan nomor dokumen 1-klik (`copyText`), cetak struk thermal kasir/driver langsung (`useThermalPrinter`), link audit trail rantai checkpoint, serta tombol pintas operasional kontekstual (`Gate Pass ➔`, `e-POD ➔`, `Billing ➔`).
+  - Menambahkan dukungan ikon SVG lengkap pada `frontend/components/AppIcon.vue` (`clock`, `navigation`, `check-circle`, `alert-triangle`, `copy`, `arrow-right`, `map-pin`, `x`, `refresh-cw`).
+
+## [5.4.1] - 2026-09-19
+
+### Fixed
+- **Penguncian Otomatis Qty Diterima Fisik pada e-POD (`/outbound/pod`):**
+  - Mengunci input `deliveredQtyInput` secara *read-only* dengan nilai bawaan sesuai total order Surat Jalan (`orderTotalQty`) untuk mencegah *free entry* dan salah ketik saat serah terima kargo normal.
+  - Membuka hak edit kolom kuantitas secara kondisional hanya bila petugas/driver mencentang opsi *"Ada Selisih Fisik / Kerusakan Barang"*.
+  - Mewajibkan pengisian catatan selisih (`discrepancyNotes`) bila opsi selisih diaktifkan sebelum BAST digital dapat dikirim.
+  - Memproteksi formulir serah terima (foto, nama penerima, TTD, submit BAST) dengan status `disabled` apabila dokumen Surat Jalan / nomor order belum dimuat (`!matchedOrder`).
+- **Penyambungan Rantai Alur Operasional End-to-End (Outbound → Gate Pass → e-POD → Billing):**
+  - **Daftar Kargo Siap POD (`/outbound/pod`):** Menambahkan panel *quick-pick* pesanan aktif dalam pengiriman (`SHIPPED`) sehingga pengemudi/petugas cukup 1-klik untuk memuat formulir e-POD tanpa perlu mengetik manual nomor pesanan.
+  - **Shortcut Pasca Verifikasi POD ke Billing (`/outbound/pod`):** Menyediakan tombol tindakan langsung `[ 📄 Lanjutkan ke Menu Billing & Buat Faktur ➔ ]` setelah BAST digital di-ACC.
+  - **Auto-Highlight & Pre-Select Faktur (`/billing`):** Menangkap parameter `?order=...` untuk langsung menyorot kartu order yang baru diverifikasi dan mengisi estimasi nominal tagihan secara otomatis.
+  - **Shortcut Antara Outbound & Gate Pass (`/outbound`):** Menyediakan tautan cepat `[ 🚚 Pos Satpam (Gate Pass) ➔ ]` pada order yang telah menerbitkan Surat Jalan, dan `[ ✍️ Serah Terima (e-POD) ➔ ]` saat kargo sedang di jalan (`SHIPPED`).
+  - **Tautan Cepat Pasca Gate Out (`/gate-pass`):** Menambahkan tombol langsung `[ Buka e-POD ➔ ]` pada banner keberangkatan armada pool dan truk vendor.
+  - **Aset Ikon:** Menambahkan ikon `file-text` pada `frontend/components/AppIcon.vue` untuk standarisasi representasi visual dokumen faktur/billing.
+
 ## [5.4.0] - 2026-09-18
 
 ### Added

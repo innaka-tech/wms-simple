@@ -72,9 +72,16 @@
         Order Siap Dibilling (POD Terverifikasi · billing_ready)
       </h3>
       <div v-if="readyToBill.length === 0" class="p-4 text-center text-xs text-slate-400 font-mono">Tidak ada order menunggu invoicing.</div>
-      <div v-for="order in readyToBill" :key="order.id" class="flex flex-col md:flex-row md:items-center gap-3 p-3 rounded-md border border-slate-100 dark:border-slate-800">
+      <div v-for="order in readyToBill" :key="order.id" 
+           class="flex flex-col md:flex-row md:items-center gap-3 p-3 rounded-md border transition-all"
+           :class="route.query.order === order.order_number ? 'border-purple-400 dark:border-purple-600 bg-purple-50/40 dark:bg-purple-950/20 ring-1 ring-purple-400 shadow-2xs' : 'border-slate-100 dark:border-slate-800'">
         <div class="flex-1 min-w-0">
-          <p class="text-xs font-mono font-bold text-slate-900 dark:text-white">{{ order.order_number }}</p>
+          <div class="flex items-center gap-2">
+            <p class="text-xs font-mono font-bold text-slate-900 dark:text-white">{{ order.order_number }}</p>
+            <span v-if="route.query.order === order.order_number" class="text-[10px] px-1.5 py-0.2 rounded font-semibold bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
+              Baru Diverifikasi POD
+            </span>
+          </div>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ order.recipient_name }} • {{ order.customer_name }}</p>
         </div>
         <div class="flex items-center gap-2 w-full md:w-auto">
@@ -186,10 +193,12 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { useBillingStore } from '~/stores/billing'
 import { useOutboundStore } from '~/stores/outbound'
 import { useAuthStore } from '~/stores/auth'
 
+const route = useRoute()
 const billingStore = useBillingStore()
 const outboundStore = useOutboundStore()
 const authStore = useAuthStore()
@@ -256,5 +265,12 @@ function loadInvoices() {
 
 onMounted(async () => {
   await Promise.all([loadInvoices(), outboundStore.fetchOrders()])
+  if (route.query.order) {
+    const targetOrder = readyToBill.value.find(o => o.order_number === route.query.order)
+    if (targetOrder) {
+      autoFillAmount(targetOrder)
+      billingStore.successMessage = `Order ${targetOrder.order_number} berhasil dimuat dari verifikasi POD. Estimasi tagihan telah diisi otomatis.`
+    }
+  }
 })
 </script>
