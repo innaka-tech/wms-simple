@@ -1,13 +1,29 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** E-POD QUANTITY LOCK & CONDITIONAL DISCREPANCY FLOW (v5.4.1)  
+**Current Status:** WAYBILLS ENTERPRISE REDESIGN & DESIGN CONSISTENCY (v5.4.2)  
 **Database:** Host PostgreSQL 16 (`wms_simple_db` & `wms_simple_test_db` on `127.0.0.1:5432`, user: `postgres`, pw: `fadh`)  
-**Version:** 5.4.1  
+**Version:** 5.4.2  
 **Status:** ALL TESTS PASSING (28 Vitest Suites, 192/192 Passed)  
 
 ---
 
-## 0. Sesi 2026-09-19 (Penguncian Qty Fisik e-POD & Proteksi Dokumen Order v5.4.1):
+## 0. Sesi 2026-09-19 (Redesain Konsistensi Antarmuka Surat Jalan & Resi v5.4.2):
+
+1. [x] **Redesain Antarmuka Surat Jalan & Resi (`frontend/pages/waybills/index.vue`):**
+   - Mengganti layout lawas terisolasi `max-w-6xl` dengan Unified Enterprise Header Card lengkap dengan kicker badge `Fase 3 — Outbound & TMS` dan indikator total dokumen.
+   - Menambahkan 4 Kartu Metrik Pastel: Total Surat Jalan, Baru Diterbitkan (ISSUED), Dalam Perjalanan (IN_TRANSIT), dan Selesai POD (POD_VERIFIED).
+   - Menambahkan Filter Tab Status interaktif (`SEMUA`, `ISSUED`, `PRINTED`, `IN_TRANSIT`, `POD_VERIFIED`, `VOID`) dengan counter badge real-time.
+   - Mengintegrasikan pencarian instan dan `useBarcodeScanner` untuk pemindaian scanner barcode fisik kargo/SJ.
+   - Memperbarui tabel data dengan badge nomor resmi mono, tombol 1-klik salin nomor dokumen, aksi cetak dokumen A4/Continuous, tombol cetak struk thermal kasir/driver (`useThermalPrinter`), link audit trail, dan tombol alur lanjutan (`Gate Pass ➔`, `e-POD ➔`, `Billing ➔`).
+2. [x] **Ekspansi Ikon SVG (`frontend/components/AppIcon.vue`):**
+   - Menambahkan definisi SVG untuk `clock`, `navigation`, `check-circle`, `alert-triangle`, `copy`, `arrow-right`, `map-pin`, `x`, dan `refresh-cw`.
+3. [x] **Verifikasi & Kualitas:**
+   - 28 Vitest test suites, 192/192 tests passed (100%).
+   - Frontend Nuxt dev server terkompilasi bersih tanpa error HMR.
+
+---
+
+## 1. Sesi 2026-09-19 (Penguncian Qty Fisik e-POD & Proteksi Dokumen Order v5.4.1):
 
 1. [x] **Penguncian Otomatis Qty Diterima Fisik (`frontend/pages/outbound/pod.vue`):**
    - Kolom `Qty Diterima Fisik` dikunci menjadi `readonly` secara default dengan nilai persis total pesanan (`orderTotalQty`), menghindari *free entry* dan salah ketik.

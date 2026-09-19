@@ -5,6 +5,17 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [5.4.2] - 2026-09-19
+
+### Changed
+- **Redesain Antarmuka Surat Jalan & Resi (`/waybills`):**
+  - Mengganti layout dasar lawas yang terbatas `max-w-6xl` dengan **Enterprise Unified Header Card** yang konsisten dengan modul TMS, Billing, dan e-POD.
+  - Menambahkan **4 Kartu Metrik Pastel** interaktif: Total Surat Jalan, Baru Diterbitkan (ISSUED / Siap Berangkat), Dalam Perjalanan (IN_TRANSIT / En-Route), dan Selesai Serah Terima (POD_VERIFIED).
+  - Menambahkan **Bilah Filter Tab Status Interaktif** (`SEMUA`, `ISSUED`, `PRINTED`, `IN_TRANSIT`, `POD_VERIFIED`, `VOID`) lengkap dengan indikator badge counter real-time.
+  - Mengintegrasikan **Pencarian Cepat & Barcode Scanner Otomatis (`useBarcodeScanner`)** untuk pencarian nomor SJ, nomor resi, nomor order, nama penerima, atau kota tujuan.
+  - Memperbarui tabel data dengan badge mono resmi, penyalinan nomor dokumen 1-klik (`copyText`), cetak struk thermal kasir/driver langsung (`useThermalPrinter`), link audit trail rantai checkpoint, serta tombol pintas operasional kontekstual (`Gate Pass ➔`, `e-POD ➔`, `Billing ➔`).
+  - Menambahkan dukungan ikon SVG lengkap pada `frontend/components/AppIcon.vue` (`clock`, `navigation`, `check-circle`, `alert-triangle`, `copy`, `arrow-right`, `map-pin`, `x`, `refresh-cw`).
+
 ## [5.4.1] - 2026-09-19
 
 ### Fixed

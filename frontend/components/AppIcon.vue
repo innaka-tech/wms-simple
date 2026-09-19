@@ -161,11 +161,66 @@
       <polyline points="20 6 9 17 4 12"></polyline>
     </g>
 
+    <!-- Check Circle -->
+    <g v-else-if="name === 'check-circle'">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </g>
+
+    <!-- Clock -->
+    <g v-else-if="name === 'clock'">
+      <circle cx="12" cy="12" r="10"></circle>
+      <polyline points="12 6 12 12 16 14"></polyline>
+    </g>
+
+    <!-- Navigation / Direction -->
+    <g v-else-if="name === 'navigation'">
+      <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+    </g>
+
+    <!-- Map Pin -->
+    <g v-else-if="name === 'map-pin'">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+      <circle cx="12" cy="10" r="3"></circle>
+    </g>
+
+    <!-- Copy -->
+    <g v-else-if="name === 'copy'">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </g>
+
+    <!-- Arrow Right -->
+    <g v-else-if="name === 'arrow-right'">
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+      <polyline points="12 5 19 12 12 19"></polyline>
+    </g>
+
+    <!-- X / Close -->
+    <g v-else-if="name === 'x'">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </g>
+
+    <!-- Refresh CW -->
+    <g v-else-if="name === 'refresh-cw'">
+      <polyline points="23 4 23 10 17 10"></polyline>
+      <polyline points="1 20 1 14 7 14"></polyline>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+    </g>
+
     <!-- Alert / Warning -->
     <g v-else-if="name === 'alert'">
       <circle cx="12" cy="12" r="10"></circle>
       <line x1="12" y1="8" x2="12" y2="12"></line>
       <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </g>
+
+    <!-- Alert Triangle -->
+    <g v-else-if="name === 'alert-triangle'">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <line x1="12" y1="9" x2="12" y2="13"></line>
+      <line x1="12" y1="17" x2="12.01" y2="17"></line>
     </g>
 
     <!-- Default generic icon -->
