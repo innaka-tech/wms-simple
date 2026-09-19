@@ -141,6 +141,12 @@
       <line x1="21" y1="12" x2="9" y2="12"></line>
     </g>
 
+    <!-- Lock -->
+    <g v-else-if="name === 'lock'">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </g>
+
     <!-- Check -->
     <g v-else-if="name === 'check'">
       <polyline points="20 6 9 17 4 12"></polyline>

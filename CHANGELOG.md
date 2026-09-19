@@ -5,6 +5,16 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [5.4.1] - 2026-09-19
+
+### Fixed
+- **Penguncian Otomatis Qty Diterima Fisik pada e-POD (`/outbound/pod`):**
+  - Mengunci input `deliveredQtyInput` secara *read-only* dengan nilai bawaan sesuai total order Surat Jalan (`orderTotalQty`) untuk mencegah *free entry* dan salah ketik saat serah terima kargo normal.
+  - Membuka hak edit kolom kuantitas secara kondisional hanya bila petugas/driver mencentang opsi *"Ada Selisih Fisik / Kerusakan Barang"*.
+  - Mewajibkan pengisian catatan selisih (`discrepancyNotes`) bila opsi selisih diaktifkan sebelum BAST digital dapat dikirim.
+  - Memproteksi formulir serah terima (foto, nama penerima, TTD, submit BAST) dengan status `disabled` apabila dokumen Surat Jalan / nomor order belum dimuat (`!matchedOrder`).
+  - Menambahkan badge visual dan ikon `Sesuai SJ (Terkunci)` serta `Mode Selisih Aktif` pada antarmuka input kuantitas.
+
 ## [5.4.0] - 2026-09-18
 
 ### Added

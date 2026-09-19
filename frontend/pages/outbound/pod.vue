@@ -204,11 +204,12 @@
           <input ref="photoInput" type="file" accept="image/*" capture="environment" class="hidden" @change="onPhotoCaptured" />
           <button 
             type="button" 
+            :disabled="!matchedOrder"
             @click="$refs.photoInput.click()"
-            class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-md transition cursor-pointer shadow-2xs flex items-center justify-center space-x-1.5 mx-auto"
+            class="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-semibold rounded-md transition cursor-pointer shadow-2xs flex items-center justify-center space-x-1.5 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <AppIcon :name="photoDataUrl ? 'refresh' : 'camera'" custom-class="w-3.5 h-3.5" />
-            <span>{{ photoDataUrl ? 'Ambil Ulang Foto' : 'Ambil Foto Serah Terima' }}</span>
+            <span>{{ !matchedOrder ? 'Cari Nomor Order Terlebih Dahulu' : (photoDataUrl ? 'Ambil Ulang Foto' : 'Ambil Foto Serah Terima') }}</span>
           </button>
         </div>
 
@@ -236,13 +237,13 @@
         </div>
 
         <!-- Mode Pemenuhan BAST -->
-        <div class="flex gap-4 items-center bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-200 dark:border-slate-800">
+        <div class="flex gap-4 items-center bg-slate-50 dark:bg-slate-950 p-2.5 rounded-md border border-slate-200 dark:border-slate-800" :class="{ 'opacity-60': !matchedOrder }">
           <label class="flex items-center space-x-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300">
-            <input type="radio" value="SIGNATURE" v-model="proofMethod" class="text-slate-900 dark:text-slate-100" />
+            <input type="radio" value="SIGNATURE" v-model="proofMethod" :disabled="!matchedOrder" class="text-slate-900 dark:text-slate-100" />
             <span>Tanda Tangan Kanvas Digital</span>
           </label>
           <label class="flex items-center space-x-2 cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-300">
-            <input type="radio" value="REPRESENTATIVE" v-model="proofMethod" class="text-slate-900 dark:text-slate-100" />
+            <input type="radio" value="REPRESENTATIVE" v-model="proofMethod" :disabled="!matchedOrder" class="text-slate-900 dark:text-slate-100" />
             <span>Diwakilkan / Pos Satpam / Stempel Toko</span>
           </label>
         </div>
@@ -267,39 +268,78 @@
             <input 
               v-model="recipientName" 
               type="text" 
+              :disabled="!matchedOrder"
               required
-              placeholder="Contoh: Bpk. Suparman / Satpam Pos 1"
-              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none"
+              :placeholder="!matchedOrder ? 'Cari order terlebih dahulu' : 'Contoh: Bpk. Suparman / Satpam Pos 1'"
+              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
           <div class="space-y-1.5">
             <div class="flex justify-between items-center">
-              <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">Qty Diterima Fisik:</label>
+              <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <span>Qty Diterima Fisik:</span>
+                <span v-if="matchedOrder && !hasDiscrepancy" class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 rounded border border-emerald-200 dark:border-emerald-800">
+                  <AppIcon name="lock" custom-class="w-2.5 h-2.5" /> Sesuai SJ
+                </span>
+                <span v-else-if="matchedOrder && hasDiscrepancy" class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 rounded border border-amber-200 dark:border-amber-800">
+                  Mode Selisih Aktif
+                </span>
+              </label>
               <span v-if="orderTotalQty" class="text-[10px] text-slate-400 font-mono">Max Order: {{ orderTotalQty }}</span>
             </div>
-            <input 
-              v-model.number="deliveredQtyInput" 
-              type="number" 
-              min="1"
-              :max="orderTotalQty || undefined"
-              required
-              placeholder="Qty fisik diterima"
-              class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 dark:text-slate-100 focus:border-slate-900 dark:focus:border-slate-400 focus:outline-none"
-            />
+            <div class="relative">
+              <input 
+                v-model.number="deliveredQtyInput" 
+                type="number" 
+                min="1"
+                :max="orderTotalQty || undefined"
+                :readonly="!hasDiscrepancy || !matchedOrder"
+                :disabled="!matchedOrder"
+                required
+                :placeholder="!matchedOrder ? 'Cari order dulu...' : 'Qty fisik diterima'"
+                :class="[
+                  'w-full rounded-md px-3.5 py-2.5 text-sm font-mono font-bold focus:outline-none transition',
+                  !matchedOrder 
+                    ? 'bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed'
+                    : !hasDiscrepancy 
+                      ? 'bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 cursor-not-allowed select-none' 
+                      : 'bg-amber-50/50 dark:bg-amber-950/30 border-2 border-amber-400 dark:border-amber-600 text-amber-900 dark:text-amber-100 focus:border-amber-500'
+                ]"
+              />
+              <div v-if="matchedOrder && !hasDiscrepancy" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs flex items-center gap-1 pointer-events-none">
+                <AppIcon name="lock" custom-class="w-3.5 h-3.5 text-slate-400" />
+                <span class="text-[10px] font-medium hidden sm:inline text-slate-400">Terkunci</span>
+              </div>
+            </div>
+            <p v-if="!matchedOrder" class="text-[11px] text-slate-400 italic">
+              Nomor order belum dimuat. Cari No. Order / SJ pada pencarian di atas.
+            </p>
+            <p v-else-if="!hasDiscrepancy" class="text-[11px] text-slate-500 dark:text-slate-400">
+              Kuantitas terkunci sesuai Surat Jalan. Centang <strong>"Ada Selisih Fisik"</strong> di bawah jika kargo diterima tidak utuh.
+            </p>
+            <p v-else class="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+              Mode selisih aktif: sesuaikan angka fisik yang benar-benar diterima (maks. {{ orderTotalQty }}).
+            </p>
           </div>
         </div>
 
         <!-- Toggle Selisih Fisik / Kerusakan -->
         <div class="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
-          <label class="flex items-center space-x-2 cursor-pointer">
-            <input type="checkbox" v-model="hasDiscrepancy" class="rounded border-slate-300 text-amber-600 focus:ring-amber-500" />
+          <label class="flex items-center space-x-2 cursor-pointer" :class="{ 'opacity-60 cursor-not-allowed': !matchedOrder }">
+            <input 
+              type="checkbox" 
+              v-model="hasDiscrepancy" 
+              :disabled="!matchedOrder"
+              class="rounded border-slate-300 text-amber-600 focus:ring-amber-500" 
+            />
             <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Ada Selisih Fisik / Kerusakan Barang</span>
           </label>
           <div v-if="hasDiscrepancy" class="space-y-1">
-            <label class="text-[11px] font-medium text-amber-700 dark:text-amber-400">Catatan Selisih / Kerusakan Fisik:</label>
+            <label class="text-[11px] font-medium text-amber-700 dark:text-amber-400">Catatan Selisih / Kerusakan Fisik (wajib):</label>
             <textarea
               v-model="discrepancyNotes"
               rows="2"
+              required
               placeholder="Jelaskan detail barang kurang, cacat, kardus sobek, atau selisih kuantitas..."
               class="w-full bg-amber-50/50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-md p-2.5 text-xs text-slate-900 dark:text-slate-100 focus:outline-none"
             ></textarea>
@@ -310,11 +350,11 @@
         <button 
           type="button" 
           @click="handleSubmitPod"
-          :disabled="outboundStore.isLoading"
-          class="w-full py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 font-semibold rounded-md shadow-xs transition flex items-center justify-center space-x-2 disabled:opacity-50 text-xs sm:text-sm cursor-pointer"
+          :disabled="outboundStore.isLoading || !matchedOrder"
+          class="w-full py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 font-semibold rounded-md shadow-xs transition flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm cursor-pointer"
         >
           <AppIcon name="check" custom-class="w-4 h-4" />
-          <span>{{ outboundStore.isLoading ? 'Menyimpan BAST...' : 'Submit POD & Terbitkan BAST Digital' }}</span>
+          <span>{{ !matchedOrder ? 'Cari Nomor Order Terlebih Dahulu' : (outboundStore.isLoading ? 'Menyimpan BAST...' : 'Submit POD & Terbitkan BAST Digital') }}</span>
         </button>
       </div>
 
@@ -323,7 +363,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import SignaturePad from '~/components/SignaturePad.vue'
 import { useOutboundStore } from '~/stores/outbound'
 import { useWaybillStore } from '~/stores/waybill'
@@ -437,6 +477,8 @@ async function lookupWaybill() {
       if (res.success) {
         matchedOrder.value = res.data
         recipientName.value = matchedOrder.value.recipient_name || ''
+        hasDiscrepancy.value = false
+        discrepancyNotes.value = ''
         const total = orderTotalQty.value
         deliveredQtyInput.value = total > 0 ? total : 1
       }
@@ -446,6 +488,21 @@ async function lookupWaybill() {
     playAudioFeedback('ERROR')
   }
 }
+
+// Auto-sync Qty Diterima Fisik dengan orderTotalQty
+watch(orderTotalQty, (newTotal) => {
+  if (!hasDiscrepancy.value && newTotal > 0) {
+    deliveredQtyInput.value = newTotal
+  }
+})
+
+// Toggle selisih: jika dimatikan, kembalikan ke total pesanan dan bersihkan catatan
+watch(hasDiscrepancy, (val) => {
+  if (!val) {
+    deliveredQtyInput.value = orderTotalQty.value > 0 ? orderTotalQty.value : null
+    discrepancyNotes.value = ''
+  }
+})
 
 async function handleVerify(decision) {
   if (!matchedOrder.value) return
@@ -499,6 +556,11 @@ async function handleSubmitPod() {
   }
   if (!recipientName.value.trim()) {
     outboundStore.errorMessage = 'Nama penerima (consignee) / perwakilan wajib diisi.'
+    playAudioFeedback('ERROR')
+    return
+  }
+  if (hasDiscrepancy.value && !discrepancyNotes.value.trim()) {
+    outboundStore.errorMessage = 'Catatan selisih fisik / kerusakan barang wajib diisi jika opsi selisih dicentang.'
     playAudioFeedback('ERROR')
     return
   }

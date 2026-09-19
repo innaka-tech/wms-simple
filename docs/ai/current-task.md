@@ -1,13 +1,27 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** ENTERPRISE VISUAL WAREHOUSE RACK DIGITAL TWIN & SMART PUTAWAY SUGGESTION ENGINE (v5.4.0)  
+**Current Status:** E-POD QUANTITY LOCK & CONDITIONAL DISCREPANCY FLOW (v5.4.1)  
 **Database:** Host PostgreSQL 16 (`wms_simple_db` & `wms_simple_test_db` on `127.0.0.1:5432`, user: `postgres`, pw: `fadh`)  
-**Version:** 5.4.0  
-**Status:** FULL ENTERPRISE SPATIAL 2D/3D WAREHOUSE RACK SYSTEM & SMART PUTAWAY ENGINE DEPLOYED (28 Vitest Suites, 192/192 Passed)  
+**Version:** 5.4.1  
+**Status:** ALL TESTS PASSING (28 Vitest Suites, 192/192 Passed)  
 
 ---
 
-## 0. Sesi 2026-09-18 (Enterprise Visual Rack Digital Twin & Smart Putaway Engine v5.4.0):
+## 0. Sesi 2026-09-19 (Penguncian Qty Fisik e-POD & Proteksi Dokumen Order v5.4.1):
+
+1. [x] **Penguncian Otomatis Qty Diterima Fisik (`frontend/pages/outbound/pod.vue`):**
+   - Kolom `Qty Diterima Fisik` dikunci menjadi `readonly` secara default dengan nilai persis total pesanan (`orderTotalQty`), menghindari *free entry* dan salah ketik.
+   - Kolom kuantitas hanya dapat diedit bila kotak centang *"Ada Selisih Fisik / Kerusakan Barang"* (`hasDiscrepancy`) dicentang. Jika centang dilepas, angka otomatis kembali ke nilai total pesanan.
+   - Wajib mengisi `discrepancyNotes` jika opsi selisih fisik aktif sebelum BAST digital dapat dikirim.
+2. [x] **Proteksi Sebelum Dokumen Dimuat:**
+   - Seluruh input serah terima (foto, nama penerima, TTD, kuantitas fisik, dan tombol submit) berstatus `disabled` jika nomor order/resi belum dicari/dimuat (`!matchedOrder`).
+3. [x] **Indikator Visual & Ikon Status:**
+   - Ditambahkan ikon `lock` pada `frontend/components/AppIcon.vue`.
+   - Badge visual `Sesuai SJ (Terkunci)` dan `Mode Selisih Aktif` untuk kejelasan status input bagi operator.
+
+---
+
+## 1. Sesi 2026-09-18 (Enterprise Visual Rack Digital Twin & Smart Putaway Engine v5.4.0):
 
 1. [x] **Resolusi Bug Data SKU Inbound & Putaway:**
    - Memperbaiki `GET /api/inbound` di `backend/src/routes/inbound.ts` dengan subquery `json_agg` untuk menyertakan daftar `items` (SKU, nama produk, penerimaan dock, status alokasi rak).
