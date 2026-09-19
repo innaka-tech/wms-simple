@@ -171,6 +171,38 @@
                 <AppIcon name="printer" custom-class="w-3.5 h-3.5" />
                 <span>Cetak SJ</span>
               </NuxtLink>
+
+              <!-- Shortcut Alur Operasional Berikutnya -->
+              <NuxtLink
+                v-if="waybillByOrder[order.id] && order.status === 'PACKED'"
+                to="/gate-pass"
+                class="px-3 py-1.5 rounded-md bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[11px] font-semibold transition flex items-center space-x-1"
+                title="Bawa kargo ke pos satpam untuk izin keluar gerbang (Gate Pass)"
+              >
+                <AppIcon name="truck" custom-class="w-3.5 h-3.5" />
+                <span>Pos Satpam (Gate Pass) ➔</span>
+              </NuxtLink>
+
+              <NuxtLink
+                v-if="order.status === 'SHIPPED'"
+                :to="'/outbound/pod?order=' + order.order_number"
+                class="px-3 py-1.5 rounded-md bg-cyan-50 dark:bg-cyan-900/30 hover:bg-cyan-100 dark:hover:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 text-[11px] font-semibold transition flex items-center space-x-1"
+                title="Isi bukti foto dan tanda tangan penerima kargo di lokasi"
+              >
+                <AppIcon name="pod" custom-class="w-3.5 h-3.5" />
+                <span>Serah Terima (e-POD) ➔</span>
+              </NuxtLink>
+
+              <NuxtLink
+                v-if="order.status === 'POD_VERIFIED' && order.payment_status !== 'PAID'"
+                :to="'/billing?order=' + order.order_number"
+                class="px-3 py-1.5 rounded-md bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-[11px] font-semibold transition flex items-center space-x-1"
+                title="Buka modul penagihan untuk menerbitkan faktur"
+              >
+                <AppIcon name="file-text" custom-class="w-3.5 h-3.5" />
+                <span>Faktur (Billing) ➔</span>
+              </NuxtLink>
+
               <NuxtLink
                 :to="'/checkpoints?doc=' + order.order_number"
                 class="px-3 py-1.5 rounded-md text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"

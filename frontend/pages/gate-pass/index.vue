@@ -8,12 +8,18 @@
       </div>
       <button type="button" @click="gatePassStore.errorMessage = ''" class="font-bold ml-2 text-rose-600 dark:text-rose-400 hover:opacity-80">✕</button>
     </div>
-    <div v-if="gatePassStore.successMessage" class="p-3.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs md:text-sm text-emerald-600 dark:text-emerald-400 flex justify-between items-center shadow-2xs">
+    <div v-if="gatePassStore.successMessage" class="p-3.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs md:text-sm text-emerald-600 dark:text-emerald-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
       <div class="flex items-center space-x-2">
         <AppIcon name="check" custom-class="w-4 h-4 shrink-0" />
         <span class="font-medium">{{ gatePassStore.successMessage }}</span>
       </div>
-      <button type="button" @click="gatePassStore.successMessage = ''" class="font-bold ml-2 text-emerald-600 dark:text-emerald-400 hover:opacity-80">✕</button>
+      <div class="flex items-center space-x-2 shrink-0 self-end sm:self-auto">
+        <NuxtLink to="/outbound/pod" class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition flex items-center space-x-1">
+          <AppIcon name="pod" custom-class="w-3 h-3" />
+          <span>Buka e-POD ➔</span>
+        </NuxtLink>
+        <button type="button" @click="gatePassStore.successMessage = ''" class="font-bold hover:opacity-80 ml-1">✕</button>
+      </div>
     </div>
 
     <!-- Header & Mode Switcher -->
@@ -539,7 +545,7 @@ async function handleVendorExit() {
       }
     })
     playAudioFeedback('SUCCESS')
-    gatePassStore.successMessage = `Log keluar truk vendor tercatat — ${formVendor.value.vendor_name} (${formVendor.value.plate_number}) bawa ${formVendor.value.waybill_number}. Truk vendor tidak wajib kembali.`
+    gatePassStore.successMessage = `Log keluar truk vendor tercatat (Status: SHIPPED) — ${formVendor.value.vendor_name} (${formVendor.value.plate_number}) bawa ${formVendor.value.waybill_number}. Kargo dalam perjalanan.`
     formVendor.value = { vendor_name: '', plate_number: '', waybill_number: '', reference_id: '', destination_note: '', actor_name: authStore.user?.full_name || '' }
     await outboundStore.fetchOrders()
   } catch (err) {
@@ -715,6 +721,7 @@ async function handleDeparture() {
 
   if (success) {
     playAudioFeedback('SUCCESS')
+    gatePassStore.successMessage = 'Truk berhasil keluar gerbang (Status: SHIPPED). Kargo kini dalam perjalanan ke lokasi penerima.'
     selectedDepartureDoc.value = ''
     formOut.value.reference_number = ''
     formOut.value.waybill_number = ''

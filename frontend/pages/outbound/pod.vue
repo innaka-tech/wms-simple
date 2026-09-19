@@ -72,7 +72,49 @@
         </div>
       </div>
       <div v-else class="pt-1">
-        <p class="text-xs text-slate-400 italic">Cari nomor order di atas untuk memuat rincian serah terima barang (e-POD).</p>
+        <p class="text-xs text-slate-400 italic">Cari nomor order di atas atau pilih dari daftar kargo aktif di bawah untuk memuat e-POD.</p>
+      </div>
+
+      <!-- Quick-Pick List: Kargo Siap POD (Dalam Perjalanan / SHIPPED) -->
+      <div v-if="!matchedOrder" class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+            <span>Kargo Dalam Pengiriman Siap POD:</span>
+          </span>
+          <span class="text-[11px] text-slate-400 font-mono">{{ shippedOrders.length }} Kargo Aktif</span>
+        </div>
+
+        <div v-if="shippedOrders.length === 0" class="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-400 text-center">
+          Tidak ada order berstatus SHIPPED (dalam pengiriman) saat ini.
+        </div>
+
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+          <div
+            v-for="ord in shippedOrders"
+            :key="ord.id"
+            @click="selectShippedOrder(ord)"
+            class="p-3 rounded-lg border border-slate-200 dark:border-slate-800 hover:border-sky-400 dark:hover:border-sky-600 bg-slate-50/70 dark:bg-slate-950/50 hover:bg-sky-50/40 dark:hover:bg-sky-950/30 transition cursor-pointer space-y-1.5 group shadow-2xs"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-mono font-bold text-slate-900 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400">
+                {{ ord.order_number }}
+              </span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded font-mono font-bold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                SHIPPED
+              </span>
+            </div>
+            <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+              {{ ord.recipient_name }}
+            </p>
+            <p class="text-[11px] text-slate-400 truncate">
+              {{ ord.destination_address }}<span v-if="ord.destination_city">, {{ ord.destination_city }}</span>
+            </p>
+            <div class="pt-1 flex items-center justify-end text-[11px] font-semibold text-sky-600 dark:text-sky-400 group-hover:underline">
+              Pilih untuk Isi e-POD &rarr;
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -83,18 +125,26 @@
           <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Verifikasi Admin — BAST Digital</h4>
           <p class="text-[11px] text-slate-400 mt-0.5">POD harus di-ACC sebelum order masuk daftar penagihan (billing_ready).</p>
         </div>
-        <span v-if="matchedOrder.pod.status === 'ACCEPTED' && matchedOrder.status === 'POD_VERIFIED'"
-              class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 w-fit">
-          TERVERIFIKASI — SIAP DITAGIH
-        </span>
-        <span v-else-if="matchedOrder.status === 'CANCELLED'"
-              class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 w-fit">
-          DITOLAK — ORDER DIBATALKAN
-        </span>
-        <span v-else-if="matchedOrder.status === 'DELIVERED'"
-              class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 w-fit">
-          MENUNGGU VERIFIKASI
-        </span>
+        <div class="flex items-center gap-2 flex-wrap">
+          <span v-if="matchedOrder.pod.status === 'ACCEPTED' && matchedOrder.status === 'POD_VERIFIED'"
+                class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 w-fit">
+            TERVERIFIKASI — SIAP DITAGIH
+          </span>
+          <NuxtLink v-if="matchedOrder.pod.status === 'ACCEPTED' && matchedOrder.status === 'POD_VERIFIED'"
+                    :to="'/billing?order=' + matchedOrder.order_number"
+                    class="px-3 py-1.5 rounded-md text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white transition flex items-center space-x-1.5 shadow-2xs">
+            <AppIcon name="file-text" custom-class="w-3.5 h-3.5" />
+            <span>Lanjutkan ke Menu Billing &amp; Buat Faktur ➔</span>
+          </NuxtLink>
+          <span v-else-if="matchedOrder.status === 'CANCELLED'"
+                class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 w-fit">
+            DITOLAK — ORDER DIBATALKAN
+          </span>
+          <span v-else-if="matchedOrder.status === 'DELIVERED'"
+                class="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 w-fit">
+            MENUNGGU VERIFIKASI
+          </span>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -364,6 +414,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import SignaturePad from '~/components/SignaturePad.vue'
 import { useOutboundStore } from '~/stores/outbound'
 import { useWaybillStore } from '~/stores/waybill'
@@ -371,11 +422,21 @@ import { useWmsApi } from '~/composables/useWmsApi'
 import { useAuthStore } from '~/stores/auth'
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner'
 
+const route = useRoute()
 const outboundStore = useOutboundStore()
 const waybillStore = useWaybillStore()
 const authStore = useAuthStore()
 const { apiFetch } = useWmsApi()
 const { playAudioFeedback } = useBarcodeScanner()
+
+const shippedOrders = computed(() => {
+  return (outboundStore.orders || []).filter(o => o.status === 'SHIPPED')
+})
+
+async function selectShippedOrder(ord) {
+  orderNumberInput.value = ord.order_number
+  await lookupWaybill()
+}
 
 const photoInput = ref(null)
 const photoDataUrl = ref('')
@@ -605,7 +666,14 @@ async function handleSubmitPod() {
   }
 }
 
-onMounted(() => {
-  waybillStore.fetchWaybills()
+onMounted(async () => {
+  await Promise.all([
+    waybillStore.fetchWaybills(),
+    outboundStore.fetchOrders()
+  ])
+  if (route.query.order) {
+    orderNumberInput.value = String(route.query.order)
+    await lookupWaybill()
+  }
 })
 </script>

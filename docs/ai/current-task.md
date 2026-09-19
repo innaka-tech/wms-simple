@@ -18,6 +18,13 @@
 3. [x] **Indikator Visual & Ikon Status:**
    - Ditambahkan ikon `lock` pada `frontend/components/AppIcon.vue`.
    - Badge visual `Sesuai SJ (Terkunci)` dan `Mode Selisih Aktif` untuk kejelasan status input bagi operator.
+4. [x] **Penyambungan Rantai Alur Operasional End-to-End:**
+   - Panel Quick-Pick Kargo Siap POD di `/outbound/pod` untuk order berstatus `SHIPPED` (1-klik isi form tanpa salin nomor order).
+   - Tombol shortcut langsung `[ 📄 Lanjutkan ke Menu Billing & Buat Faktur ➔ ]` setelah POD di-ACC admin di `/outbound/pod`.
+   - Auto-highlight dan auto-fill nominal tagihan di `/billing` saat diakses via query `?order=...`.
+   - Tombol shortcut `[ 🚚 Pos Satpam (Gate Pass) ➔ ]` dan `[ ✍️ Serah Terima (e-POD) ➔ ]` di `/outbound`.
+   - Tombol pintas `[ Buka e-POD ➔ ]` di banner sukses Gate Out pada `/gate-pass`.
+   - Penambahan ikon SVG `file-text` di `frontend/components/AppIcon.vue`.
 
 ---
 

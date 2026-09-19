@@ -13,7 +13,13 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
   - Membuka hak edit kolom kuantitas secara kondisional hanya bila petugas/driver mencentang opsi *"Ada Selisih Fisik / Kerusakan Barang"*.
   - Mewajibkan pengisian catatan selisih (`discrepancyNotes`) bila opsi selisih diaktifkan sebelum BAST digital dapat dikirim.
   - Memproteksi formulir serah terima (foto, nama penerima, TTD, submit BAST) dengan status `disabled` apabila dokumen Surat Jalan / nomor order belum dimuat (`!matchedOrder`).
-  - Menambahkan badge visual dan ikon `Sesuai SJ (Terkunci)` serta `Mode Selisih Aktif` pada antarmuka input kuantitas.
+- **Penyambungan Rantai Alur Operasional End-to-End (Outbound → Gate Pass → e-POD → Billing):**
+  - **Daftar Kargo Siap POD (`/outbound/pod`):** Menambahkan panel *quick-pick* pesanan aktif dalam pengiriman (`SHIPPED`) sehingga pengemudi/petugas cukup 1-klik untuk memuat formulir e-POD tanpa perlu mengetik manual nomor pesanan.
+  - **Shortcut Pasca Verifikasi POD ke Billing (`/outbound/pod`):** Menyediakan tombol tindakan langsung `[ 📄 Lanjutkan ke Menu Billing & Buat Faktur ➔ ]` setelah BAST digital di-ACC.
+  - **Auto-Highlight & Pre-Select Faktur (`/billing`):** Menangkap parameter `?order=...` untuk langsung menyorot kartu order yang baru diverifikasi dan mengisi estimasi nominal tagihan secara otomatis.
+  - **Shortcut Antara Outbound & Gate Pass (`/outbound`):** Menyediakan tautan cepat `[ 🚚 Pos Satpam (Gate Pass) ➔ ]` pada order yang telah menerbitkan Surat Jalan, dan `[ ✍️ Serah Terima (e-POD) ➔ ]` saat kargo sedang di jalan (`SHIPPED`).
+  - **Tautan Cepat Pasca Gate Out (`/gate-pass`):** Menambahkan tombol langsung `[ Buka e-POD ➔ ]` pada banner keberangkatan armada pool dan truk vendor.
+  - **Aset Ikon:** Menambahkan ikon `file-text` pada `frontend/components/AppIcon.vue` untuk standarisasi representasi visual dokumen faktur/billing.
 
 ## [5.4.0] - 2026-09-18
 
