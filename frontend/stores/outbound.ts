@@ -13,6 +13,12 @@ export interface OutboundOrder {
   billing_ready?: number;
   payment_status?: 'UNPAID' | 'PAID';
   destination_city?: string | null;
+  picking_source?: 'STANDARD' | 'CUSTOMER_DOC';
+  customer_ref_number?: string | null;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  attachment_type?: 'EXCEL' | 'PDF' | 'IMAGE' | null;
+  ocr_raw_text?: string | null;
   items?: any[];
   packages?: any[];
   pod?: any;
@@ -70,16 +76,31 @@ export const useOutboundStore = defineStore('outbound', {
       destination_city?: string;
       items: { product_id: string; ordered_qty: number }[];
       notes?: string;
+      picking_source?: 'STANDARD' | 'CUSTOMER_DOC';
+      customer_ref_number?: string;
+      attachment_url?: string;
+      attachment_name?: string;
+      attachment_type?: 'EXCEL' | 'PDF' | 'IMAGE';
+      ocr_raw_text?: string;
+      actor_name?: string;
+      actor_id?: string;
     }): Promise<OutboundOrder | null> {
       this.isLoading = true;
       this.errorMessage = '';
       this.successMessage = '';
       const { apiFetch } = useWmsApi();
+      const authStore = useAuthStore();
 
       try {
+        const body = {
+          ...payload,
+          actor_name: payload.actor_name || authStore.user?.full_name || 'Siti Rahmawati (Admin Logistik)',
+          actor_id: payload.actor_id || authStore.user?.id || null
+        };
+
         const res = await apiFetch('/outbound', {
           method: 'POST',
-          body: payload
+          body
         });
 
         if (res.success && res.data) {
@@ -87,10 +108,11 @@ export const useOutboundStore = defineStore('outbound', {
           await this.fetchOrders();
           return res.data;
         }
+        this.errorMessage = res.message || 'Gagal membuat Delivery Order';
         return null;
       } catch (err: any) {
         this.errorMessage = err.detail || err.message || 'Gagal membuat Delivery Order';
-        return false as any;
+        return null;
       } finally {
         this.isLoading = false;
       }
@@ -103,8 +125,8 @@ export const useOutboundStore = defineStore('outbound', {
       const { apiFetch } = useWmsApi();
       const authStore = useAuthStore();
       try {
-        let items = customItems;
-        if (!items || items.length === 0) {
+        let items: any[] = customItems || [];
+        if (items.length === 0) {
           const detailRes = await apiFetch(`/outbound/${orderId}`);
           if (!detailRes.success) throw new Error('Gagal memuat detail order untuk picking');
           items = (detailRes.data.items || []).map((it: any) => ({

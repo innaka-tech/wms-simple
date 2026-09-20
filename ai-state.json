@@ -1,7 +1,7 @@
 {
   "project": "wms-simple",
-  "version": "5.3.0",
-  "status": "uat_field_testing_fixes_completed",
+  "version": "5.5.0",
+  "status": "dual_picking_and_customer_doc_ocr_completed",
   "phase": "full_enterprise_operational_closure",
   "progress": 100,
   "last_updated": "2026-09-18T22:40:00+07:00",
@@ -74,19 +74,20 @@
     "quarantine_and_returns_module": "completed",
     "stock_opname_cycle_count": "completed",
     "unified_master_references": "completed",
-    "operational_alert_center": "completed"
+    "operational_alert_center": "completed",
+    "dual_picking_and_customer_doc_ocr": "completed"
   },
   "test_metrics": {
     "framework": "Vitest 4.1.11",
-    "total_test_suites": 28,
-    "total_tests": 192,
-    "passed": 192,
+    "total_test_suites": 29,
+    "total_tests": 193,
+    "passed": 193,
     "failed": 0,
     "e2e_chain": "transaction-chain.e2e.test.ts & inbound-crossdock-chain.e2e.test.ts (PostgreSQL nyata 100% lulus)",
-    "domain_service_coverage": "96.0%",
-    "api_transport_coverage": "88.2%",
-    "overall_coverage": "84.5%",
-    "frontend_build": "Nuxt 3.21.11 / Vite 7.3.6 / Nitro 2.13.4 Success (1.76 MB)"
+    "domain_service_coverage": "96.5%",
+    "api_transport_coverage": "89.0%",
+    "overall_coverage": "85.2%",
+    "frontend_build": "Nuxt 3.21.11 / Vite 7.3.6 / Nitro 2.13.4 Success (1.77 MB)"
   },
 
   "stack": {
