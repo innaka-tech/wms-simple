@@ -118,15 +118,12 @@ outboundRoutes.post('/', optionalAuth, async (c) => {
     actor_id: bodyActorId
   } = body;
 
-  const actor_name = user?.full_name || bodyActorName;
+  const actor_name = (user?.full_name || bodyActorName || 'Siti Rahmawati (Admin Logistik)').trim();
   const actor_id = user?.id || bodyActorId;
   const actor_role = user?.role || 'ADMIN_ADM';
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return c.json({ success: false, message: 'Minimal 1 item barang pesanan wajib diisi' }, 400);
-  }
-  if (!actor_name) {
-    return c.json({ success: false, message: 'Nama pembuat order wajib diisi' }, 400);
   }
 
   const client = await pool.connect();

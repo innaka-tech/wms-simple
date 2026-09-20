@@ -77,12 +77,20 @@
       </div>
       <div class="space-y-2">
         <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Item Barang (SKU)</span>
-        <div v-for="(it, idx) in createForm.items" :key="idx" class="flex gap-2 items-center">
-          <select v-model="it.product_id" class="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none">
+        <div v-for="(it, idx) in createForm.items" :key="idx" class="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+          <select v-model="it.product_id" class="flex-1 min-w-[200px] bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none">
+            <option value="" disabled>-- Pilih SKU Produk --</option>
             <option v-for="p in masterStore.products" :key="p.id" :value="p.id">{{ p.sku_code }} — {{ p.name }}</option>
           </select>
           <input v-model.number="it.ordered_qty" type="number" min="1" placeholder="Qty"
                  class="w-24 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono text-slate-900 dark:text-white focus:outline-none" />
+          <span 
+            v-if="it.product_id" 
+            class="px-2.5 py-1.5 rounded text-[10px] font-mono font-bold shrink-0"
+            :class="getStockOnHand(it.product_id) >= (it.ordered_qty || 1) ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'"
+          >
+            {{ getStockOnHand(it.product_id) }} Tersedia
+          </span>
           <button v-if="createForm.items.length > 1" type="button" @click="createForm.items.splice(idx, 1)" class="text-slate-400 hover:text-rose-500 text-sm px-1 cursor-pointer">✕</button>
         </div>
         <button type="button" @click="createForm.items.push({ product_id: '', ordered_qty: 1 })" class="text-[11px] text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer">+ Tambah baris item</button>
@@ -565,6 +573,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useOutboundStore } from '~/stores/outbound'
 import { useWaybillStore } from '~/stores/waybill'
 import { useAuthStore } from '~/stores/auth'
+import { useStockStore } from '~/stores/stock'
 import { useMasterStore } from '~/stores/master'
 import { useWmsApi } from '~/composables/useWmsApi'
 import { useThermalPrinter } from '~/composables/useThermalPrinter'
@@ -572,9 +581,21 @@ import { useThermalPrinter } from '~/composables/useThermalPrinter'
 const outboundStore = useOutboundStore()
 const waybillStore = useWaybillStore()
 const authStore = useAuthStore()
+const stockStore = useStockStore()
 const masterStore = useMasterStore()
 const { apiFetch } = useWmsApi()
 const printer = useThermalPrinter()
+
+function getStockOnHand(productId) {
+  if (!productId) return 0
+  const list = stockStore.stockLevels || []
+  if (createForm.warehouse_id) {
+    const matchWh = list.find(s => s.product_id === productId && s.warehouse_id === createForm.warehouse_id)
+    if (matchWh) return Number(matchWh.qty_on_hand)
+  }
+  const matchAny = list.find(s => s.product_id === productId)
+  return matchAny ? Number(matchAny.qty_on_hand) : 0
+}
 
 // Dokumen Customer (OCR & Dual Picking)
 const showCustomerDocModal = ref(false)
@@ -822,12 +843,14 @@ onMounted(async () => {
   await Promise.all([
     outboundStore.fetchOrders(),
     waybillStore.fetchWaybills(),
+    stockStore.fetchStockLevels(),
     masterStore.fetchCustomers(),
     masterStore.fetchWarehouses(),
     masterStore.fetchProducts(),
     masterStore.fetchReferences()
   ])
   if (masterStore.customers.length && !createForm.customer_id) createForm.customer_id = masterStore.customers[0].id
+  if (!createForm.warehouse_id && masterStore.warehouses.length) createForm.warehouse_id = authStore.activeWarehouseId || masterStore.warehouses[0].id
   syncFeedback()
 })
 </script>

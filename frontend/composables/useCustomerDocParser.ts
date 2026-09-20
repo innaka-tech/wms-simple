@@ -45,6 +45,42 @@ export function useCustomerDocParser() {
   }
 
   /**
+   * Helper ekstraksi kuantitas barang dari sebaris teks
+   * Mampu membedakan nomor urut (1, 2, 3), spesifikasi produk (25 KG, 43 Inch, 300L),
+   * dan kuantitas sesungguhnya dengan atau tanpa UOM (50 ZAK, 15 UNIT, 5 UNIT).
+   */
+  function extractItemQuantity(line: string): number {
+    const uomPattern = '(?:zak|unit|pcs|box|dus|ktn|sak|ton|liter|ltr|dr|bh|pack|roll|btg|set|btl|lembar)';
+    const cleanLine = line.trim();
+
+    // 1. Cek angka di akhir baris yang diikuti satuan atau tanpa satuan (misal "50 ZAK", "15 UNIT", atau "50")
+    const endMatch = cleanLine.match(new RegExp(`\\b(\\d+)\\s*${uomPattern}?\\s*$`, 'i'));
+    if (endMatch) {
+      const parsed = parseInt(endMatch[1], 10);
+      if (parsed > 0 && parsed < 100000) return parsed;
+    }
+
+    // 2. Cek semua pasangan angka + satuan di baris ini, ambil yang paling kanan (kolom Qty)
+    const allUomMatches = Array.from(cleanLine.matchAll(new RegExp(`\\b(\\d+)\\s*(${uomPattern})\\b`, 'gi')));
+    if (allUomMatches.length > 0) {
+      const lastMatch = allUomMatches[allUomMatches.length - 1];
+      const parsed = parseInt(lastMatch[1], 10);
+      if (parsed > 0 && parsed < 100000) return parsed;
+    }
+
+    // 3. Fallback: buang nomor urut baris di awal (misal "1 ") dan ambil angka terakhir
+    const strippedLine = cleanLine.replace(/^\s*\d+[\s.)\-]+/, '');
+    const trailingNums = Array.from(strippedLine.matchAll(/\b(\d+)\b/g));
+    if (trailingNums.length > 0) {
+      const lastNum = trailingNums[trailingNums.length - 1];
+      const parsed = parseInt(lastNum[1], 10);
+      if (parsed > 0 && parsed < 100000) return parsed;
+    }
+
+    return 1;
+  }
+
+  /**
    * Helper pencocokan cerdas SKU / Nama Produk WMS
    */
   function matchProduct(rawText: string, qty: number, products: any[]): ExtractedItem {
@@ -63,6 +99,7 @@ export function useCustomerDocParser() {
           matched_product_name: p.name,
           matched_sku_code: p.sku_code,
           unit: p.unit || 'PCS',
+          stock_on_hand: p.stock_on_hand || 0,
           match_status: 'EXACT'
         };
       }
@@ -96,6 +133,7 @@ export function useCustomerDocParser() {
         matched_product_name: bestMatch.name,
         matched_sku_code: bestMatch.sku_code,
         unit: bestMatch.unit || 'PCS',
+        stock_on_hand: bestMatch.stock_on_hand || 0,
         match_status: 'FUZZY'
       };
     }
@@ -109,12 +147,13 @@ export function useCustomerDocParser() {
       matched_product_name: products[0]?.name || '',
       matched_sku_code: products[0]?.sku_code || '',
       unit: 'PCS',
+      stock_on_hand: products[0]?.stock_on_hand || 0,
       match_status: 'UNMATCHED'
     };
   }
 
   /**
-   * Ekstraksi Entity Heuristik dari Teks OCR / Dokumen
+   * Ekstraksi Entity Heuristik dari Teks Dokumen
    */
   function extractEntitiesFromText(text: string, products: any[]): Omit<ParsedCustomerDoc, 'file_name' | 'file_type' | 'file_data_url'> {
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -126,73 +165,105 @@ export function useCustomerDocParser() {
     let destinationCity = '';
     const items: ExtractedItem[] = [];
 
-    // Regex pola nomor referensi DO/PO/Surat Jalan Customer
-    const refRegex = /(?:po|do|sp|sppb|order|no\.?|sj|surat\s+jalan)[\s:#\-_]*([a-z0-9\-\/]{4,30})/i;
-    // Regex penerima
-    const recipientRegex = /(?:kepada|penerima|consignee|yth|kirim\s+ke|tujuan)[\s:#\-_]*([^\n,]{3,50})/i;
-    // Regex no telepon
-    const phoneRegex = /(?:08|\+628)[0-9]{8,11}/;
-
-    for (const line of lines) {
-      // 1. Cek No Referensi Dokumen
-      if (!customerRef) {
-        const m = line.match(refRegex);
-        if (m && m[1]) {
-          customerRef = m[1].trim();
-        }
-      }
-
-      // 2. Cek Nama Penerima
-      if (!recipientName) {
-        const m = line.match(recipientRegex);
-        if (m && m[1]) {
-          recipientName = m[1].replace(/[:\-–]/g, '').trim();
-        }
-      }
-
-      // 3. Cek Telepon
-      if (!recipientPhone) {
-        const m = line.match(phoneRegex);
-        if (m) {
-          recipientPhone = m[0].trim();
-        }
-      }
-
-      // 4. Cek Alamat (dimulai Jl. / Jalan / RT / RW / Kel. / Kec.)
-      if (!destinationAddress && /^(?:jl|jalan|dusun|desa|kel|kec|blok|komplek|kp|gedung)\b/i.test(line)) {
-        destinationAddress = line;
-      }
-
-      // 5. Cek Baris Item / Barang
-      // Deteksi baris yang mengandung angka qty atau kode SKU produk
-      let detectedQty = 0;
-      const qtyMatch = line.match(/\b(\d+)\s*(?:pcs|unit|box|kg|zak|dus|ktn|btg|sak)?\b/i);
-      if (qtyMatch) {
-        const parsed = parseInt(qtyMatch[1], 10);
-        if (parsed > 0 && parsed < 100000) {
-          detectedQty = parsed;
-        }
-      }
-
-      // Periksa apakah baris ini menyebutkan produk dari master
-      const hasProductKeyword = products.some(p => {
-        const sku = (p.sku_code || '').toLowerCase();
-        const nameParts = (p.name || '').toLowerCase().split(' ').filter((x: string) => x.length > 3);
-        return (sku && line.toLowerCase().includes(sku)) || nameParts.some((np: string) => line.toLowerCase().includes(np));
-      });
-
-      if (hasProductKeyword || (detectedQty > 0 && line.length > 5 && !line.match(/^(no|tanggal|penerima|telepon|alamat|total)/i))) {
-        items.push(matchProduct(line, detectedQty || 1, products));
+    // 1. Deteksi Nomor Referensi DO/PO/Surat Jalan
+    // Prioritas 1: Format nomor terstruktur DO-XXX/YY/ZZ atau PO-XXX/YY
+    const explicitRef = text.match(/\b((?:DO|PO|SPPB|SP|RO|SJ|REF|ORD|INV)[-_/][A-Z0-9-_/]{3,35})\b/i);
+    if (explicitRef) {
+      customerRef = explicitRef[1].trim();
+    } else {
+      // Prioritas 2: Label NO. PO / DO diikuti nomor alfanumerik
+      const refMatch = text.match(/(?:no\.?\s*(?:po|do|order|ref|referensi|surat\s*jalan)?|po|do|sppb)\s*[:#\s\-_]+\s*([A-Z0-9\-_/]{4,35})/i);
+      if (refMatch && !refMatch[1].match(/^(customer|barang|pengambilan|order|pengiriman|consignee)$/i) && /\d/.test(refMatch[1])) {
+        customerRef = refMatch[1].trim();
       }
     }
 
-    // Jika belum ada item terdeteksi tapi ada teks, coba ambil baris-baris berkuantitas
+    // 2. Iterasi baris untuk mencari Penerima, Telepon, Alamat, dan Kota
+    for (const line of lines) {
+      // Cek Nama Penerima (Consignee)
+      if (!recipientName) {
+        // Prioritaskan label Kepada: atau Yth:
+        const kepadaMatch = line.match(/\b(?:kepada|yth|att|u\.?p\.?)\s*[:\-–]?\s*([^|\n,]{3,60})/i);
+        if (kepadaMatch) {
+          const cleaned = kepadaMatch[1].replace(/[:\-–]/g, '').trim();
+          if (!/(consignee|tujuan|customer|pengiriman|pengambilan|sumber|alamat|telepon)/i.test(cleaned)) {
+            recipientName = cleaned;
+          }
+        } else {
+          // Label Penerima atau Kirim Ke (abaikan header tabel seperti "PENERIMA (CONSIGNEE) & TUJUAN:")
+          const penerimaMatch = line.match(/\b(?:penerima|kirim\s+ke)\s*[:\-–]?\s*([^|\n,]{3,60})/i);
+          if (penerimaMatch) {
+            const cleaned = penerimaMatch[1].replace(/[():\-–]/g, ' ').trim();
+            if (!/(consignee|tujuan|customer|pengiriman|pengambilan|sumber|alamat|telepon)/i.test(cleaned) && cleaned.length > 3) {
+              recipientName = cleaned;
+            }
+          }
+        }
+      }
+
+      // Cek Nomor Telepon
+      if (!recipientPhone) {
+        const phoneMatch = line.match(/(?:telepon|telp|hp|wa|phone)?[\s:]*((?:08|\+628|\(0\d{2,3}\))[0-9\s\-]{7,15})\b/i);
+        if (phoneMatch && phoneMatch[1].replace(/\D/g, '').length >= 9) {
+          recipientPhone = phoneMatch[1].trim();
+        }
+      }
+
+      // Cek Alamat Pengiriman (mengandung kata kunci jalan / blok / komplek / dusun / kelurahan / etc.)
+      if (!destinationAddress) {
+        const addrMatch = line.match(/(?:alamat\s*:\s*)((?:jl|jalan|blok|gd|komplek|dusun|desa|rt|rw)[^|\n]+)/i) ||
+                          line.match(/\b((?:jl\.?|jalan)\s+[^|\n]+)/i);
+        if (addrMatch) {
+          destinationAddress = addrMatch[1].trim();
+        }
+      }
+
+      // Cek Kota / Kabupaten
+      if (!destinationCity) {
+        const cityMatch = line.match(/(?:kota|kabupaten|kab\.?)\s*:\s*([^|\n]+)/i);
+        if (cityMatch) {
+          destinationCity = cityMatch[1].trim();
+        }
+      }
+    }
+
+    // 3. Ekstraksi Baris Item Barang
+    for (const line of lines) {
+      // Abaikan baris header, instruksi, footer atau ketentuan
+      if (line.match(/^(no\b|daftar|instruksi|ketentuan|catatan|dibuat|pemeriksa|menyetujui|total|tanggal terbit|kode shipper|wms simple)/i)) {
+        continue;
+      }
+
+      // Cek kecocokan SKU atau nama produk dari master
+      const hasExactSku = products.some(p => p.sku_code && line.toUpperCase().includes(p.sku_code.toUpperCase()));
+      let hasProductName = false;
+
+      if (!hasExactSku) {
+        for (const p of products) {
+          const nameParts = (p.name || '').toLowerCase().split(/[\s\-_,./]+/).filter((x: string) => x.length > 3);
+          if (nameParts.length >= 2) {
+            const matched = nameParts.filter((np: string) => line.toLowerCase().includes(np));
+            if (matched.length >= 2) {
+              hasProductName = true;
+              break;
+            }
+          }
+        }
+      }
+
+      if (hasExactSku || hasProductName) {
+        const detectedQty = extractItemQuantity(line);
+        items.push(matchProduct(line, detectedQty, products));
+      }
+    }
+
+    // Fallback jika tidak ada baris yang cocok tapi ada angka
     if (items.length === 0) {
       for (const line of lines) {
-        const m = line.match(/(\d+)/);
-        if (m && line.length > 6 && !line.match(/(202\d|tahun|tanggal|telp|hp)/i)) {
-          const qty = parseInt(m[1], 10);
-          items.push(matchProduct(line, qty > 0 ? qty : 1, products));
+        if (line.match(/^(no|tanggal|penerima|telepon|alamat|total|kota|catatan|dibuat)/i)) continue;
+        const qty = extractItemQuantity(line);
+        if (qty > 0 && line.length > 5) {
+          items.push(matchProduct(line, qty, products));
         }
       }
     }
@@ -239,10 +310,12 @@ export function useCustomerDocParser() {
 
     let customerRef = '';
     let recipientName = '';
+    let recipientPhone = '';
     let destinationAddress = '';
+    let destinationCity = '';
     const items: ExtractedItem[] = [];
 
-    // Cari baris header tabel
+    // Cari header kolom dan metadata key-value
     let headerRowIdx = -1;
     let skuCol = -1;
     let nameCol = -1;
@@ -250,22 +323,39 @@ export function useCustomerDocParser() {
 
     for (let r = 0; r < Math.min(jsonData.length, 15); r++) {
       const row = jsonData[r] || [];
-      const rowStr = row.join(' ').toLowerCase();
 
-      if (!customerRef && (rowStr.includes('po') || rowStr.includes('do') || rowStr.includes('no') || rowStr.includes('ref'))) {
-        for (const cell of row) {
-          const str = String(cell || '').trim();
-          const m = str.match(/(?:po|do|no|ref)[\s:#\-_]*([a-z0-9\-\/]{4,30})/i);
-          if (m) customerRef = m[1];
-        }
-      }
+      // Ekstraksi Metadata Key-Value (Label di sel C, Nilai di sel C+1)
+      for (let c = 0; c < row.length; c++) {
+        const val = String(row[c] || '').trim();
+        const nextVal = String(row[c + 1] || '').trim();
 
-      if (!recipientName && (rowStr.includes('kepada') || rowStr.includes('penerima') || rowStr.includes('tujuan') || rowStr.includes('consignee'))) {
-        for (const cell of row) {
-          const str = String(cell || '').trim();
-          if (str.length > 3 && !str.match(/^(kepada|penerima|consignee):?$/i)) {
-            recipientName = str;
+        if (!customerRef) {
+          if (/(?:no\.?\s*(?:po|do|ref|order)|po\/do)/i.test(val) && nextVal) {
+            customerRef = nextVal;
+          } else {
+            const explicit = val.match(/\b((?:DO|PO|SPPB|SP|RO|SJ|REF|ORD)[-_/][A-Z0-9-_/]{4,35})\b/i);
+            if (explicit) customerRef = explicit[1];
           }
+        }
+
+        if (!recipientName && /(?:penerima|consignee|kepada|tujuan)/i.test(val)) {
+          if (nextVal && !/(?:telepon|alamat|kota|gudang)/i.test(nextVal)) {
+            recipientName = nextVal;
+          }
+        }
+
+        if (!recipientPhone && /(?:telepon|telp|hp|wa|phone)/i.test(val)) {
+          if (nextVal && /(?:08|\+628|\(0\d)/.test(nextVal)) {
+            recipientPhone = nextVal;
+          }
+        }
+
+        if (!destinationAddress && /(?:alamat)/i.test(val)) {
+          if (nextVal) destinationAddress = nextVal;
+        }
+
+        if (!destinationCity && /(?:kota|kabupaten|city)/i.test(val)) {
+          if (nextVal) destinationCity = nextVal;
         }
       }
 
@@ -279,7 +369,6 @@ export function useCustomerDocParser() {
 
       if ((skuCol !== -1 || nameCol !== -1) && qtyCol !== -1) {
         headerRowIdx = r;
-        break;
       }
     }
 
@@ -312,9 +401,9 @@ export function useCustomerDocParser() {
         file_data_url: dataUrl,
         customer_ref_number: customerRef || entities.customer_ref_number,
         recipient_name: recipientName || entities.recipient_name,
-        recipient_phone: entities.recipient_phone,
+        recipient_phone: recipientPhone || entities.recipient_phone,
         destination_address: destinationAddress || entities.destination_address,
-        destination_city: entities.destination_city,
+        destination_city: destinationCity || entities.destination_city,
         extracted_items: entities.extracted_items,
         raw_text: fullText
       };
@@ -329,9 +418,9 @@ export function useCustomerDocParser() {
       file_data_url: dataUrl,
       customer_ref_number: customerRef || `EXC-${Math.floor(100000 + Math.random() * 900000)}`,
       recipient_name: recipientName,
-      recipient_phone: '',
+      recipient_phone: recipientPhone,
       destination_address: destinationAddress,
-      destination_city: '',
+      destination_city: destinationCity,
       extracted_items: items,
       raw_text: jsonData.map(r => r.join(' | ')).join('\n')
     };
@@ -378,7 +467,7 @@ export function useCustomerDocParser() {
   }
 
   /**
-   * Parser Dokumen PDF (Ekstraksi teks digital atau OCR jika scan gambar)
+   * Parser Dokumen PDF (Ekstraksi teks digital rekonstruksi baris koordinat Y atau OCR jika scan fisik)
    */
   async function parsePdf(file: File, products: any[]): Promise<ParsedCustomerDoc> {
     isProcessing.value = true;
@@ -407,13 +496,44 @@ export function useCustomerDocParser() {
 
         const page = await pdfDoc.getPage(pageNum);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ');
-        fullExtractedText += pageText + '\n';
+
+        // Rekonstruksi baris visual teks berdasarkan koordinat Y (toleransi 6pt)
+        const linesMap = new Map<number, any[]>();
+        const yTolerance = 6;
+
+        for (const item of textContent.items as any[]) {
+          if (!item.str || !item.str.trim()) continue;
+          const y = item.transform[5];
+          let matchedYKey: number | null = null;
+          for (const key of linesMap.keys()) {
+            if (Math.abs(key - y) <= yTolerance) {
+              matchedYKey = key;
+              break;
+            }
+          }
+          if (matchedYKey === null) {
+            matchedYKey = y;
+            linesMap.set(matchedYKey, []);
+          }
+          linesMap.get(matchedYKey)!.push(item);
+        }
+
+        // Urutkan baris dari atas ke bawah (Y descending)
+        const sortedYKeys = Array.from(linesMap.keys()).sort((a, b) => b - a);
+        const pageLines: string[] = [];
+
+        for (const y of sortedYKeys) {
+          const itemsOnLine = linesMap.get(y)!;
+          // Urutkan teks dalam baris dari kiri ke kanan (X ascending)
+          itemsOnLine.sort((a, b) => a.transform[4] - b.transform[4]);
+          const lineText = itemsOnLine.map(i => i.str.trim()).join(' ');
+          pageLines.push(lineText);
+        }
+
+        fullExtractedText += pageLines.join('\n') + '\n';
       }
 
-      // Jika teks digital PDF cukup panjang (> 40 karakter), gunakan langsung!
+      // Jika teks digital PDF cukup panjang (> 40 karakter), gunakan hasil rekonstruksi baris!
       if (fullExtractedText.trim().length > 40) {
         progressText.value = 'Memetakan data teks digital PDF ke master SKU...';
         progressPercent.value = 85;
@@ -428,7 +548,7 @@ export function useCustomerDocParser() {
         };
       }
 
-      // Jika teks digital kosong/sangat sedikit (berarti PDF adalah hasil SCAN lembar fisik), render halaman ke canvas lalu OCR!
+      // Jika teks digital kosong/sangat sedikit (berarti PDF adalah scan gambar fisik), render halaman ke canvas lalu OCR!
       progressText.value = 'PDF berupa scan lembar fisik — mengaktifkan OCR...';
       progressPercent.value = 65;
 

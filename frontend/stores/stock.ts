@@ -40,7 +40,15 @@ export const useStockStore = defineStore('stock', {
     successMessage: ''
   }),
 
+  getters: {
+    stocks: (state) => state.stockLevels
+  },
+
   actions: {
+    async fetchStocks(warehouseId?: string) {
+      return this.fetchStockLevels(warehouseId);
+    },
+
     async fetchStockLevels(warehouseId?: string) {
       this.isLoading = true;
       const { apiFetch } = useWmsApi();

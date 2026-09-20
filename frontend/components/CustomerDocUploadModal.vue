@@ -172,6 +172,28 @@
                   Informasi DO &amp; Tujuan Pengiriman
                 </h4>
                 
+                <!-- Pilihan Shipper & Gudang (Editable saat review) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <label class="space-y-1">
+                    <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Shipper / Customer *</span>
+                    <select 
+                      v-model="formHeader.customer_id" 
+                      class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    >
+                      <option v-for="c in masterStore.customers" :key="c.id" :value="c.id">{{ c.code }} — {{ c.name }}</option>
+                    </select>
+                  </label>
+                  <label class="space-y-1">
+                    <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Gudang Asal Pengambilan Barang *</span>
+                    <select 
+                      v-model="formHeader.warehouse_id" 
+                      class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-indigo-500"
+                    >
+                      <option v-for="w in masterStore.warehouses" :key="w.id" :value="w.id">{{ w.code }} — {{ w.name }}</option>
+                    </select>
+                  </label>
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <label class="space-y-1">
                     <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Nomor Referensi Customer (PO / DO) *</span>
@@ -339,6 +361,7 @@
 import { ref, reactive } from 'vue';
 import { useMasterStore } from '~/stores/master';
 import { useStockStore } from '~/stores/stock';
+import { useAuthStore } from '~/stores/auth';
 import { useOutboundStore } from '~/stores/outbound';
 import { useCustomerDocParser, type ParsedCustomerDoc, type ExtractedItem } from '~/composables/useCustomerDocParser';
 import { useBarcodeScanner } from '~/composables/useBarcodeScanner';
@@ -355,6 +378,7 @@ const emit = defineEmits<{
 
 const masterStore = useMasterStore();
 const stockStore = useStockStore();
+const authStore = useAuthStore();
 const outboundStore = useOutboundStore();
 const docParser = useCustomerDocParser();
 const { playAudioFeedback } = useBarcodeScanner();
@@ -370,15 +394,25 @@ const formHeader = reactive({
 });
 
 // Inisialisasi default customer & gudang saat dibuka
-watch(() => props.modelValue, (isOpen) => {
+watch(() => props.modelValue, async (isOpen) => {
   if (isOpen) {
+    if (masterStore.customers.length === 0) await masterStore.fetchCustomers();
+    if (masterStore.warehouses.length === 0) await masterStore.fetchWarehouses();
+    if (masterStore.products.length === 0) await masterStore.fetchProducts();
+
     if (!formHeader.customer_id && masterStore.customers.length > 0) {
       formHeader.customer_id = masterStore.customers[0].id;
     }
-    if (!formHeader.warehouse_id && masterStore.warehouses.length > 0) {
-      formHeader.warehouse_id = masterStore.warehouses[0].id;
+    if (!formHeader.warehouse_id) {
+      formHeader.warehouse_id = authStore.activeWarehouseId || masterStore.warehouses[0]?.id || '';
     }
+
+    await stockStore.fetchStockLevels();
   }
+}, { immediate: true });
+
+watch(() => formHeader.warehouse_id, async () => {
+  await stockStore.fetchStockLevels();
 });
 
 function triggerFileInput() {
@@ -395,8 +429,13 @@ function resetUpload() {
 
 function getStockOnHand(productId: string): number {
   if (!productId) return 0;
-  const match = (stockStore.stocks || []).find((s: any) => s.product_id === productId);
-  return match ? Number(match.qty_on_hand) : 0;
+  const list = stockStore.stockLevels || [];
+  if (formHeader.warehouse_id) {
+    const matchWh = list.find((s: any) => s.product_id === productId && s.warehouse_id === formHeader.warehouse_id);
+    if (matchWh) return Number(matchWh.qty_on_hand);
+  }
+  const matchAny = list.find((s: any) => s.product_id === productId);
+  return matchAny ? Number(matchAny.qty_on_hand) : 0;
 }
 
 function onProductSelect(item: ExtractedItem) {
@@ -509,12 +548,14 @@ async function submitCustomerOrder() {
       attachment_url: parsedDoc.value.file_data_url,
       attachment_name: parsedDoc.value.file_name,
       attachment_type: parsedDoc.value.file_type,
-      ocr_raw_text: parsedDoc.value.raw_text
+      ocr_raw_text: parsedDoc.value.raw_text,
+      actor_name: authStore.user?.full_name || 'Siti Rahmawati (Admin Logistik)',
+      actor_id: authStore.user?.id || undefined
     });
 
     if (newOrder) {
       playAudioFeedback('SUCCESS');
-      Swal.fire({
+      await Swal.fire({
         icon: 'success',
         title: 'Picking List Berhasil Diterbitkan!',
         html: `Delivery Order <strong>${newOrder.order_number}</strong> telah dibuat dari dokumen <strong>${parsedDoc.value.customer_ref_number}</strong>.<br><br>Staf gudang dapat langsung mengambil barang fisik di rak sesuai instruksi picking.`,
@@ -523,13 +564,21 @@ async function submitCustomerOrder() {
       });
       closeModal();
       emit('order-created', newOrder.id);
+    } else {
+      playAudioFeedback('ERROR');
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal Menyimpan Order',
+        text: outboundStore.errorMessage || 'Terjadi kesalahan pada server saat membuat pesanan.',
+        confirmButtonColor: '#4f46e5'
+      });
     }
   } catch (err: any) {
     playAudioFeedback('ERROR');
     Swal.fire({
       icon: 'error',
       title: 'Gagal Menyimpan Order',
-      text: err.message || 'Terjadi kesalahan pada server saat membuat pesanan.',
+      text: err.message || outboundStore.errorMessage || 'Terjadi kesalahan pada server saat membuat pesanan.',
       confirmButtonColor: '#4f46e5'
     });
   } finally {

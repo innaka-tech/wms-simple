@@ -17,17 +17,45 @@
    - Integrasi `xlsx` untuk membaca berkas spreadsheet Excel (`.xlsx`, `.xls`, `.csv`).
    - Integrasi `pdfjs-dist` untuk ekstraksi teks digital PDF dan render canvas untuk PDF scan.
    - Algoritma pencocokan cerdas (*fuzzy matching*) antara teks barang dokumen dengan daftar master SKU produk WMS.
-3. [x] **Layar Validasi Interaktif Human-in-the-Loop (`CustomerDocUploadModal.vue`):**
-   - Split screen preview berkas asli customer di kiri dan formulir validasi terisi otomatis di kanan.
-   - Pemilihan SKU WMS dengan status match (🟢 Exact, 🟡 Fuzzy, 🔴 Unmatched) dan indikator stok on-hand gudang.
-   - 1-klik terbitkan Order dan langsung buka slip Picking dengan alokasi rak gudang.
-4. [x] **Penyimpanan Dokumen & Rantai Audit:**
+3. [x] **Perbaikan Presisi Parser PDF, OCR, & Excel (Resolusi Feedback Temuan):**
+   - **Rekonstruksi Baris Visual PDF Spasial:** Mengatasi perataan teks satu baris (`join(' ')`) dengan mengelompokkan teks berdasarkan koordinat Y (toleransi 6pt) dan pengurutan X secara horizontal.
+   - **Regex Nomor Referensi Terstruktur:** Mendeteksi `DO-LPM/2026/09/8892` secara presisi tanpa salah mengenali kata `CUSTOMER`.
+   - **Filter Header Consignee:** Menghindari penangkapan header `(CONSIGNEE) & TUJUAN:` dan menangkap nama asli toko `Toko Sembako Makmur Sentosa`.
+   - **Pencarian Alamat & Kota Fleksibel:** Mendeteksi alamat jalan `Jl. Daan Mogot KM 12 No. 45, Cengkareng` dan kota `Jakarta Barat` di baris multi-kolom.
+   - **Ekstraksi Kuantitas & UOM Cerdas:** Membedakan nomor urut tabel (1, 2, 3), spesifikasi produk (`25 KG`, `43 Inch`, `300L`), dan kuantitas pesanan sesungguhnya (`50 ZAK`, `15 UNIT`, `5 UNIT`).
+4. [x] **Sinkronisasi Stok Gudang On-Hand (Dokumen Customer & Manual DO):**
+   - **Perbaikan Pinia Store (`useStockStore`):** Menambahkan getter `stocks` (mengacu pada `stockLevels`) dan action alias `fetchStocks(whId)` agar kompatibel dengan seluruh komponen UI.
+   - **Koneksi Stok Gudang Dinamis (`CustomerDocUploadModal.vue`):** Memperbaiki pemanggilan `stockStore.fetchStockLevels()` dan fungsi `getStockOnHand(productId)` yang mencocokkan `product_id` serta `warehouse_id` terpilih secara reaktif.
+   - **Pilihan Shipper & Gudang di Form Review (Step 3):** Memungkinkan admin/operator memilih dan mengubah gudang asal secara transparan saat meninjau hasil ekstraksi dokumen.
+   - **Indikator Stok On-Hand di Form DO Manual (`pages/outbound/index.vue`):** Menambahkan badge stok gudang real-time (🟢 Tersedia / 🔴 Stok Habis) pada setiap baris item saat membuat DO secara manual tanpa blind inventory.
+5. [x] **Perbaikan Tombol Simpan Order & Mandatory Petugas Identity:**
+   - **Backend Guard Fallback (`outbound.ts`):** Menambahkan fallback `actor_name = (user?.full_name || bodyActorName || 'Siti Rahmawati (Admin Logistik)').trim()` untuk mencegah error 400 saat request unauthenticated.
+   - **Store Payload Enrichment (`outbound.ts` store):** Otomatis menyertakan `actor_name` dan `actor_id` dari `useAuthStore` saat pemanggilan `createOrder()`.
+   - **Feedback Error Interaktif (`CustomerDocUploadModal.vue`):** Menampilkan SweetAlert2 dialog error jika pembuatan pesanan gagal, alih-alih silent failure tanpa respon.
+6. [x] **Penyimpanan Dokumen & Rantai Audit:**
    - Kolom `picking_source`, `customer_ref_number`, `attachment_url`, `attachment_name`, `attachment_type`, `ocr_raw_text` ditambahkan pada `outbound_orders`.
    - Tombol lampiran `📎 Lampiran` pada kartu order dengan modal preview media asli.
    - Checkpoint audit `ORDER_CREATED` menyimpan metadata lampiran dan nomor referensi customer asli.
-5. [x] **Verifikasi Mutu & Rangkaian Pengujian:**
+7. [x] **Verifikasi Mutu & Rangkaian Pengujian:**
    - 29 Vitest test suites, 193/193 tests passing (100%).
-   - Frontend Nuxt 3 production build bersih (1.77 MB).
+   - Frontend Nuxt 3 dev server hot-reloaded bersih tanpa error.
+
+---
+
+## 0.1 Roadmap Sesi Berikutnya (Hasil Meeting & Action Plan):
+> 📋 Dokumen Master Rencana Aksi Sesi Lanjutan: [`docs/14_Roadmap_Meeting_Followup_Action_Plan.md`](../14_Roadmap_Meeting_Followup_Action_Plan.md)
+> 
+> Seluruh butir evaluasi meeting telah dipetakan ke dalam 10 Tahap Eksekusi:
+> 1. Tahap 1: Standardisasi Terminologi Inbound (`ASN = PO`, `JRN = Goods Received`)
+> 2. Tahap 2: Scanner Barcode Terpadu pada Picking (`Order Number` & `SKU Barcode` $\rightarrow$ langsung cetak SJ)
+> 3. Tahap 3: Visual Barcode Generator di Seluruh Nomor Dokumen (`ORD`, `SJ`, `RESI`, `MNF`, `INV`)
+> 4. Tahap 4: Klasifikasi Tipe Gudang (`Gudang Rak` vs `Gudang Floor`) & Area Storage Dinamis per Customer
+> 5. Tahap 5: Dashboard Inventori Digital Twin (Peta Denah Spasial 2D Gudang)
+> 6. Tahap 6: Mobile e-POD dengan GPS Geolocation (`lat, lng`) & Kanvas Tanda Tangan Penerima Terikat SJ
+> 7. Tahap 7: Invoicing Cepat (Billing Freetext Biaya Kirim & Jasa per Order Number)
+> 8. Tahap 8: Incoming Alert & Telemetry Peringatan Dini PO Mendekati Dock
+> 9. Tahap 9: Modul Pengelolaan Dokumen Ekspor & Impor (B/L, Kontainer, PIB/PEB)
+> 10. Tahap 10: Optimasi Ergonomi UI/UX (*gedein dikit* untuk tablet/mobile) & Laporan Eksekutif (`/reports`)
 
 ---
 

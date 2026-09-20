@@ -82,16 +82,25 @@ export const useOutboundStore = defineStore('outbound', {
       attachment_name?: string;
       attachment_type?: 'EXCEL' | 'PDF' | 'IMAGE';
       ocr_raw_text?: string;
+      actor_name?: string;
+      actor_id?: string;
     }): Promise<OutboundOrder | null> {
       this.isLoading = true;
       this.errorMessage = '';
       this.successMessage = '';
       const { apiFetch } = useWmsApi();
+      const authStore = useAuthStore();
 
       try {
+        const body = {
+          ...payload,
+          actor_name: payload.actor_name || authStore.user?.full_name || 'Siti Rahmawati (Admin Logistik)',
+          actor_id: payload.actor_id || authStore.user?.id || null
+        };
+
         const res = await apiFetch('/outbound', {
           method: 'POST',
-          body: payload
+          body
         });
 
         if (res.success && res.data) {
@@ -99,10 +108,11 @@ export const useOutboundStore = defineStore('outbound', {
           await this.fetchOrders();
           return res.data;
         }
+        this.errorMessage = res.message || 'Gagal membuat Delivery Order';
         return null;
       } catch (err: any) {
         this.errorMessage = err.detail || err.message || 'Gagal membuat Delivery Order';
-        return false as any;
+        return null;
       } finally {
         this.isLoading = false;
       }
