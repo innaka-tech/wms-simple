@@ -394,7 +394,7 @@ const formHeader = reactive({
 });
 
 // Inisialisasi default customer & gudang saat dibuka
-watch(() => props.modelValue, async (isOpen) => {
+watch(() => props.modelValue, async (isOpen: boolean) => {
   if (isOpen) {
     if (masterStore.customers.length === 0) await masterStore.fetchCustomers();
     if (masterStore.warehouses.length === 0) await masterStore.fetchWarehouses();
@@ -427,7 +427,7 @@ function resetUpload() {
   parsedDoc.value = null;
 }
 
-function getStockOnHand(productId: string): number {
+function getStockOnHand(productId?: string): number {
   if (!productId) return 0;
   const list = stockStore.stockLevels || [];
   if (formHeader.warehouse_id) {

@@ -125,8 +125,8 @@ export const useOutboundStore = defineStore('outbound', {
       const { apiFetch } = useWmsApi();
       const authStore = useAuthStore();
       try {
-        let items = customItems;
-        if (!items || items.length === 0) {
+        let items: any[] = customItems || [];
+        if (items.length === 0) {
           const detailRes = await apiFetch(`/outbound/${orderId}`);
           if (!detailRes.success) throw new Error('Gagal memuat detail order untuk picking');
           items = (detailRes.data.items || []).map((it: any) => ({
