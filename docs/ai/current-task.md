@@ -1,13 +1,37 @@
 # Current Task: WMS Simple Enterprise Implementation
 
-**Current Status:** WAYBILLS ENTERPRISE REDESIGN & DESIGN CONSISTENCY (v5.4.2)  
+**Current Status:** TAHAP C: DUAL PICKING MODE & OCR DOKUMEN CUSTOMER (v5.5.0)  
 **Database:** Host PostgreSQL 16 (`wms_simple_db` & `wms_simple_test_db` on `127.0.0.1:5432`, user: `postgres`, pw: `fadh`)  
-**Version:** 5.4.2  
-**Status:** ALL TESTS PASSING (28 Vitest Suites, 192/192 Passed)  
+**Version:** 5.5.0  
+**Status:** ALL TESTS PASSING (29 Vitest Suites, 193/193 Passed)  
 
 ---
 
-## 0. Sesi 2026-09-19 (Redesain Konsistensi Antarmuka Surat Jalan & Resi v5.4.2):
+## 0. Sesi 2026-09-20 (Tahap C: Dual Picking Mode & Teknologi OCR Dokumen Customer v5.5.0):
+
+1. [x] **Arsitektur Dual Picking & Alur Dokumen Customer:**
+   - Menyediakan 2 jalur picking: Mode Standar (Order-First) dan Mode Permintaan Customer (Pick-First via Attachment & OCR).
+   - Tombol `[ 📄 Permintaan Customer (Upload / OCR) ]` ditambahkan di header `/outbound`.
+2. [x] **Teknologi OCR & Document Parser (`useCustomerDocParser`):**
+   - Integrasi `tesseract.js` untuk OCR foto/scan dokumen fisik di browser client-side Web Worker.
+   - Integrasi `xlsx` untuk membaca berkas spreadsheet Excel (`.xlsx`, `.xls`, `.csv`).
+   - Integrasi `pdfjs-dist` untuk ekstraksi teks digital PDF dan render canvas untuk PDF scan.
+   - Algoritma pencocokan cerdas (*fuzzy matching*) antara teks barang dokumen dengan daftar master SKU produk WMS.
+3. [x] **Layar Validasi Interaktif Human-in-the-Loop (`CustomerDocUploadModal.vue`):**
+   - Split screen preview berkas asli customer di kiri dan formulir validasi terisi otomatis di kanan.
+   - Pemilihan SKU WMS dengan status match (🟢 Exact, 🟡 Fuzzy, 🔴 Unmatched) dan indikator stok on-hand gudang.
+   - 1-klik terbitkan Order dan langsung buka slip Picking dengan alokasi rak gudang.
+4. [x] **Penyimpanan Dokumen & Rantai Audit:**
+   - Kolom `picking_source`, `customer_ref_number`, `attachment_url`, `attachment_name`, `attachment_type`, `ocr_raw_text` ditambahkan pada `outbound_orders`.
+   - Tombol lampiran `📎 Lampiran` pada kartu order dengan modal preview media asli.
+   - Checkpoint audit `ORDER_CREATED` menyimpan metadata lampiran dan nomor referensi customer asli.
+5. [x] **Verifikasi Mutu & Rangkaian Pengujian:**
+   - 29 Vitest test suites, 193/193 tests passing (100%).
+   - Frontend Nuxt 3 production build bersih (1.77 MB).
+
+---
+
+## 1. Sesi 2026-09-19 (Redesain Konsistensi Antarmuka Surat Jalan & Resi v5.4.2):
 
 1. [x] **Redesain Antarmuka Surat Jalan & Resi (`frontend/pages/waybills/index.vue`):**
    - Mengganti layout lawas terisolasi `max-w-6xl` dengan Unified Enterprise Header Card lengkap dengan kicker badge `Fase 3 — Outbound & TMS` dan indikator total dokumen.

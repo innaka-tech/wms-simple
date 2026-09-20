@@ -13,6 +13,12 @@ export interface OutboundOrder {
   billing_ready?: number;
   payment_status?: 'UNPAID' | 'PAID';
   destination_city?: string | null;
+  picking_source?: 'STANDARD' | 'CUSTOMER_DOC';
+  customer_ref_number?: string | null;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  attachment_type?: 'EXCEL' | 'PDF' | 'IMAGE' | null;
+  ocr_raw_text?: string | null;
   items?: any[];
   packages?: any[];
   pod?: any;
@@ -70,6 +76,12 @@ export const useOutboundStore = defineStore('outbound', {
       destination_city?: string;
       items: { product_id: string; ordered_qty: number }[];
       notes?: string;
+      picking_source?: 'STANDARD' | 'CUSTOMER_DOC';
+      customer_ref_number?: string;
+      attachment_url?: string;
+      attachment_name?: string;
+      attachment_type?: 'EXCEL' | 'PDF' | 'IMAGE';
+      ocr_raw_text?: string;
     }): Promise<OutboundOrder | null> {
       this.isLoading = true;
       this.errorMessage = '';

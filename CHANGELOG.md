@@ -5,6 +5,30 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
+## [5.5.0] - 2026-09-20
+
+### Added
+- **Tahap C: Dual Picking Mode & Teknologi OCR Dokumen Customer (`/outbound`):**
+  - **Arsitektur Dual Picking:**
+    - Jalur 1: Alur Standar (Order-First) — buat DO manual $\to$ Picking di rak $\to$ Packing $\to$ Terbitkan Surat Jalan.
+    - Jalur 2: Alur Permintaan Customer (Customer-Driven / Pick-First) — menerima berkas lampiran customer berupa file **Excel** (`.xlsx`, `.xls`, `.csv`), dokumen **PDF**, atau **Foto / Scan Kertas SPPB/DO** (`.jpg`, `.png`).
+  - **Teknologi Ekstraksi OCR & Parser Dokumen (`useCustomerDocParser`):**
+    - Integrasi `tesseract.js` (Optical Character Recognition) untuk pemindaian teks pada dokumen gambar dan scan lembar fisik di browser client-side worker (bebas beban server & aman privasi).
+    - Integrasi `xlsx` (SheetJS) untuk pembacaan tabel spreadsheet otomatis.
+    - Integrasi `pdfjs-dist` untuk ekstraksi teks digital PDF dan render canvas untuk PDF scan.
+    - Algoritma pencocokan cerdas (*Fuzzy Matching*) untuk memetakan nama barang dokumen customer ke katalog Master SKU Produk WMS secara otomatis.
+  - **Layar Validasi Interaktif Human-in-the-Loop (`CustomerDocUploadModal.vue`):**
+    - Tampilan split screen: Preview dokumen asli (foto/PDF) berdampingan dengan form hasil ekstraksi data yang terisi otomatis (Nomor Referensi, Consignee, Alamat, Tabel SKU & Qty).
+    - Status pencocokan visual (🟢 Exact Match, 🟡 Fuzzy Match, 🔴 Manual Select) dan indikator stok on-hand real-time di gudang.
+    - 1-klik tombol *"Konfirmasi & Terbitkan Picking List"*.
+  - **Penyimpanan Lampiran Dokumen Customer:**
+    - Penambahan kolom `picking_source`, `customer_ref_number`, `attachment_url`, `attachment_name`, `attachment_type`, dan `ocr_raw_text` pada skema database `outbound_orders` PostgreSQL.
+    - Modal pratinjau dokumen asli (`previewAttachment`) langsung dari kartu order di daftar Delivery Order.
+    - Rantai audit checkpoint `ORDER_CREATED` otomatis mencatat metadata lampiran customer.
+  - **Rangkaian Pengujian Otomatis:**
+    - Test integrasi baru `tests/integration/outbound-customer-doc.routes.test.ts` (193/193 vitest suites passed 100%).
+    - Build Nuxt 3 / Nitro bersih (1.77 MB).
+
 ## [5.4.2] - 2026-09-19
 
 ### Changed

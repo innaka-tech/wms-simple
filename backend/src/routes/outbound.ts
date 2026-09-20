@@ -108,6 +108,12 @@ outboundRoutes.post('/', optionalAuth, async (c) => {
     scheduled_ship_date,
     items,
     notes,
+    picking_source,
+    customer_ref_number,
+    attachment_url,
+    attachment_name,
+    attachment_type,
+    ocr_raw_text,
     actor_name: bodyActorName,
     actor_id: bodyActorId
   } = body;
@@ -143,13 +149,20 @@ outboundRoutes.post('/', optionalAuth, async (c) => {
       `INSERT INTO outbound_orders (
         id, order_number, customer_id, warehouse_id, recipient_name, recipient_phone,
         destination_address, destination_city, scheduled_ship_date, notes, status,
-        created_by_id, created_by_name
-      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, 'CREATED', $10, $11)
+        created_by_id, created_by_name,
+        picking_source, customer_ref_number, attachment_url, attachment_name, attachment_type, ocr_raw_text
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, 'CREATED', $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
       [
         orderNumber, customer_id, warehouse_id, recipient_name, recipient_phone || null,
         destination_address, destination_city || null, scheduled_ship_date || null, notes || null,
-        actor_id || null, actor_name.trim()
+        actor_id || null, actor_name.trim(),
+        picking_source || 'STANDARD',
+        customer_ref_number || null,
+        attachment_url || null,
+        attachment_name || null,
+        attachment_type || null,
+        ocr_raw_text || null
       ]
     );
     const order = orderRes.rows[0];
@@ -174,10 +187,17 @@ outboundRoutes.post('/', optionalAuth, async (c) => {
       entity_id: order.id,
       entity_number: order.order_number,
       step_code: 'ORDER_CREATED',
-      step_label: 'Order Pengiriman Dibuat',
+      step_label: picking_source === 'CUSTOMER_DOC' ? 'Order Dibuat dari Dokumen Customer (OCR/Attachment)' : 'Order Pengiriman Dibuat',
       actor_id: actor_id || null,
       actor_name: actor_name,
       actor_role: 'ADMIN_ADM',
+      metadata: {
+        total_items: items.length,
+        picking_source: picking_source || 'STANDARD',
+        customer_ref_number: customer_ref_number || null,
+        attachment_name: attachment_name || null,
+        attachment_type: attachment_type || null
+      },
       notes: notes || 'Pesanan dibuat dalam sistem'
     });
 

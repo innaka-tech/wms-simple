@@ -18,7 +18,12 @@
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Fase 3 · Alokasi Rak Picking, Packing Koli Fisik &amp; Pelacakan Unit KDMP, Terbitkan SJ + Resi</p>
       </div>
-      <div class="flex items-center gap-2 shrink-0">
+      <div class="flex items-center gap-2 shrink-0 flex-wrap">
+        <button type="button" @click="showCustomerDocModal = true"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition cursor-pointer">
+          <AppIcon name="file-text" custom-class="w-3.5 h-3.5" />
+          <span>Permintaan Customer (Upload / OCR)</span>
+        </button>
         <button type="button" @click="showCreate = !showCreate"
                 class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold shadow-xs transition cursor-pointer"
                 :class="showCreate ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700' : 'bg-sky-600 hover:bg-sky-700 text-white'">
@@ -122,6 +127,18 @@
                 <span v-if="waybillByOrder[order.id]" class="text-[10px] font-mono text-blue-600 dark:text-blue-400 font-semibold">
                   {{ waybillByOrder[order.id].sj_number }} · {{ waybillByOrder[order.id].resi_number }}
                 </span>
+                <span v-if="order.picking_source === 'CUSTOMER_DOC'" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800 flex items-center gap-1">
+                  <AppIcon name="file-text" custom-class="w-3 h-3" />
+                  <span>Ref: {{ order.customer_ref_number || 'Dok. Customer' }}</span>
+                </span>
+                <button
+                  v-if="order.attachment_url"
+                  type="button"
+                  @click="openAttachmentPreview(order)"
+                  class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 hover:bg-indigo-50 dark:bg-slate-800 dark:hover:bg-indigo-950/50 text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition flex items-center gap-1 cursor-pointer"
+                >
+                  📎 {{ order.attachment_type || 'Lampiran' }}
+                </button>
                 <button
                   type="button"
                   @click="toggleOrderDetail(order)"
@@ -285,6 +302,18 @@
             <p class="text-[11px] text-slate-500">Ambil barang dari rak penyimpanan untuk order <span class="font-mono font-bold">{{ pickingOrder.order_number }}</span></p>
           </div>
           <button type="button" @click="showPickingModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm">✕</button>
+        </div>
+
+        <div v-if="pickingOrder.picking_source === 'CUSTOMER_DOC'" class="p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-800/60 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <AppIcon name="file-text" custom-class="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span class="text-indigo-800 dark:text-indigo-200 font-medium">
+              Sumber: Permintaan Customer (<strong>{{ pickingOrder.customer_ref_number || 'Dokumen Customer' }}</strong>)
+            </span>
+          </div>
+          <button v-if="pickingOrder.attachment_url" type="button" @click="openAttachmentPreview(pickingOrder)" class="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline cursor-pointer">
+            Lihat Lampiran Asli ➔
+          </button>
         </div>
 
         <div v-if="outboundStore.errorMessage" class="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 flex items-center space-x-2">
@@ -474,6 +503,60 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Upload & OCR Dokumen Permintaan Customer (Dual Picking Mode) -->
+    <CustomerDocUploadModal 
+      v-model="showCustomerDocModal" 
+      @order-created="onCustomerDocOrderCreated" 
+    />
+
+    <!-- Modal Preview Lampiran Dokumen Customer Asli -->
+    <div v-if="previewAttachment" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+        <div class="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-950">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">Lampiran Dokumen Asli Customer</h3>
+            <p class="text-xs text-slate-500 font-mono">{{ previewAttachment.name }} · Ref: {{ previewAttachment.ref }}</p>
+          </div>
+          <button type="button" @click="previewAttachment = null" class="p-1 rounded text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <AppIcon name="x" custom-class="w-5 h-5" />
+          </button>
+        </div>
+        <div class="p-4 overflow-y-auto flex-1 flex items-center justify-center bg-slate-100 dark:bg-slate-950/60 min-h-[300px]">
+          <img 
+            v-if="previewAttachment.type === 'IMAGE' || previewAttachment.url?.startsWith('data:image')" 
+            :src="previewAttachment.url" 
+            :alt="previewAttachment.name" 
+            class="max-h-[65vh] w-auto object-contain rounded border border-slate-200 dark:border-slate-800 shadow-sm"
+          />
+          <div v-else-if="previewAttachment.type === 'PDF'" class="text-center p-8 space-y-3">
+            <div class="w-16 h-16 rounded-full bg-rose-500/10 text-rose-600 mx-auto flex items-center justify-center">
+              <AppIcon name="file-text" custom-class="w-8 h-8" />
+            </div>
+            <p class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ previewAttachment.name }}</p>
+            <p class="text-xs text-slate-500">Dokumen PDF Terlampir</p>
+            <a :href="previewAttachment.url" download="dokumen_customer.pdf" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs">
+              <span>Unduh / Buka Dokumen PDF</span>
+            </a>
+          </div>
+          <div v-else class="text-center p-8 space-y-3">
+            <div class="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-600 mx-auto flex items-center justify-center">
+              <AppIcon name="file-text" custom-class="w-8 h-8" />
+            </div>
+            <p class="text-sm font-bold text-slate-800 dark:text-slate-100">{{ previewAttachment.name }}</p>
+            <p class="text-xs text-slate-500">File Spreadsheet / Excel Terlampir</p>
+            <a :href="previewAttachment.url" download="dokumen_customer.xlsx" class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs">
+              <span>Unduh Berkas Excel</span>
+            </a>
+          </div>
+        </div>
+        <div class="px-5 py-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+          <button type="button" @click="previewAttachment = null" class="px-4 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200">
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -492,6 +575,28 @@ const authStore = useAuthStore()
 const masterStore = useMasterStore()
 const { apiFetch } = useWmsApi()
 const printer = useThermalPrinter()
+
+// Dokumen Customer (OCR & Dual Picking)
+const showCustomerDocModal = ref(false)
+const previewAttachment = ref(null)
+
+function openAttachmentPreview(order) {
+  if (!order || !order.attachment_url) return
+  previewAttachment.value = {
+    name: order.attachment_name || 'Dokumen Customer',
+    ref: order.customer_ref_number || order.order_number,
+    type: order.attachment_type || 'IMAGE',
+    url: order.attachment_url
+  }
+}
+
+async function onCustomerDocOrderCreated(orderId) {
+  await outboundStore.fetchOrders()
+  const found = outboundStore.orders.find(o => o.id === orderId)
+  if (found) {
+    openPickingModal(found)
+  }
+}
 
 // Form Buat DO
 const showCreate = ref(false)

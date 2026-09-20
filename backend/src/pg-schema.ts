@@ -415,6 +415,12 @@ const SCHEMA_SQL = `    CREATE TABLE IF NOT EXISTS master_cargo_types (
       cross_doc_id TEXT REFERENCES cross_documents(id) ON DELETE SET NULL,
       billing_ready BOOLEAN DEFAULT FALSE,
       payment_status TEXT DEFAULT 'UNPAID',
+      picking_source TEXT DEFAULT 'STANDARD',
+      customer_ref_number TEXT,
+      attachment_url TEXT,
+      attachment_name TEXT,
+      attachment_type TEXT,
+      ocr_raw_text TEXT,
       scheduled_ship_date TEXT,
       shipped_at TEXT,
       delivered_at TEXT,
@@ -800,7 +806,13 @@ const MIGRATION_ALTERS = [
   "ALTER TABLE checkpoint_logs ADD COLUMN metadata TEXT DEFAULT '{}'",
   'ALTER TABLE checkpoint_logs ADD COLUMN prev_checkpoint_id TEXT',
   'ALTER TABLE stock_conversions ADD COLUMN outbound_order_id TEXT REFERENCES outbound_orders(id)',
-  'ALTER TABLE outbound_orders ADD COLUMN trip_id TEXT REFERENCES trips(id) ON DELETE SET NULL'
+  'ALTER TABLE outbound_orders ADD COLUMN trip_id TEXT REFERENCES trips(id) ON DELETE SET NULL',
+  "ALTER TABLE outbound_orders ADD COLUMN picking_source TEXT DEFAULT 'STANDARD'",
+  'ALTER TABLE outbound_orders ADD COLUMN customer_ref_number TEXT',
+  'ALTER TABLE outbound_orders ADD COLUMN attachment_url TEXT',
+  'ALTER TABLE outbound_orders ADD COLUMN attachment_name TEXT',
+  'ALTER TABLE outbound_orders ADD COLUMN attachment_type TEXT',
+  'ALTER TABLE outbound_orders ADD COLUMN ocr_raw_text TEXT'
 ];
 
 // Partial unique index: satu waybill aktif & satu faktur aktif per referensi (race-proof)
