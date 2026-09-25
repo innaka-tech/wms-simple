@@ -5,110 +5,216 @@ Format berkas mengacu pada [Keep a Changelog](https://keepachangelog.com/id/1.0.
 
 ---
 
-## [4.7.0] - 2026-09-15
+## [5.5.0] - 2026-09-20
 
-### Security & Architecture (Host OS PostgreSQL & Least Privilege Hardening)
+### Added
+- **Tahap C: Dual Picking Mode & Teknologi OCR Dokumen Customer (`/outbound`):**
+  - **Arsitektur Dual Picking:**
+    - Jalur 1: Alur Standar (Order-First) — buat DO manual $\to$ Picking di rak $\to$ Packing $\to$ Terbitkan Surat Jalan.
+    - Jalur 2: Alur Permintaan Customer (Customer-Driven / Pick-First) — menerima berkas lampiran customer berupa file **Excel** (`.xlsx`, `.xls`, `.csv`), dokumen **PDF**, atau **Foto / Scan Kertas SPPB/DO** (`.jpg`, `.png`).
+  - **Teknologi Ekstraksi OCR & Parser Dokumen (`useCustomerDocParser`):**
+    - Integrasi `tesseract.js` (Optical Character Recognition) untuk pemindaian teks pada dokumen gambar dan scan lembar fisik di browser client-side worker (bebas beban server & aman privasi).
+    - Integrasi `xlsx` (SheetJS) untuk pembacaan tabel spreadsheet otomatis.
+    - Integrasi `pdfjs-dist` untuk ekstraksi teks digital PDF dan render canvas untuk PDF scan.
+    - Algoritma pencocokan cerdas (*Fuzzy Matching*) untuk memetakan nama barang dokumen customer ke katalog Master SKU Produk WMS secara otomatis.
+  - **Layar Validasi Interaktif Human-in-the-Loop (`CustomerDocUploadModal.vue`):**
+    - Tampilan split screen: Preview dokumen asli (foto/PDF) berdampingan dengan form hasil ekstraksi data yang terisi otomatis (Nomor Referensi, Consignee, Alamat, Tabel SKU & Qty).
+    - Status pencocokan visual (🟢 Exact Match, 🟡 Fuzzy Match, 🔴 Manual Select) dan indikator stok on-hand real-time di gudang.
+    - 1-klik tombol *"Konfirmasi & Terbitkan Picking List"*.
+  - **Penyimpanan Lampiran Dokumen Customer:**
+    - Penambahan kolom `picking_source`, `customer_ref_number`, `attachment_url`, `attachment_name`, `attachment_type`, dan `ocr_raw_text` pada skema database `outbound_orders` PostgreSQL.
+    - Modal pratinjau dokumen asli (`previewAttachment`) langsung dari kartu order di daftar Delivery Order.
+    - Rantai audit checkpoint `ORDER_CREATED` otomatis mencatat metadata lampiran customer.
+  - **Rangkaian Pengujian Otomatis:**
+    - Test integrasi baru `tests/integration/outbound-customer-doc.routes.test.ts` (193/193 vitest suites passed 100%).
+    - Build Nuxt 3 / Nitro bersih (1.77 MB).
 
-- **Migrasi Database ke Level Host OS (Sesuai Protokol AGENTS.md):**
-  - Mengalihkan target database PostgreSQL 16 dari container Podman ke level OS host machine (`systemctl status postgresql`) di server `172.237.70.58`.
-  - Menghentikan dan menghapus container `wms-postgres` dan volume container terisolasi, merampingkan stack Podman hanya untuk container aplikasi (`backend`, `frontend`, `gateway`).
-  - Menghubungkan container backend Hono ke host PostgreSQL menggunakan `host.containers.internal:5432`.
+## [5.4.2] - 2026-09-19
 
-- **Anti-Privilege Escalation & Least Privilege Security (OWASP Web A01 / A05):**
-  - Membuat role database non-root khusus `wms_app` dengan atribut kaku: `NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION`.
-  - Mencegah eskalasi hak akses ke sistem operasi host: jika kredensial aplikasi bocor sekalipun, penyerang tidak dapat mengeksekusi binary host atau command OS (`COPY ... TO PROGRAM` ditolak engine PostgreSQL).
-  - Database `wms_simple_db` dan skema `public` dimiliki langsung oleh role `wms_app`.
+### Changed
+- **Redesain Antarmuka Surat Jalan & Resi (`/waybills`):**
+  - Mengganti layout dasar lawas yang terbatas `max-w-6xl` dengan **Enterprise Unified Header Card** yang konsisten dengan modul TMS, Billing, dan e-POD.
+  - Menambahkan **4 Kartu Metrik Pastel** interaktif: Total Surat Jalan, Baru Diterbitkan (ISSUED / Siap Berangkat), Dalam Perjalanan (IN_TRANSIT / En-Route), dan Selesai Serah Terima (POD_VERIFIED).
+  - Menambahkan **Bilah Filter Tab Status Interaktif** (`SEMUA`, `ISSUED`, `PRINTED`, `IN_TRANSIT`, `POD_VERIFIED`, `VOID`) lengkap dengan indikator badge counter real-time.
+  - Mengintegrasikan **Pencarian Cepat & Barcode Scanner Otomatis (`useBarcodeScanner`)** untuk pencarian nomor SJ, nomor resi, nomor order, nama penerima, atau kota tujuan.
+  - Memperbarui tabel data dengan badge mono resmi, penyalinan nomor dokumen 1-klik (`copyText`), cetak struk thermal kasir/driver langsung (`useThermalPrinter`), link audit trail rantai checkpoint, serta tombol pintas operasional kontekstual (`Gate Pass ➔`, `e-POD ➔`, `Billing ➔`).
+  - Menambahkan dukungan ikon SVG lengkap pada `frontend/components/AppIcon.vue` (`clock`, `navigation`, `check-circle`, `alert-triangle`, `copy`, `arrow-right`, `map-pin`, `x`, `refresh-cw`).
 
-- **Pengerasan Akses Jaringan Database (`pg_hba.conf` & `conf.d`):**
-  - Mengonfigurasi `listen_addresses = '*'` via `/etc/postgresql/16/main/conf.d/listen.conf`.
-  - Menerapkan pembatasan otentikasi ketat pada `pg_hba.conf`: hanya mengizinkan `wms_app` mengakses `wms_simple_db` dari subnet internal bridge Podman (`10.0.0.0/8`) dan localhost (`127.0.0.1/32`, `::1/128`) menggunakan algoritma enkripsi password `scram-sha-256`.
-  - Seluruh koneksi dari IP publik dan user administratif (`postgres`) diblokir dari akses jaringan luar.
+## [5.4.1] - 2026-09-19
+
+### Fixed
+- **Penguncian Otomatis Qty Diterima Fisik pada e-POD (`/outbound/pod`):**
+  - Mengunci input `deliveredQtyInput` secara *read-only* dengan nilai bawaan sesuai total order Surat Jalan (`orderTotalQty`) untuk mencegah *free entry* dan salah ketik saat serah terima kargo normal.
+  - Membuka hak edit kolom kuantitas secara kondisional hanya bila petugas/driver mencentang opsi *"Ada Selisih Fisik / Kerusakan Barang"*.
+  - Mewajibkan pengisian catatan selisih (`discrepancyNotes`) bila opsi selisih diaktifkan sebelum BAST digital dapat dikirim.
+  - Memproteksi formulir serah terima (foto, nama penerima, TTD, submit BAST) dengan status `disabled` apabila dokumen Surat Jalan / nomor order belum dimuat (`!matchedOrder`).
+- **Penyambungan Rantai Alur Operasional End-to-End (Outbound → Gate Pass → e-POD → Billing):**
+  - **Daftar Kargo Siap POD (`/outbound/pod`):** Menambahkan panel *quick-pick* pesanan aktif dalam pengiriman (`SHIPPED`) sehingga pengemudi/petugas cukup 1-klik untuk memuat formulir e-POD tanpa perlu mengetik manual nomor pesanan.
+  - **Shortcut Pasca Verifikasi POD ke Billing (`/outbound/pod`):** Menyediakan tombol tindakan langsung `[ 📄 Lanjutkan ke Menu Billing & Buat Faktur ➔ ]` setelah BAST digital di-ACC.
+  - **Auto-Highlight & Pre-Select Faktur (`/billing`):** Menangkap parameter `?order=...` untuk langsung menyorot kartu order yang baru diverifikasi dan mengisi estimasi nominal tagihan secara otomatis.
+  - **Shortcut Antara Outbound & Gate Pass (`/outbound`):** Menyediakan tautan cepat `[ 🚚 Pos Satpam (Gate Pass) ➔ ]` pada order yang telah menerbitkan Surat Jalan, dan `[ ✍️ Serah Terima (e-POD) ➔ ]` saat kargo sedang di jalan (`SHIPPED`).
+  - **Tautan Cepat Pasca Gate Out (`/gate-pass`):** Menambahkan tombol langsung `[ Buka e-POD ➔ ]` pada banner keberangkatan armada pool dan truk vendor.
+  - **Aset Ikon:** Menambahkan ikon `file-text` pada `frontend/components/AppIcon.vue` untuk standarisasi representasi visual dokumen faktur/billing.
+
+## [5.4.0] - 2026-09-18
+
+### Added
+- **Enterprise Visual Rack Digital Twin & Spatial Layout (`/master/racks`):**
+  - Halaman terdedikasi `frontend/pages/master/racks.vue` untuk pemantauan denah spasial gudang, kapasitas tonase, dan tingkat okupansi rak secara real-time.
+  - Komponen visual interaktif `WarehouseRackVisualizer.vue` dengan pemisahan Zona Fisik (Zona A Dry Pallet Racks bertingkat, Zona B Heavy Staging 5 Ton, Zona C Cold Storage Chiller -2°C s/d +4°C, Zona D Fast-Moving Transit).
+  - Tampilan visual multi-tier rak (Level A/B/C), indikator ketersediaan slot (🟢 Kosong, 🟡 Terisi Sebagian, 🔴 Penuh), dan label SKU tersimpan.
+  - Fitur Batch Generator Rak Massal (`POST /api/warehouses/:id/locations/batch`) untuk mempercepat pembuatan lorong, bay, dan tier tanpa input manual berulang.
+  - Pendaftaran menu `Denah & Tata Letak Rak` di bawah Master Data pada `frontend/stores/auth.ts`.
+  - Tautan cepat "🗺️ Denah Spasial Rak" di setiap kartu gudang pada `master/warehouses.vue`.
+- **Smart Putaway Suggestion Engine (`/inbound/putaway`):**
+  - Algoritma rekomendasi cerdas penempatan kargo berbasis karakteristik fisik barang (KDMP dingin ke Zona C Chiller, kargo curah/1 ton ke Zona B Heavy Floor Staging, sembako/karton ke Zona A Dry Pallet Rack).
+  - Modal Interactive Visual Bin Picker dengan preview slot dan satu tombol "Gunakan Rekomendasi".
+
+### Fixed
+- **Resolusi Data Item Inbound & Putaway:**
+  - Menambahkan subquery agregat JSON `items` pada `GET /api/inbound` di `backend/src/routes/inbound.ts` sehingga daftar SKU dan kuantitas barang fisik diterima dock selalu dimuat lengkap ke antarmuka Putaway.
+
+## [5.3.0] - 2026-09-18
+
+### Added
+- **Menu & Halaman Putaway Mandiri (`/inbound/putaway`):**
+  - Mendaftarkan submenu "Putaway (Penempatan Rak)" di bawah modul Inbound pada `frontend/stores/auth.ts`.
+  - Halaman terdedikasi `frontend/pages/inbound/putaway.vue` dengan tab status (Menunggu Putaway vs Selesai), pemilahan alokasi Cross-Docking vs Storage Rak Gudang, pemilihan lokasi bin/rak, dan konfirmasi dialog SweetAlert2.
+  - Shortcut akses cepat Putaway pada dashboard utama (`frontend/pages/index.vue`).
+- **Driver Cetak Lembar Kerja & Dokumen Lapangan:**
+  - Driver printer thermal ESC/POS untuk Lembar Kerja Stock Opname (`printOpnameWorksheet`), Surat Tugas & Manifest TMS Trip (`printTmsTripManifest`), dan Resi Standar (`printGenericReceipt`) di `frontend/composables/useThermalPrinter.ts`.
+  - Tombol cetak browser format A4 / HVS (`window.print()`) dengan stylesheet `@media print` rapi untuk lembar hitung fisik lorong rak opname di `frontend/pages/stock/opname.vue`.
+- **Soft-Deactivate & Hapus Master Data:**
+  - Endpoint `DELETE /api/warehouses/:id` dan `DELETE /api/products/:id` dengan audit integritas relasi: jika entitas memiliki riwayat ledger/transaksi, sistem melakukan *soft-deactivation* (`is_active = false`), dan menolak jika masih ada stok aktif.
+  - Aksi "Hapus / Nonaktifkan" dengan dialog SweetAlert2 di `master/warehouses.vue` dan `master/products.vue`.
+- **Penomoran Otomatis Master Customer:**
+  - Auto-generate kode customer terurut (`CUST001`, `CUST002`, dst.) dan tombol regenerasi di `master/customers.vue`.
+- **Fleksibilitas e-POD & Catatan Selisih Fisik:**
+  - Pilihan metode serah terima e-POD: Tanda Tangan Kanvas Digital vs Diwakilkan / Pos Satpam / Stempel Toko di `outbound/pod.vue`.
+  - Toggle pencatatan kerusakan/selisih barang fisik dan integrasi catatan ke audit checkpoint.
+
+### Fixed
+- **Double-Putaway Inbound Guard:**
+  - Proteksi backend di `POST /api/inbound/:id/putaway` untuk menolak status `PUTAWAY_COMPLETED` (409 Conflict) dan non-`RECEIVED` (400), mencegah mutasi saldo fisik berulang.
+  - Sembunyikan tombol putaway di halaman receiving dan gantikan dengan badge hijau permanen serta tautan ke halaman Putaway.
+- **Unfreezing Outbound Picking Confirmation:**
+  - Memperbaiki penanganan `outboundStore.errorMessage` pada `syncFeedback()` di `outbound/index.vue`, memunculkan alert merah interaktif di dalam modal saat stok di rak tidak mencukupi.
+  - Menampilkan stok on-hand gudang secara real-time pada modal konfirmasi picking.
+- **Normalisasi Prop ThermalPrintButton:**
+  - Mendukung prop ganda `:receipt-data` dan `:data` di `ThermalPrintButton.vue` dengan auto-routing template agar cetak di Stock Opname dan TMS Trip tidak gagal diam-diam.
+- **Sequence Penomoran Sesi Stock Opname:**
+  - Standardisasi format penomoran sesi opname berbasis kode gudang dan tanggal berurut (`OPNAME{WH_CODE}{YYYYMMDD}{SEQ}`) di `backend/src/routes/stock.ts`.
+- **Standardisasi Istilah Role (RBAC):**
+  - Menyeragamkan label "Peran" menjadi "Role (RBAC)" di formulir, subtitle, dan middleware otentikasi.
+- **Validasi Nilai Faktur & Pelunasan Billing:**
+  - Mewajibkan nominal faktur $> 0$ sebelum diterbitkan, menyediakan tombol estimasi tagihan otomatis berbasis kargo/tarif standar di `billing/index.vue`.
+  - Menolak penerimaan pembayaran jika nilai faktur bernilai Rp 0 di backend `billing.ts`.
+- **Validasi Kuantitas Diterima e-POD:**
+  - Membatasi kuantitas fisik e-POD (`delivered_qty`) dengan batas atas `:max="orderTotalQty"` dan validasi backend agar tidak melampaui jumlah pesanan.
 
 ---
 
-## [4.6.4] - 2026-09-12
+## [5.2.0] - 2026-09-15
 
-### Added (Production Infrastructure, UAT Governance & Live Verification)
+### Added
+- **Konsol Master Referensi Sistem Terpadu (Fase 4):**
+  - CRUD lengkap untuk Tipe Kargo (`master_cargo_types`), Tipe Kemasan (`master_packaging_types`), Satuan UOM (`master_uom`), Tipe Armada (`master_vehicle_types`), Tipe Dokumen (`master_document_types`), dan Template Cetak (`master_print_templates`).
+  - Modul Aturan Konversi UOM (`master_uom_conversions`): Dukungan pendefinisian rasio pengali satuan antar-UOM dengan rumus operasional (misal: 1 TON = 1.000 KG) untuk perhitungan otomatis debulking dan stok gudang.
+  - Halaman terpadu `/master/references` dengan tab navigasi, Add/Edit modals, dan validasi kode *non-hyphen*.
+  - Konfirmasi hapus dan notifikasi feedback modern terintegrasi dengan composable SweetAlert2 (`useSwal`).
+- **Pusat Notifikasi & Operational Alert Center (Fase 4):**
+  - Backend alert center: `POST /api/alerts` (pembuatan alert baru), `POST /api/alerts/scan-overdue` (deteksi otomatis armada terlambat kembali), `POST /api/alerts/resolve-all` (batch resolution), dan `GET /api/alerts/summary` (ringkasan status alert).
+  - Popover Alert Center di header antarmuka (`AppHeader.vue`): Filter per tingkat keparahan (Semua, Kritis, Peringatan), tombol pemindaian anomali proaktif, dan aksi resolusi cepat.
+- **Redesign Antarmuka & Standardisasi Desain:**
+  - Dark theme sidebar (`bg-slate-900`), simplifikasi header breadcrumb, dan penggantian seluruh alert native browser dengan SweetAlert2.
+- **Pengujian Integrasi Vitest Baru:**
+  - `alerts.routes.test.ts` (6/6 tests passed).
+  - Perluasan `master.routes.test.ts` (13/13 tests passed).
+  - Total pengujian: 28 test suites, 191 tests passing (100% pass rate).
 
-- **Cloudflare Tunnel & HTTPS Domain Publik:**
-  - Menyiapkan akses domain aman resmi berenkripsi SSL/TLS melalui Cloudflare Tunnel di `https://wms.innaka.dev` yang terhubung ke reverse proxy Nginx port 8090.
-- **Matriks Pengujian UAT Resmi (`AGENTS.md`):**
-  - Mendaftarkan kredensial resmi 6 akun pengujian operasional berbasis identitas fisik (`superadmin`, `admin_adm`, `mgr_jkt`, `staff_jkt`, `gate_officer`, `driver_budi`) dengan password default terenkripsi `scrypt`.
-- **Verifikasi Alur Operasional End-to-End Nyata (7 Fase Penuh):**
-  - Menguji siklus hidup logistik menyeluruh di lingkungan produksi: Inbound PO -> Physical Receive -> Putaway ke rak -> Outbound DO -> Picking -> Packing -> Penerbitan Waybill & Resi -> Pos Satpam Jalur B Truk Vendor -> Mobile POD TTD Digital -> Verifikasi BAST Admin -> Penagihan Faktur -> Pembayaran Bertahap hingga LUNAS.
-  - Memverifikasi rantai audit 9 node checkpoint immutable linked-list yang tak terputus.
-  - Memverifikasi skenario On-Demand Debulking Work Order (susut 0.5% tertaut DO) dan Cross-Dock Surat Jalan Swap (blind-shipping).
+---
 
-### Fixed (Code Review & Operational Hardening)
+## [5.1.0] - 2026-09-15
 
-- **Audit Trail Alias Resolution (`backend/src/routes/checkpoints.ts`):**
-  - Mengimplementasikan resolusi otomatis untuk pencarian timeline dokumen melalui nomor Surat Jalan (`SJ-`), nomor Resi (`RESI-`), nomor Faktur (`INV-`), maupun pencarian string metadata checkpoint.
-  - Menghilangkan galat 404 saat pengguna menelusuri nomor resi atau faktur pada portal `/checkpoints`.
-  - Menambahkan pengujian integrasi unit untuk resolusi alias waybill dan invoice.
+### Added
+- **Pengujian Integrasi Karantina & Stock Opname (Fase 3):**
+  - Suite pengujian integrasi Vitest baru `quarantine.routes.test.ts` (7/7 tests): pengujian alur hold karantina, nomor tiket non-hyphen `QRN...`, disposisi restock dan pemusnahan scrap, serta rantai checkpoint.
+  - Suite pengujian integrasi Vitest baru `stock-opname.routes.test.ts` (8/8 tests): pengujian inisialisasi sesi, snapshot stok instan per rak, pencatatan hitung fisik, kalkulasi otomatis selisih varians, dan rekonsiliasi buku besar ganda.
+- **Integrasi Reverse Logistics POD Ditolak $\rightarrow$ Karantina:**
+  - Penambahan enum `rejection_disposition: 'RESTOCK' | 'QUARANTINE'` pada endpoint verifikasi POD (`/outbound/:id/verify-pod`).
+  - Penanganan mutasi stok `POD_REJECT_QUARANTINE` untuk mengosongkan saldo in-transit barang rusak dan menerbitkan tiket karantina `QRN...` secara otomatis.
+  - Penambahan radio selector di halaman UI `/outbound/pod` untuk memilih alokasi fisik barang saat admin menolak BAST/POD.
 
-- **Gate Pass Auto-Linking & Armada Distance Tracking (`backend/src/routes/fleet.ts`):**
-  - Memperbaiki pencatatan `distance_travelled_km` pada `fleet_exit_logs` saat armada pool kembali (gate-in), yang sebelumnya bernilai NULL.
-  - Memperbarui `last_odometer_km` kendaraan di tabel `vehicles` secara otomatis saat armada tiba kembali di pool (`status = 'AVAILABLE'`).
-  - Menambahkan auto-resolusi `reference_type` dan `reference_id` dari tabel `waybills` pada rute `POST /api/fleet/departure` dan `POST /api/fleet/vendor-exit`, memastikan status order berpindah ke `SHIPPED` meskipun petugas gerbang hanya memasukkan nomor Surat Jalan/Resi.
+### Fixed
+- **Pencegahan Kebocoran Transaksi Mutasi Stok (`txClient`):**
+  - Memastikan seluruh pemanggilan `adjustStock` pada alur Karantina, Inspeksi QC, dan Rekonsiliasi Opname meneruskan `txClient: client` bersama untuk menjamin kepatuhan ACID dan mencegah lock contention di PostgreSQL.
+- **TypeScript Strict Compliance:**
+  - Memperbaiki penanganan tipe `id as string` pada pencatatan checkpoint di rute karantina dan opname (`npx tsc --noEmit` bersih).
 
-- **Dangling Transaction Prevention (`backend/src/routes/debulking.ts`):**
-  - Memindahkan pra-validasi `outbound_order_id` (keberadaan order, status terkunci, duplikasi work order) ke luar blok transaksi (`client.query('BEGIN')`), mencegah potensi *uncommitted transaction leak* pada koneksi pool.
+---
 
-- **Preservasi Boolean Native PostgreSQL (`backend/src/db.ts`):**
-  - Menghapus konversi peninggalan SQLite `if (typeof p === 'boolean') return p ? 1 : 0` pada `normalizeParams` sehingga parameter bertipe boolean dikirimkan sebagai nilai asli (`true`/`false`) ke PostgreSQL.
+## [5.0.0] - 2026-09-14
 
-- **Frontend UI State & Form Hardening:**
-  - **Billing Portal (`frontend/pages/billing/index.vue`):** Menyaring daftar `readyToBill` agar order yang fakturnya sudah diterbitkan tidak lagi muncul ganda pada tabel "Order Siap Dibilling".
-  - **POD Portal (`frontend/pages/outbound/pod.vue`):** Memperluas pencarian order agar dapat mengenali input berbasis `order_number`, `sj_number`, maupun `resi_number`.
-  - **Gate Pass Portal (`frontend/pages/gate-pass/index.vue`):** Menambahkan `datalist` opsi dokumen keberangkatan dan mengotomatiskan penerusan nomor waybill pada form keberangkatan armada pool serta truk vendor.
+### Added
+- **Fase 5: Penutupan Penuh Operasional & Fisik (Jembatan Timbang Truk, Packing Koli Fisik & KDMP, Alokasi Rak Picking, Auto-Konversi Debulking):**
+  - **Modul Jembatan Timbang Truk / Weighbridge Station Console (Gap Tabel 19):**
+    - Backend API di `backend/src/routes/weighbridge.ts`: `GET /api/weighbridge` (filter gudang & status OPEN/COMPLETED), `POST /api/weighbridge` (Timbang Masuk Gross dengan nomor tiket non-hyphen `WBXXXXXXXX`), `PUT /api/weighbridge/:id/second-weight` (Timbang Keluar Tare & auto-kalkulasi Net Cargo Weight).
+    - Halaman antarmuka **Konsol Jembatan Timbang** (`frontend/pages/weighbridge/index.vue`): Simulator sensor timbangan digital RS-232, tombol Zero/Tare/Gross, tab tiket aktif vs riwayat selesai, modal pencatatan timbang masuk & keluar, serta cetak struk tiket thermal (`printWeighbridgeReceipt` di `useThermalPrinter.ts`).
+    - Pinia store baru `frontend/stores/weighbridge.ts` dan integrasi menu navigasi di `frontend/stores/auth.ts`.
+    - Pengujian integrasi Vitest (`backend/tests/integration/weighbridge.routes.test.ts`) 100% lulus (5/5 tests).
+  - **Modul Packing Interaktif & Pencatatan Koli Fisik (Gap Tabel 28 & Pelacakan Unit KDMP):**
+    - Backend API `POST /api/outbound/:id/pack` diperluas untuk menyimpan `packaging_type_id` ke tabel `packages`.
+    - Modal interaktif **Packing & Koli Fisik** di `frontend/pages/outbound/index.vue`: input multi-koli/box dengan kode non-hyphen (`BOX...`), pilihan tipe kemasan dari `master_packaging_types`, berat riil (KG), dimensi (PxLxT cm), serta pengikatan Serial Number (`SN...`) dan Tag Aset Balai Desa (`KDMP...`) untuk kargo chiller pendingin.
+    - Panel expandable rincian item order & daftar koli fisik pada daftar delivery order.
+  - **Saran Lokasi Rak Saat Outbound Picking (Gap Tabel 9):**
+    - Modal picking interaktif di `frontend/pages/outbound/index.vue` menampilkan daftar lokasi rak gudang (`warehouse_locations`) untuk alokasi pengambilan barang tanpa *blind warehouse*.
+  - **Auto-Kalkulasi Rasio Konversi UOM pada Debulking (Gap Tabel 4):**
+    - Menghubungkan tabel `master_uom_conversions` ke formulir Debulking (`frontend/pages/debulking/index.vue`).
+    - Fitur 1-klik "Terapkan Rasio UOM" untuk mengonversi kuantitas parent bulky menjadi kuantitas output kemasan ritel secara presisi.
+- **Rangkaian Pengujian Kualitas:**
+  - Vitest: 24 test suites, 155/155 tests passing (0 failures).
+  - Nuxt 3 Client & Server Build: 1.76 MB clean bundle tanpa error.
 
-### Deployment
+## [4.8.0] - 2026-09-14
 
-- **Deploy Produksi Innaka Cloud:**
-  - Build dan restart multi-stage container Node 20 backend dan Nuxt 3 frontend di `104.64.221.233` (`/data/docker-data/wms-simple/repo`).
-  - Pembersihan (*pruning*) image Docker lama sehingga penggunaan disk server tetap optimal (37 GB ruang kosong).
+### Added
+- **Standardisasi Penomoran Tanpa Tanda Hubung (Strict Non-Hyphen Concatenation):**
+  - Seluruh generator dokumen (`generateDocumentNumber` di `waybill.ts`) menghapus tanda strip `-` dan menghasilkan format alphanumeric padat: `POXXXXXXXX`, `SJXXXXXXXX`, `RESIXXXXXXXX`, `ORDXXXXXXXX`, `PODXXXXXXXX`, `GATEOUTXXXXXXXX`, `VENDOUTXXXXXXXX`, `INVXXXXXXXX`, `WBXXXXXXXX`, `DEBULKXXXXXXXX`, `MNFXXXXXXXX`, `XDOCXXXXXXXX`, `OPNAMEXXXXXX`, `TRIPXXXXXXXX`, `QRNXXXXXXXX`.
+  - Seluruh SKU produk di database dan seeder distandarisasi tanpa tanda hubung: `BULKSUGAR1T`, `SUGARSACK25KG`, `KDMPCHILLER300L`, `ELECTV43`.
+- **Fase 1: P0 Core Fixes (Gate-In Pos Satpam, POD Rejection Stock Reversal, Lokasi Rak):**
+  - Antarmuka **Gate-In Armada Kembali** di `/gate-pass`: input odometer masuk, tingkat BBM, catatan kondisi fisik, dan kalkulasi jarak tempuh KM otomatis.
+  - Pemulihan stok saat POD ditolak (`POD_REJECT_REVERSAL`): mengembalikan stok `in_transit` ke `on_hand` gudang asal dengan pencatatan buku besar ganda (*double-entry ledger*).
+  - Integrasi lokasi rak gudang (`location_id`) pada Inbound Putaway `/inbound/receive`.
+- **Fase 2: Modul TMS (Transportation Management System):**
+  - Skema tabel PostgreSQL `trips` dan `trip_stops`.
+  - Backend API TMS (`backend/src/routes/tms.ts`): rute konsolidasi order siap kirim (`available-orders`), pembuatan surat tugas jalan, keberangkatan armada (`dispatch`), dan serah terima per titik drop (`stops/:stopId/complete`).
+  - **Overload Guard Proteksi ODOL**: Validasi real-time berat kargo ($\sum \text{kg}$) dan volume ($\sum \text{CBM}$) terhadap kapasitas maksimal tipe armada truk.
+  - Halaman antarmuka **TMS Trip Dispatcher** (`frontend/pages/tms/trips.vue`) dengan visual overload gauge dan pelacakan multi-drop.
+  - Rangkaian pengujian integrasi TMS (`backend/tests/integration/tms.routes.test.ts`) 100% lulus.
+- **Fase 3: Karantina, Retur & Stock Opname:**
+  - Skema tabel PostgreSQL `quarantine_records`, `stock_opname_sessions`, dan `stock_opname_items`.
+  - Backend API rute Karantina & QC disposisi (`RETURN_TO_STOCK`, `RETURN_TO_VENDOR`, `DISPOSE_SCRAP`) serta Stock Opname (snapshot saldo sistem, hitung fisik, rekonsiliasi buku besar).
+  - Halaman antarmuka **Karantina & Retur Barang (QC)** (`frontend/pages/stock/quarantine.vue`) dan **Stock Opname Cycle Count** (`frontend/pages/stock/opname.vue`).
+- **Fase 4: Master Referensi Terpadu & Pusat Peringatan Operasional (Alert Center):**
+  - Halaman antarmuka **Master Referensi Sistem** (`frontend/pages/master/references.vue`): Tipe Kargo, Tipe Kemasan, Satuan UOM & Konversi, Tipe Armada, dan Tipe Dokumen lengkap dengan endpoint CRUD di `backend/src/routes/master.ts`.
+  - Komponen **Pusat Peringatan (Alert Center)** pada `AppHeader.vue`: tombol lonceng notifikasi dengan pulsing badge alert aktif, popover daftar peringatan real-time, dan tombol penyelesaian anomali langsung.
+  - Integrasi menu navigasi baru di `frontend/stores/auth.ts`.
 
-## [4.6.3] - 2026-09-12
 
-### Security (OWASP Top 10 Web, OWASP AI, & ISO/IEC 27001 Hardening)
 
-- **A07 & ISO 27001 A.9.4.3 (Password Authenticator & Defense-in-Depth):**
-  - Menghapus celah backdoor password hardcode (`password === 'password123' || password === 'admin123'`) pada `backend/src/routes/auth.ts`.
-  - Mengimplementasikan verifikasi kata sandi kriptografis berbasis algoritma `scrypt` (Node.js `crypto.scrypt`) dengan garam (*salt*) acak dan perbandingan waktu-konstan (`crypto.timingSafeEqual`).
-  - Menyediakan mekanisme migrasi otomatis: hash kata sandi lama/plaintext diperbarui ke format `scrypt` secara asinkron saat otentikasi pertama berhasil.
-  - Menambahkan *in-memory rate limiter* untuk mencegah serangan *brute-force* pada endpoint `/api/auth/login` (maksimal 5 kali percobaan gagal per username per jendela 10 menit, dengan periode penguncian 15 menit).
-  - Menambahkan audit log terstruktur bertanda `[SECURITY]` untuk setiap upaya login yang gagal.
+### Added
+- **Thermal Printer Browser Fallback (`useThermalPrinter.ts` & `ThermalPrintButton.vue`):** Fallback cetak struk otomatis melalui dialog cetak browser (iframe terisolasi bergaya receipt 80mm monospaced) saat Web Bluetooth tidak terhubung atau perangkat desktop digunakan; menggantikan modal `alert()` dengan status visual non-blocking.
+- **Active Warehouse Switcher (`AppHeader.vue`):** Dropdown pemilih gudang aktif dinamis pada header desktop dan mobile, terhubung ke `authStore.setWarehouse()` dan `masterStore.warehouses`.
+- **Database Initializer & Seeder (`backend/scripts/migrate-and-seed.mjs`):** Script idempotent inisialisasi schema (36 tabel) dan seeder data master pada PostgreSQL host (`wms_simple_db` dan `wms_simple_test_db`).
 
-- **A01 & ISO 27001 A.9.1 (Broken Access Control & Scoped RBAC):**
-  - Memasang guard otorisasi peran pada rute mutasi yang sebelumnya terbuka:
-    - `POST /api/billing/:orderId/invoice` dan `POST /api/billing/invoices/:invoiceId/payments` dibatasi untuk peran `SUPER_ADMIN`, `ADMIN_ADM`, dan `WH_MANAGER`.
-    - `POST /api/master/cargo-types` dibatasi untuk peran `SUPER_ADMIN` dan `ADMIN_ADM`, dilengkapi validasi Zod `cargoTypeSchema`.
-    - `POST /api/alerts/:id/resolve` dilindungi dengan `optionalAuth` dan pengecekan peran otoritas gudang/manajemen.
-  - **Frontend RBAC Fallback:** Memperbaiki `frontend/stores/auth.ts` agar `canAccess`, `allowedNavParents`, dan `allowedBottomNavItems` mengembalikan `false` atau array kosong saat status belum terotentikasi (`!state.user`), meniadakan fallback default ke `SUPER_ADMIN`.
-  - **Harden Login UI:** Membatasi fitur 1-click role switcher dan prefill kredensial pada `frontend/pages/login.vue` hanya saat mode pengembangan (`isDevBypassEnabled`).
-
-- **A05 & ISO 27001 A.12.1.2 (Security Misconfiguration & Error Sanitization):**
-  - Mensanitasi pesan error 500 internal server pada `backend/src/app.ts` di lingkungan produksi untuk mencegah kebocoran informasi skema DB dan *stack trace*.
-  - Menambahkan peringatan keamanan eksplisit pada `backend/src/middlewares/auth.ts` jika `JWT_SECRET` belum diatur pada lingkungan produksi.
-  - Menambahkan log keamanan untuk upaya akses yang ditolak (HTTP 401 dan 403).
-
-- **Resiliensi Pengujian Lokal & CI/CD:**
-  - Menambahkan pengecekan ketersediaan PostgreSQL pada `backend/tests/e2e/transaction-chain.e2e.test.ts` dan `backend/tests/e2e/inbound-crossdock-chain.e2e.test.ts` sehingga suite e2e DB nyata dilewati secara aman saat pengujian dijalankan di mesin lokal tanpa PostgreSQL, dan tetap berjalan 100% pada container CI/CD.
-
-## [4.6.2] - 2026-09-12
-
-### Fixed (CI/CD Quality Gate & Vitest Test Suite Hardening)
-
-- **PostgreSQL Service Container di CI/CD (`.github/workflows/ci.yml` & `.gitlab-ci.yml`):**
-  - Menambahkan service container `postgres:16-alpine` pada job `backend-test-and-lint`.
-  - Menambahkan script `backend/scripts/init-test-db.js` untuk membuat database test `wms_simple_test_db` secara otomatis dan idempotent.
-  - Memasang hook `pretest` dan `pretest:coverage` pada `backend/package.json`.
-- **Penanganan Unhandled Rejection pada `backend/src/db.ts`:**
-  - Mengubah inisialisasi skema menjadi lazy (`ensureSchema`) saat query atau connect pertama kali dipanggil, menghindari floating unhandled promise rejection saat modul dimuat.
-- **Isolasi Health Check Test (`backend/tests/integration/health.test.ts`):**
-  - Menambahkan mock `db.js` seperti halnya 15 integration test suite lainnya agar tidak bergantung pada koneksi database aktif saat menguji endpoint non-DB `/api/health`.
-- **Migrasi Vitest 4 Pool Options (`backend/vitest.config.ts`):**
-  - Memindahkan `poolOptions.forks` ke level atas `forks: { singleFork: true }` untuk menghilangkan peringatan deprecation Vitest 4.
+### Fixed
+- **Integrasi Gate-Out Pool Jalur A ke Outbound SHIPPED (`gatePass.ts` & `pages/gate-pass/index.vue`):** Pemilihan order/manifest pada keberangkatan armada pool kini mengirimkan `reference_type` (`OUTBOUND_ORDER` / `CROSS_DOCK_MANIFEST`) dan `reference_id`, sehingga order otomatis beralih ke status `SHIPPED` di backend dan dapat dilanjutkan ke alur POD tanpa error 409 Conflict. Data statis nopol/sopir/odometer di pos satpam dibersihkan.
+- **POD Dynamic Qty & Display (`pages/outbound/pod.vue`):** Menghapus hardcode `delivered_qty: 1`. Jumlah barang terkirim kini reaktif sesuai item order riil dan dapat dikonfirmasi oleh petugas. Kotak SOP Cold Chain KDMP kini tampil dinamis berdasarkan kebutuhan kontrol suhu produk (`requires_temperature_control`).
+- **Pembersihan Default Hardcoded UUID:**
+  - `backend/src/routes/stock.ts`: Dummy reference ID `00000000-0000-0000-0000-000000000001` pada stock adjustment diganti dengan `crypto.randomUUID()`.
+  - `frontend/pages/inbound/receive.vue`: Menghapus fallback UUID gudang statis (`a0000000-0000-0000-0000-000000000001`).
+- **Sinkronisasi Port API Dev Lokal:** Menyesuaikan port fallback frontend dari port 8000 ke port 3000 pada `nuxt.config.ts` dan `useWmsApi.ts`.
+- **Environment & PostgreSQL Test Harness:** Menambahkan `import 'dotenv/config'` di `backend/src/db.ts` dan sinkronisasi kredensial database lokal, menyelesaikan 100% rangkaian pengujian otomatis (22 test suites, 144 passed).
 
 ## [4.6.0] - 2026-09-11
 

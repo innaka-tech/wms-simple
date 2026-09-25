@@ -13,20 +13,26 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
       <div>
-        <p class="kicker">Fase 3 — Outbound • Penerbitan Ulang Dokumen</p>
-        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-          <AppIcon name="checkpoint" custom-class="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/60 mb-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+          <span>Fase 3 — Outbound • Penerbitan Ulang Dokumen</span>
+        </div>
+        <h2 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-lg bg-sky-50 dark:bg-sky-950/50 flex items-center justify-center text-sky-600 dark:text-sky-400 border border-sky-200/60 dark:border-sky-800/60 shadow-xs">
+            <AppIcon name="checkpoint" custom-class="w-4 h-4" />
+          </div>
           <span>Cross-Doc (Swap Dokumen)</span>
         </h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Terbitkan ulang dokumen logistik: Surat Jalan Swap, Re-issue AWB, atau Sub-SJ dekonsolidasi — tanpa menyentuh stok.</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Terbitkan ulang dokumen logistik: Surat Jalan Swap, Re-issue AWB, atau Sub-SJ dekonsolidasi — tanpa menyentuh stok.</p>
       </div>
-      <div class="flex gap-2 shrink-0">
+      <div class="flex items-center gap-2 shrink-0">
         <button type="button" @click="showCreate = !showCreate"
-                class="px-3 py-2 rounded-md text-xs font-semibold transition"
-                :class="showCreate ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700' : 'bg-cyan-600 hover:bg-cyan-700 text-white'">
-          {{ showCreate ? 'Tutup Form' : '+ Terbitkan Cross-Doc' }}
+                class="px-3.5 py-2 rounded-lg text-xs font-semibold transition shadow-xs flex items-center gap-1.5"
+                :class="showCreate ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700' : 'bg-sky-600 hover:bg-sky-700 text-white'">
+          <AppIcon :name="showCreate ? 'close' : 'plus'" custom-class="w-3.5 h-3.5" />
+          <span>{{ showCreate ? 'Tutup Form' : '+ Terbitkan Cross-Doc' }}</span>
         </button>
-        <NuxtLink to="/crossdock" class="px-3 py-2 rounded-md bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 transition">Manifest</NuxtLink>
+        <NuxtLink to="/crossdock" class="px-3.5 py-2 rounded-lg bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 transition shadow-xs">Manifest</NuxtLink>
       </div>
     </div>
 

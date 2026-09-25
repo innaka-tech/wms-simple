@@ -17,11 +17,15 @@
     </div>
 
     <!-- Header -->
-    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
+    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
       <div>
-        <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-0.5">Master Data</p>
-        <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-          <AppIcon name="warehouse" custom-class="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/70 dark:border-sky-800">
+            Master Data &bull; Fasilitas Fisik
+          </span>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+          <AppIcon name="warehouse" custom-class="w-5 h-5 text-sky-600 dark:text-sky-400" />
           <span>Master Gudang &amp; Lokasi Rak</span>
         </h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Jaringan gudang (hub &amp; spoke) beserta lokasi penyimpanan: zone, aisle, rack, bin.</p>
@@ -30,7 +34,7 @@
         v-if="canManage"
         type="button"
         @click="openForm()"
-        class="self-start md:self-auto bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-2.5 rounded-md transition flex items-center space-x-1.5"
+        class="self-start md:self-auto inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm hover:shadow transition cursor-pointer"
       >
         <AppIcon name="plus" custom-class="w-4 h-4" />
         <span>Registrasi Gudang</span>
@@ -39,7 +43,20 @@
 
     <!-- Cards -->
     <div class="space-y-4">
-      <div v-for="w in masterStore.warehouses" :key="w.id" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden">
+      <div v-if="masterStore.isLoading && !masterStore.warehouses.length" class="p-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
+        <AppIcon name="refresh" custom-class="w-5 h-5 animate-spin text-sky-600" />
+        <span>Memuat data gudang...</span>
+      </div>
+      <AppEmptyState
+        v-else-if="!masterStore.warehouses.length"
+        icon="warehouse"
+        title="Belum Ada Gudang Terdaftar"
+        description="Belum ada gudang atau hub operasional terdaftar di sistem. Mulai dengan mendaftarkan gudang operasional baru."
+        action-label="Registrasi Gudang"
+        action-icon="plus"
+        @action="openForm()"
+      />
+      <div v-else v-for="w in masterStore.warehouses" :key="w.id" class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
         <div class="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800">
           <div>
             <div class="flex items-center space-x-2">
@@ -55,18 +72,27 @@
             </div>
           </div>
           <div class="flex items-center space-x-2 shrink-0">
+            <NuxtLink :to="`/master/racks?warehouse_id=${w.id}`" class="text-xs font-semibold px-3 py-2 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition flex items-center space-x-1.5">
+              <span>🗺️ Denah Spasial Rak</span>
+            </NuxtLink>
             <button type="button" @click="toggleLocations(w.id)" class="text-xs font-semibold px-3 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-              {{ openLocations === w.id ? 'Tutup Rak' : `Lihat Rak (${w.location_count ?? '…'})` }}
+              {{ openLocations === w.id ? 'Tutup Rak' : `Daftar Rak (${w.location_count ?? '…'})` }}
             </button>
             <button v-if="canManage" type="button" @click="openForm(w)" class="text-xs font-semibold px-3 py-2 rounded-md text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">Ubah</button>
+            <button v-if="canManage" type="button" @click="handleDeleteWarehouse(w)" class="text-xs font-semibold px-3 py-2 rounded-md text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition">Hapus</button>
           </div>
         </div>
 
         <!-- Locations -->
         <div v-if="openLocations === w.id" class="p-4 bg-slate-50 dark:bg-slate-950/40">
           <div class="flex items-center justify-between mb-2.5">
-            <h4 class="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Storage Location (Zone / Aisle / Rack / Bin)</h4>
-            <button v-if="canManage" type="button" @click="openLocationForm(w)" class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">+ Tambah Rak</button>
+            <div class="flex items-center space-x-3">
+              <h4 class="text-[11px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Storage Location (Zone / Aisle / Rack / Bin)</h4>
+              <NuxtLink :to="`/master/racks?warehouse_id=${w.id}`" class="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
+                🗺️ Buka Visual Twin 2D & Rekomendasi
+              </NuxtLink>
+            </div>
+            <button v-if="canManage" type="button" @click="openLocationForm(w)" class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline">+ Tambah Rak Manual</button>
           </div>
           <div v-if="!locations[w.id]?.length" class="text-[11px] text-slate-400">Belum ada lokasi terdaftar.</div>
           <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -159,8 +185,11 @@
 </template>
 
 <script setup>
+import { useSwal } from '~/composables/useSwal';
+
 const masterStore = useMasterStore();
 const authStore = useAuthStore();
+const swal = useSwal();
 
 const canManage = computed(() => ['SUPER_ADMIN', 'ADMIN_ADM'].includes(authStore.user?.role));
 const showForm = ref(false);
@@ -194,6 +223,23 @@ async function submit() {
     ? await masterStore.updateWarehouse(editing.value.id, { ...form.value })
     : await masterStore.createWarehouse({ ...form.value });
   if (ok) showForm.value = false;
+}
+
+async function handleDeleteWarehouse(w) {
+  const confirmed = await swal.confirmAction({
+    title: `Hapus / Nonaktifkan Gudang?`,
+    text: `Gudang "${w.name}" (${w.code}) akan dihapus permanen bila belum ada mutasi, atau dinonaktifkan jika memiliki riwayat transaksi/stok.`,
+    confirmButtonText: 'Ya, Lanjutkan',
+    cancelButtonText: 'Batal'
+  });
+  if (!confirmed) return;
+
+  const ok = await masterStore.deleteWarehouse(w.id);
+  if (ok) {
+    swal.showSuccess('Berhasil', masterStore.successMessage || 'Gudang berhasil diproses');
+  } else {
+    swal.showError('Gagal', masterStore.errorMessage || 'Gagal memproses gudang');
+  }
 }
 
 async function toggleLocations(whId) {

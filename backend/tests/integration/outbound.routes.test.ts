@@ -208,6 +208,82 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
     );
   });
 
+  it('POST /api/outbound/:id/verify-pod should handle POD rejection with RESTOCK disposition (P0-2)', async () => {
+    vi.mocked(db.query).mockResolvedValueOnce({
+      rows: [{ id: 'out-1', order_number: 'ORD001', warehouse_id: 'wh-jakarta', status: 'DELIVERED' }]
+    } as any);
+
+    mockClient.query
+      .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({}) // UPDATE pod_documents
+      .mockResolvedValueOnce({}) // UPDATE outbound_orders status CANCELLED
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-1', total: 2 }] } as any) // items utk POD_REJECT_REVERSAL
+      .mockResolvedValueOnce({}); // COMMIT
+
+    const res = await app.request('/api/outbound/out-1/verify-pod', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'REJECTED',
+        rejection_reason: 'Toko penerima tutup permanen',
+        rejection_disposition: 'RESTOCK',
+        actor_name: 'Admin Verifikator'
+      })
+    });
+
+    expect(res.status).toBe(200);
+    expect(stockService.adjustStock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        warehouse_id: 'wh-jakarta',
+        product_id: 'p-1',
+        movement_type: 'POD_REJECT_REVERSAL',
+        qty_change: 2,
+        txClient: mockClient
+      })
+    );
+  });
+
+  it('POST /api/outbound/:id/verify-pod should handle POD rejection with QUARANTINE disposition (Fase 3)', async () => {
+    vi.mocked(db.query).mockResolvedValueOnce({
+      rows: [{ id: 'out-1', order_number: 'ORD001', warehouse_id: 'wh-jakarta', status: 'DELIVERED' }]
+    } as any);
+
+    mockClient.query
+      .mockResolvedValueOnce({}) // BEGIN
+      .mockResolvedValueOnce({}) // UPDATE pod_documents
+      .mockResolvedValueOnce({}) // UPDATE outbound_orders status CANCELLED
+      .mockResolvedValueOnce({ rows: [{ product_id: 'p-1', total: 2 }] } as any) // items utk rejection
+      .mockResolvedValueOnce({ rows: [{ default_uom_id: 'uom-unit', sku_code: 'KDMPCHILLER', name: 'Chiller' }] } as any) // products lookup
+      .mockResolvedValueOnce({ rows: [{ id: 'qrn-uuid-1' }] } as any) // INSERT quarantine_records RETURNING
+      .mockResolvedValueOnce({}); // COMMIT
+
+    const res = await app.request('/api/outbound/out-1/verify-pod', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'REJECTED',
+        rejection_reason: 'Barang rusak parah kompresor pecah',
+        rejection_disposition: 'QUARANTINE',
+        actor_name: 'Admin Verifikator'
+      })
+    });
+
+    expect(res.status).toBe(200);
+    expect(stockService.adjustStock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        warehouse_id: 'wh-jakarta',
+        product_id: 'p-1',
+        movement_type: 'POD_REJECT_QUARANTINE',
+        qty_change: 2,
+        txClient: mockClient
+      })
+    );
+    expect(mockClient.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO quarantine_records'),
+      expect.any(Array)
+    );
+  });
+
   describe('POST /api/outbound/:id/issue-waybill', () => {
     const orderRow = { id: 'out-1', order_number: 'ORD-001', status: 'PACKED' };
 
@@ -220,7 +296,7 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
 
       mockClient.query
         .mockResolvedValueOnce({}) // BEGIN
-        .mockResolvedValueOnce({ rows: [{ id: 'wb-1', sj_number: 'SJ-AAAA1111', resi_number: 'RESI-BBBB2222', status: 'ISSUED' }] }) // INSERT waybills
+        .mockResolvedValueOnce({ rows: [{ id: 'wb-1', sj_number: 'SJAAAA1111', resi_number: 'RESIBBBB2222', status: 'ISSUED' }] }) // INSERT waybills
         .mockResolvedValueOnce({}); // COMMIT
 
       const res = await app.request('/api/outbound/out-1/issue-waybill', {
@@ -232,15 +308,15 @@ describe('Outbound Fulfillment and POD API Routes Integration Tests', () => {
       expect(res.status).toBe(201);
       const bodyRes = await res.json();
       expect(bodyRes.success).toBe(true);
-      expect(bodyRes.data.sj_number).toMatch(/^SJ-[0-9A-HJ-NP-Z]{8}$/);
-      expect(bodyRes.data.resi_number).toMatch(/^RESI-[0-9A-HJ-NP-Z]{8}$/);
+      expect(bodyRes.data.sj_number).toMatch(/^SJ[0-9A-HJ-NP-Z]{8}$/);
+      expect(bodyRes.data.resi_number).toMatch(/^RESI[0-9A-HJ-NP-Z]{8}$/);
       expect(checkpointService.recordCheckpoint).toHaveBeenCalledWith(
         expect.objectContaining({
           step_code: 'WAYBILL_ISSUED',
           actor_name: 'Admin Gudang Siti',
           metadata: expect.objectContaining({
-            sj_number: expect.stringMatching(/^SJ-[0-9A-HJ-NP-Z]{8}$/),
-            resi_number: expect.stringMatching(/^RESI-[0-9A-HJ-NP-Z]{8}$/)
+            sj_number: expect.stringMatching(/^SJ[0-9A-HJ-NP-Z]{8}$/),
+            resi_number: expect.stringMatching(/^RESI[0-9A-HJ-NP-Z]{8}$/)
           })
         })
       );

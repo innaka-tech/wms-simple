@@ -12,7 +12,25 @@ inboundRoutes.get('/', async (c) => {
   const warehouse_id = c.req.query('warehouse_id');
 
   let sql = `
-    SELECT io.*, c.name AS customer_name, w.name AS warehouse_name
+    SELECT io.*, c.name AS customer_name, w.name AS warehouse_name,
+      COALESCE((
+        SELECT json_agg(json_build_object(
+          'id', ii.id,
+          'product_id', ii.product_id,
+          'ordered_qty', ii.ordered_qty,
+          'received_qty', ii.received_qty,
+          'storage_qty', ii.storage_qty,
+          'cross_dock_qty', ii.cross_dock_qty,
+          'location_id', ii.location_id,
+          'sku_code', p.sku_code,
+          'product_name', p.name,
+          'cargo_type_id', p.cargo_type_id,
+          'unit', p.default_uom_id
+        ))
+        FROM inbound_items ii
+        JOIN products p ON ii.product_id = p.id
+        WHERE ii.inbound_order_id = io.id
+      ), '[]'::json) AS items
     FROM inbound_orders io
     JOIN customers c ON io.customer_id = c.id
     JOIN warehouses w ON io.warehouse_id = w.id
@@ -94,7 +112,7 @@ inboundRoutes.post('/', optionalAuth, async (c) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const poNumber = `PO-${Date.now().toString().slice(-8)}`;
+    const poNumber = `PO${Date.now().toString().slice(-8)}`;
 
     const orderRes = await client.query(
       `INSERT INTO inbound_orders (id, po_number, customer_id, warehouse_id, status, eta, sender_info, notes, created_by_id, created_by_name)
@@ -225,6 +243,13 @@ inboundRoutes.post('/:id/putaway', optionalAuth, async (c) => {
     return c.json({ success: false, message: 'Inbound order not found' }, 404);
   }
   const order = orderRes.rows[0];
+
+  if (order.status === 'PUTAWAY_COMPLETED') {
+    return c.json({ success: false, message: 'Inbound PO ini sudah selesai diproses putaway (PUTAWAY_COMPLETED)' }, 409);
+  }
+  if (order.status && order.status !== 'RECEIVED') {
+    return c.json({ success: false, message: `Barang belum dilakukan penerimaan fisik di dock (status saat ini: ${order.status}, wajib RECEIVED)` }, 400);
+  }
 
   const client = await pool.connect();
   try {

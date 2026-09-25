@@ -14,11 +14,37 @@ export interface User {
   warehouse_code?: string | null;
 }
 
+export type NavItemCode =
+  | 'dashboard'
+  | 'stock'
+  | 'stock_quarantine'
+  | 'stock_opname'
+  | 'gate_pass'
+  | 'inbound'
+  | 'putaway'
+  | 'debulking'
+  | 'weighbridge'
+  | 'outbound_pod'
+  | 'outbound_orders'
+  | 'waybills'
+  | 'tms_trips'
+  | 'billing'
+  | 'checkpoints'
+  | 'crossdock'
+  | 'crossdoc'
+  | 'master_products'
+  | 'master_warehouses'
+  | 'master_racks'
+  | 'master_customers'
+  | 'master_fleet'
+  | 'master_references'
+  | 'master_users';
+
 export interface NavItem {
   name: string;
   path: string;
   icon: string;
-  code: 'dashboard' | 'stock' | 'gate_pass' | 'inbound' | 'debulking' | 'outbound_pod' | 'outbound_orders' | 'waybills' | 'billing' | 'checkpoints' | 'crossdock' | 'crossdoc' | 'master_products' | 'master_warehouses' | 'master_customers' | 'master_users' | 'master_fleet';
+  code: NavItemCode;
   roles: UserRole[];
 }
 
@@ -80,6 +106,8 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     roles: ALL_ROLES.filter(r => r !== 'DRIVER'),
     children: [
       { name: 'Stock on Hand', path: '/stock', icon: 'stock', code: 'stock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'] },
+      { name: 'Karantina & Retur', path: '/stock/quarantine', icon: 'shield', code: 'stock_quarantine', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Stock Opname', path: '/stock/opname', icon: 'checkpoint', code: 'stock_opname', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
       { name: 'Audit Trail Dokumen', path: '/checkpoints', icon: 'checkpoint', code: 'checkpoints', roles: ALL_ROLES }
     ]
   },
@@ -93,6 +121,7 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'],
     children: [
       { name: 'Receiving (Penerimaan Dock)', path: '/inbound/receive', icon: 'inbound', code: 'inbound', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Putaway (Penempatan Rak)', path: '/inbound/putaway', icon: 'warehouse', code: 'putaway', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
       { name: 'Cross-Dock Antar-Gudang', path: '/crossdock', icon: 'debulking', code: 'crossdock', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
     ]
   },
@@ -103,21 +132,23 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     phase: 2,
     band: 'flow',
     accent: 'bg-amber-500',
-    roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'],
+    roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'],
     children: [
-      { name: 'Debulking & Repacking', path: '/debulking', icon: 'debulking', code: 'debulking', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] }
+      { name: 'Debulking & Repacking', path: '/debulking', icon: 'debulking', code: 'debulking', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'Jembatan Timbang Truk', path: '/weighbridge', icon: 'truck', code: 'weighbridge', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'] }
     ]
   },
   {
-    name: 'Outbound (Barang Keluar)',
+    name: 'Outbound & TMS',
     path: '/outbound',
     icon: 'package',
     phase: 3,
     band: 'flow',
     accent: 'bg-blue-500',
-    roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER'],
+    roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF', 'GATE_OFFICER', 'DRIVER'],
     children: [
       { name: 'Delivery Order & SJ', path: '/outbound', icon: 'package', code: 'outbound_orders', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
+      { name: 'TMS Trip Dispatcher', path: '/tms/trips', icon: 'truck', code: 'tms_trips', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'DRIVER'] },
       { name: 'Surat Jalan & Resi', path: '/waybills', icon: 'printer', code: 'waybills', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
       { name: 'Cross-Doc (Swap Dokumen)', path: '/crossdoc', icon: 'checkpoint', code: 'crossdoc', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
       { name: 'Gate Pass (Pos Jaga)', path: '/gate-pass', icon: 'truck', code: 'gate_pass', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'GATE_OFFICER'] }
@@ -145,9 +176,11 @@ const MASTER_NAV_PARENTS: NavParent[] = [
     roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'],
     children: [
       { name: 'Barang (SKU)', path: '/master/products', icon: 'box', code: 'master_products', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
-      { name: 'Gudang & Rak', path: '/master/warehouses', icon: 'warehouse', code: 'master_warehouses', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
+      { name: 'Gudang & Fasilitas', path: '/master/warehouses', icon: 'warehouse', code: 'master_warehouses', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
+      { name: 'Denah & Tata Letak Rak', path: '/master/racks', icon: 'warehouse', code: 'master_racks', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER', 'WH_STAFF'] },
       { name: 'Customer & Vendor', path: '/master/customers', icon: 'users', code: 'master_customers', roles: ['SUPER_ADMIN', 'ADMIN_ADM'] },
       { name: 'Armada Pool', path: '/master/fleet', icon: 'truck', code: 'master_fleet', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
+      { name: 'Master Referensi', path: '/master/references', icon: 'warehouse', code: 'master_references', roles: ['SUPER_ADMIN', 'ADMIN_ADM', 'WH_MANAGER'] },
       { name: 'Pengguna & Hak Akses', path: '/master/users', icon: 'shield', code: 'master_users', roles: ['SUPER_ADMIN', 'ADMIN_ADM'] }
     ]
   }

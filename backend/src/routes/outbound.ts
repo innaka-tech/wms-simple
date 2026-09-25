@@ -45,14 +45,34 @@ outboundRoutes.get('/:id', async (c) => {
   }
 
   const itemsRes = await query(
-    `SELECT oi.*, p.sku_code, p.name AS product_name, p.default_uom_id AS unit, p.weight_kg_per_unit AS weight_kg
+    `SELECT oi.*, p.sku_code, p.name AS product_name, p.default_uom_id AS unit, p.weight_kg_per_unit AS weight_kg,
+            wl.zone, wl.aisle, wl.rack, wl.bin,
+            COALESCE(sl.qty_on_hand, 0) AS stock_on_hand
      FROM outbound_items oi
      JOIN products p ON oi.product_id = p.id
+     LEFT JOIN warehouse_locations wl ON oi.location_id = wl.id
+     LEFT JOIN stock_levels sl ON sl.product_id = oi.product_id AND sl.warehouse_id = $2
      WHERE oi.outbound_order_id = $1`,
+    [id, orderRes.rows[0].warehouse_id]
+  );
+
+  const pkgRes = await query(
+    `SELECT pkg.*, mpt.name AS packaging_type_name
+     FROM packages pkg
+     LEFT JOIN master_packaging_types mpt ON pkg.packaging_type_id = mpt.id
+     WHERE pkg.outbound_order_id = $1
+     ORDER BY pkg.created_at ASC`,
     [id]
   );
 
-  const pkgRes = await query(`SELECT * FROM packages WHERE outbound_order_id = $1`, [id]);
+  const locRes = await query(
+    `SELECT id, zone, aisle, rack, bin
+     FROM warehouse_locations
+     WHERE warehouse_id = $1 AND is_active = true
+     ORDER BY zone, aisle, rack, bin`,
+    [orderRes.rows[0].warehouse_id]
+  );
+
   const podRes = await query(`SELECT * FROM pod_documents WHERE outbound_order_id = $1`, [id]);
   const checkpointsRes = await query(
     `SELECT * FROM checkpoint_logs
@@ -67,6 +87,7 @@ outboundRoutes.get('/:id', async (c) => {
       ...orderRes.rows[0],
       items: itemsRes.rows,
       packages: pkgRes.rows,
+      available_locations: locRes.rows,
       pod: podRes.rows.length > 0 ? podRes.rows[0] : null,
       checkpoints: checkpointsRes.rows
     }
@@ -87,19 +108,22 @@ outboundRoutes.post('/', optionalAuth, async (c) => {
     scheduled_ship_date,
     items,
     notes,
+    picking_source,
+    customer_ref_number,
+    attachment_url,
+    attachment_name,
+    attachment_type,
+    ocr_raw_text,
     actor_name: bodyActorName,
     actor_id: bodyActorId
   } = body;
 
-  const actor_name = user?.full_name || bodyActorName;
+  const actor_name = (user?.full_name || bodyActorName || 'Siti Rahmawati (Admin Logistik)').trim();
   const actor_id = user?.id || bodyActorId;
   const actor_role = user?.role || 'ADMIN_ADM';
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return c.json({ success: false, message: 'Minimal 1 item barang pesanan wajib diisi' }, 400);
-  }
-  if (!actor_name) {
-    return c.json({ success: false, message: 'Nama pembuat order wajib diisi' }, 400);
   }
 
   const client = await pool.connect();
@@ -122,13 +146,20 @@ outboundRoutes.post('/', optionalAuth, async (c) => {
       `INSERT INTO outbound_orders (
         id, order_number, customer_id, warehouse_id, recipient_name, recipient_phone,
         destination_address, destination_city, scheduled_ship_date, notes, status,
-        created_by_id, created_by_name
-      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, 'CREATED', $10, $11)
+        created_by_id, created_by_name,
+        picking_source, customer_ref_number, attachment_url, attachment_name, attachment_type, ocr_raw_text
+      ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7, $8, $9, 'CREATED', $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
       [
         orderNumber, customer_id, warehouse_id, recipient_name, recipient_phone || null,
         destination_address, destination_city || null, scheduled_ship_date || null, notes || null,
-        actor_id || null, actor_name.trim()
+        actor_id || null, actor_name.trim(),
+        picking_source || 'STANDARD',
+        customer_ref_number || null,
+        attachment_url || null,
+        attachment_name || null,
+        attachment_type || null,
+        ocr_raw_text || null
       ]
     );
     const order = orderRes.rows[0];
@@ -153,10 +184,17 @@ outboundRoutes.post('/', optionalAuth, async (c) => {
       entity_id: order.id,
       entity_number: order.order_number,
       step_code: 'ORDER_CREATED',
-      step_label: 'Order Pengiriman Dibuat',
+      step_label: picking_source === 'CUSTOMER_DOC' ? 'Order Dibuat dari Dokumen Customer (OCR/Attachment)' : 'Order Pengiriman Dibuat',
       actor_id: actor_id || null,
       actor_name: actor_name,
       actor_role: 'ADMIN_ADM',
+      metadata: {
+        total_items: items.length,
+        picking_source: picking_source || 'STANDARD',
+        customer_ref_number: customer_ref_number || null,
+        attachment_name: attachment_name || null,
+        attachment_type: attachment_type || null
+      },
       notes: notes || 'Pesanan dibuat dalam sistem'
     });
 
@@ -295,9 +333,9 @@ outboundRoutes.post('/:id/pack', async (c) => {
     if (packages && Array.isArray(packages)) {
       for (const pkg of packages) {
         await client.query(
-          `INSERT INTO packages (id, outbound_order_id, box_code, weight_kg, dimensions, packed_by_id, packed_by_name)
-           VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6)`,
-          [id, pkg.box_code, pkg.weight_kg || 0, pkg.dimensions || null, actor_id || null, actor_name.trim()]
+          `INSERT INTO packages (id, outbound_order_id, box_code, packaging_type_id, weight_kg, dimensions, packed_by_id, packed_by_name)
+           VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, $7)`,
+          [id, pkg.box_code, pkg.packaging_type_id || null, pkg.weight_kg || 0, pkg.dimensions || null, actor_id || null, actor_name.trim()]
         );
       }
     }
@@ -341,14 +379,24 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
   const user = c.get('user' as any) as UserTokenPayload | undefined;
   const id = c.req.param('id');
   const body = await c.req.json();
-  const { recipient_name, pod_photo_url, signature_photo_url, delivered_qty, notes, actor_name: bodyActorName, actor_id: bodyActorId } = body;
+  const { recipient_name, pod_photo_url, signature_photo_url, delivered_qty, notes, actor_name: bodyActorName, actor_id: bodyActorId, proof_type, discrepancy_notes } = body;
 
   const actor_name = (user?.full_name || bodyActorName || 'Driver Ekspedisi').trim();
   const actor_id = user?.id || bodyActorId;
   const actor_role = user?.role || 'DRIVER';
 
-  if (!pod_photo_url || !signature_photo_url) {
+  if (!pod_photo_url) {
+    return c.json({ success: false, message: 'Foto serah terima fisik wajib diunggah' }, 400);
+  }
+
+  const isRepresentative = proof_type === 'REPRESENTATIVE' || body.is_representative;
+  const finalSignature = signature_photo_url || (isRepresentative ? 'DIWAKILKAN_STEMPEL_POS' : '');
+  if (!finalSignature) {
     return c.json({ success: false, message: 'Foto serah terima fisik dan TTD penerima wajib diunggah' }, 400);
+  }
+
+  if (delivered_qty !== undefined && delivered_qty !== null && Number(delivered_qty) <= 0) {
+    return c.json({ success: false, message: 'Jumlah barang diterima (delivered qty) harus lebih dari 0' }, 400);
   }
 
   const orderRes = await query(`SELECT * FROM outbound_orders WHERE id = $1`, [id]);
@@ -383,7 +431,7 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
         id, outbound_order_id, pod_number, recipient_name, pod_photo_url,
         signature_photo_url, delivered_qty, status
       ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, $6, 'ACCEPTED')`,
-      [id, podNumber, recipient_name || order.recipient_name, pod_photo_url, signature_photo_url, delivered_qty || 1]
+      [id, podNumber, recipient_name || order.recipient_name, pod_photo_url, finalSignature, delivered_qty || 1]
     );
 
     // docs/09 v3.2.0 FASE 3: kartu stok jadi DALAM PERJALANAN saat barang berangkat.
@@ -391,6 +439,14 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
     // sudah keluar rak sejak picking, sekarang resmi dalam pengiriman).
     // Fallback: tanpa packed_qty (order lama), pakai picked_qty agar ledger tetap konsisten.
     const itemsShipRes = await client.query(`SELECT product_id, packed_qty, picked_qty FROM outbound_items WHERE outbound_order_id = $1`, [id]);
+
+    const totalOrdered = itemsShipRes.rows.reduce((sum: number, it: any) => sum + (Number(it.packed_qty) || Number(it.picked_qty) || 0), 0);
+    const numDelivered = Number(delivered_qty);
+    if (totalOrdered > 0 && numDelivered > 0 && numDelivered > totalOrdered) {
+      await client.query('ROLLBACK');
+      return c.json({ success: false, message: `Jumlah fisik diterima (${numDelivered}) tidak boleh melebihi jumlah pesanan (${totalOrdered})` }, 400);
+    }
+
     for (const item of itemsShipRes.rows) {
       const shipQty = Number(item.packed_qty) > 0 ? Number(item.packed_qty) : (Number(item.picked_qty) > 0 ? Number(item.picked_qty) : null);
       if (!shipQty) continue;
@@ -416,6 +472,12 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
 
     await client.query('COMMIT');
 
+    const combinedNotes = [
+      notes || `Diterima oleh ${recipient_name || order.recipient_name}`,
+      discrepancy_notes ? `[SELISIH/KERUSAKAN]: ${discrepancy_notes}` : null,
+      isRepresentative ? '[METODE]: Diwakilkan / Pos Satpam' : null
+    ].filter(Boolean).join(' • ');
+
     // Record Checkpoint 4 (Delivered)
     await recordCheckpoint({
       entity_type: 'OUTBOUND_ORDER',
@@ -426,8 +488,8 @@ outboundRoutes.post('/:id/pod', optionalAuth, async (c) => {
       actor_id: actor_id || null,
       actor_name: actor_name,
       actor_role: actor_role,
-      notes: notes || `Diterima oleh ${recipient_name || order.recipient_name}`,
-      photo_urls: [pod_photo_url, signature_photo_url]
+      notes: combinedNotes,
+      photo_urls: [pod_photo_url, finalSignature]
     });
 
     return c.json({ success: true, message: 'POD submitted successfully' });
@@ -447,6 +509,7 @@ outboundRoutes.post('/:id/verify-pod', optionalAuth, async (c) => {
   const verifyPodSchema = z.object({
     status: z.enum(['ACCEPTED', 'REJECTED']).optional(),
     rejection_reason: z.string().max(500).optional(),
+    rejection_disposition: z.enum(['RESTOCK', 'QUARANTINE']).default('RESTOCK').optional(),
     actor_name: z.string().trim().min(2, 'Nama admin verifikator wajib diisi (min 2 karakter)').optional(),
     actor_id: z.string().optional()
   });
@@ -455,7 +518,7 @@ outboundRoutes.post('/:id/verify-pod', optionalAuth, async (c) => {
     return c.json({ success: false, message: parsedBody.error.issues[0]?.message || 'Payload tidak valid' }, 400);
   }
   const body = parsedBody.data;
-  const { status, rejection_reason, actor_name: bodyActorName, actor_id: bodyActorId } = body;
+  const { status, rejection_reason, rejection_disposition, actor_name: bodyActorName, actor_id: bodyActorId } = body;
 
   const actor_name = (user?.full_name || bodyActorName || '').trim();
   const actor_id = user?.id || bodyActorId;
@@ -522,6 +585,92 @@ outboundRoutes.post('/:id/verify-pod', optionalAuth, async (c) => {
           performed_by_id: actor_id || null,
           performed_by_name: actor_name
         });
+      }
+    } else if (nextStatus === 'CANCELLED') {
+      // docs/12 P0-2 & Fase 3: POD ditolak admin → restock ke on_hand atau karantina bila rusak
+      const itemsRejectRes = await client.query(
+        `SELECT product_id, COALESCE(SUM(delivered_qty), 0) AS total
+         FROM outbound_items WHERE outbound_order_id = $1 GROUP BY product_id`,
+        [id]
+      );
+      const isQuarantine = rejection_disposition === 'QUARANTINE';
+
+      for (const item of itemsRejectRes.rows) {
+        const deliveredTotal = Number(item.total) || 0;
+        if (deliveredTotal <= 0) continue;
+
+        if (isQuarantine) {
+          // Opsi B: Alihkan stok in_transit ke area karantina (barang rusak/cacat)
+          await adjustStock({
+            warehouse_id: order.warehouse_id,
+            product_id: item.product_id,
+            movement_type: 'POD_REJECT_QUARANTINE',
+            txClient: client,
+            reference_type: 'OUTBOUND_ORDER',
+            reference_id: id as string,
+            qty_change: deliveredTotal,
+            notes: `POD ditolak (${rejection_reason || 'Barang rusak'}), stok in_transit dialihkan ke area karantina untuk ${order.order_number}`,
+            performed_by_id: actor_id || null,
+            performed_by_name: actor_name
+          });
+
+          // Ambil default UOM produk
+          const prodRes = await client.query(
+            `SELECT default_uom_id, sku_code, name FROM products WHERE id = $1`,
+            [item.product_id]
+          );
+          const prod = prodRes.rows[0];
+          const qrnNumber = generateDocumentNumber('QRN', 8);
+
+          const insQuarantine = await client.query(
+            `INSERT INTO quarantine_records (
+              id, record_number, warehouse_id, product_id, qty, uom_id,
+              source_type, source_reference, reason, inspection_status,
+              created_by_id, created_by_name
+            ) VALUES (
+              gen_random_uuid(), $1, $2, $3, $4, $5,
+              'POD_RETURN', $6, $7, 'PENDING',
+              $8, $9
+            ) RETURNING *`,
+            [
+              qrnNumber,
+              order.warehouse_id,
+              item.product_id,
+              deliveredTotal,
+              prod?.default_uom_id,
+              order.order_number,
+              rejection_reason || 'POD ditolak oleh admin (barang rusak/karantina)',
+              actor_id || null,
+              actor_name
+            ]
+          );
+
+          await recordCheckpoint({
+            entity_type: 'QUARANTINE_RECORD',
+            entity_id: insQuarantine.rows[0].id,
+            entity_number: qrnNumber,
+            step_code: 'QUARANTINE_HELD',
+            step_label: 'Barang Retur POD Dialihkan ke Karantina',
+            actor_id: actor_id || null,
+            actor_name,
+            actor_role,
+            notes: `Retur POD ${order.order_number}: ${deliveredTotal} unit ${prod?.sku_code || ''} ditahan di karantina karena: ${rejection_reason || '-'}`
+          });
+        } else {
+          // Opsi A: kembalikan stok in_transit ke on_hand gudang asal (restock normal)
+          await adjustStock({
+            warehouse_id: order.warehouse_id,
+            product_id: item.product_id,
+            movement_type: 'POD_REJECT_REVERSAL',
+            txClient: client,
+            reference_type: 'OUTBOUND_ORDER',
+            reference_id: id as string,
+            qty_change: deliveredTotal,
+            notes: `POD ditolak (${rejection_reason || 'Pengiriman gagal'}), stok in_transit dipulihkan ke on_hand gudang untuk ${order.order_number}`,
+            performed_by_id: actor_id || null,
+            performed_by_name: actor_name
+          });
+        }
       }
     }
 

@@ -37,18 +37,31 @@
     </div>
 
     <!-- Empty states -->
-    <div v-else-if="rows.length === 0" class="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center">
-      <AppIcon name="box" custom-class="w-6 h-6 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-      <p class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ emptyTitle }}</p>
-      <p v-if="emptyHint" class="text-xs text-slate-400 mt-1">{{ emptyHint }}</p>
-      <div v-if="$slots['empty-action']" class="mt-3">
-        <slot name="empty-action" />
-      </div>
+    <div v-else-if="rows.length === 0" class="py-2">
+      <AppEmptyState
+        :title="emptyTitle"
+        :hint="emptyHint"
+        icon="box"
+      >
+        <template v-if="$slots['empty-action']">
+          <slot name="empty-action" />
+        </template>
+      </AppEmptyState>
     </div>
-    <div v-else-if="filteredRows.length === 0" class="rounded-lg border border-dashed border-slate-300 dark:border-slate-700 p-8 text-center">
-      <AppIcon name="search" custom-class="w-6 h-6 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
-      <p class="text-sm font-medium text-slate-600 dark:text-slate-300">Tidak ada yang cocok dengan "{{ searchQuery }}"</p>
-      <button type="button" class="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline" @click="searchQuery = ''">Bersihkan pencarian</button>
+    <div v-else-if="filteredRows.length === 0" class="py-2">
+      <AppEmptyState
+        :title="'Tidak ada data yang cocok dengan &quot;' + searchQuery + '&quot;'"
+        hint="Coba gunakan kata kunci lain atau bersihkan filter pencarian."
+        icon="search"
+      >
+        <button
+          type="button"
+          @click="searchQuery = ''"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/60 hover:bg-sky-100 transition"
+        >
+          Bersihkan Pencarian
+        </button>
+      </AppEmptyState>
     </div>
 
     <!-- MOBILE: card list (base view) -->

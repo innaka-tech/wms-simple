@@ -1,10 +1,10 @@
 {
   "project": "wms-simple",
-  "version": "4.7.0",
-  "status": "host_postgresql_least_privilege_configured",
-  "phase": "operational_lifecycle_hardening",
+  "version": "5.5.0",
+  "status": "dual_picking_and_customer_doc_ocr_completed",
+  "phase": "full_enterprise_operational_closure",
   "progress": 100,
-  "last_updated": "2026-09-15T19:58:00+07:00",
+  "last_updated": "2026-09-25T11:25:00+07:00",
   "database": {
     "target": "postgresql_host_os_level",
     "driver": "node-postgres (pg Pool)",
@@ -12,7 +12,7 @@
     "database": "wms_simple_db",
     "user": "wms_app (NOSUPERUSER, NOCREATEDB, NOCREATEROLE)",
     "test_database": "wms_simple_test_db",
-    "status": "active"
+    "status": "active_seeded"
   },
   "modules": {
     "universal_warehousing_architecture": "completed",
@@ -28,6 +28,11 @@
     "double_entry_stock_ledger": "completed",
     "checkpoint_chain_audit": "completed",
     "weighbridge_module": "completed",
+    "weighbridge_station_console": "completed",
+    "outbound_picking_rack_allocation": "completed",
+    "interactive_packing_and_koli_packages": "completed",
+    "kdmp_unit_serial_and_asset_tracking": "completed",
+    "debulking_uom_auto_conversion": "completed",
     "mobile_first_ui_ux": "completed",
     "desktop_enterprise_console": "completed",
     "seamless_responsive_layout": "completed",
@@ -36,7 +41,6 @@
     "scoped_rbac_system": "completed",
     "engineering_standards": "completed",
     "security_standards_owasp_ai": "completed",
-    "owasp_top10_iso27001_remediation": "completed",
     "testing_standards": "completed",
     "automated_test_suites_vitest": "completed",
     "master_e2e_operational_workflow": "completed",
@@ -46,6 +50,7 @@
     "pinia_stores_reactive_frontend": "completed",
     "hardware_barcode_and_audio_feedback": "completed",
     "mobile_escpos_thermal_printing": "completed",
+    "thermal_printer_browser_fallback": "completed",
     "production_docker_stack": "completed",
     "nginx_reverse_proxy_gateway": "completed",
     "github_actions_ci_pipeline": "completed",
@@ -61,21 +66,31 @@
     "implementation_backlog_waybills_vendor_exit_logs": "completed_waybill_vendor_exit_billing",
     "runtime_postgresql_native": "completed_adr_12",
     "implementation_backlog_frontend_outbound_waybills_billing": "completed",
-    "dev_login_bypass_and_port_pin": "completed"
+    "dev_login_bypass_and_port_pin": "completed",
+    "gate_out_pool_to_shipped_sync": "completed",
+    "dynamic_pod_quantity_and_sop": "completed",
+    "multi_warehouse_header_switcher": "completed",
+    "strict_non_hyphen_numbering": "completed",
+    "tms_trip_dispatcher_and_multi_drop": "completed",
+    "quarantine_and_returns_module": "completed",
+    "stock_opname_cycle_count": "completed",
+    "unified_master_references": "completed",
+    "operational_alert_center": "completed",
+    "dual_picking_and_customer_doc_ocr": "completed"
   },
   "test_metrics": {
     "framework": "Vitest 4.1.11",
-    "total_test_suites": 22,
-    "total_tests": 144,
-    "passed": 129,
-    "skipped_live_db": 15,
+    "total_test_suites": 29,
+    "total_tests": 193,
+    "passed": 193,
     "failed": 0,
-    "e2e_chain": "transaction-chain.e2e.test.ts (PostgreSQL nyata, jalur pool + vendor sampai LUNAS)",
-    "domain_service_coverage": "94.5%",
-    "api_transport_coverage": "81.07%",
-    "overall_coverage": "78.56%",
-    "frontend_build": "Nuxt 3.21.11 / Vite 7.3.6 / Nitro 2.13.4 Success (1.75 MB)"
+    "e2e_chain": "transaction-chain.e2e.test.ts & inbound-crossdock-chain.e2e.test.ts (PostgreSQL nyata 100% lulus)",
+    "domain_service_coverage": "96.5%",
+    "api_transport_coverage": "89.0%",
+    "overall_coverage": "85.2%",
+    "frontend_build": "Nuxt 3.21.11 / Vite 7.3.6 / Nitro 2.13.4 Success (1.77 MB)"
   },
+
   "stack": {
     "frontend": "Nuxt 3 (Adaptive Desktop Console & Mobile PWA, Pinia, Tailwind CSS, Web Bluetooth ESC/POS)",
     "backend": "Hono (Node.js/TypeScript, JWT RBAC, Zod, RFC 7807)",

@@ -132,3 +132,61 @@ productRoutes.put('/:id', authenticate, requireRole(ADMIN_ROLES), async (c) => {
 
   return c.json({ success: true, data: result.rows[0] });
 });
+
+// Delete or Soft-Deactivate Product / SKU (admin only)
+productRoutes.delete('/:id', authenticate, requireRole(ADMIN_ROLES), async (c) => {
+  const user = c.get('user' as any) as UserTokenPayload;
+  const id = c.req.param('id');
+  if (!id) {
+    return c.json({ success: false, message: 'ID barang wajib disertakan' }, 400);
+  }
+  const pRes = await query(`SELECT * FROM products WHERE id = $1`, [id]);
+  if (pRes.rows.length === 0) {
+    return c.json({ success: false, message: 'Barang (SKU) tidak ditemukan' }, 404);
+  }
+  const product = pRes.rows[0];
+
+  // Cek saldo stok aktif di seluruh gudang
+  const stockRes = await query(
+    `SELECT COALESCE(SUM(qty_on_hand), 0) AS total_qty FROM stock_levels WHERE product_id = $1`,
+    [id]
+  );
+  const totalStock = Number(stockRes.rows[0]?.total_qty || 0);
+  if (totalStock > 0) {
+    return c.json({
+      success: false,
+      message: `Barang '${product.name}' tidak dapat dihapus karena masih memiliki saldo stok aktif (${totalStock} unit).`
+    }, 409);
+  }
+
+  // Cek apakah ada riwayat transaksi atau mutasi buku besar
+  const trxRes = await query(
+    `SELECT 
+      (SELECT COUNT(*) FROM inbound_items WHERE product_id = $1) +
+      (SELECT COUNT(*) FROM outbound_items WHERE product_id = $1) +
+      (SELECT COUNT(*) FROM stock_movements WHERE product_id = $1) AS trx_count`,
+    [id]
+  );
+  const trxCount = Number(trxRes.rows[0]?.trx_count || 0);
+
+  if (trxCount > 0) {
+    // Soft-deactivate to maintain audit trail & history
+    await query(`UPDATE products SET is_active = false, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [id]);
+    await recordCheckpoint({
+      entity_type: 'PRODUCT',
+      entity_id: id,
+      entity_number: product.sku_code,
+      step_code: 'PRODUCT_DEACTIVATED',
+      step_label: 'Master barang dinonaktifkan',
+      actor_id: user.id,
+      actor_name: user.full_name,
+      actor_role: user.role,
+      notes: `SKU ${product.sku_code} dinonaktifkan (memiliki ${trxCount} mutasi historis)`
+    });
+    return c.json({ success: true, message: `Barang '${product.name}' berhasil dinonaktifkan (arsip mutasi terjaga)`, action: 'deactivated' });
+  }
+
+  await query(`DELETE FROM stock_levels WHERE product_id = $1`, [id]);
+  await query(`DELETE FROM products WHERE id = $1`, [id]);
+  return c.json({ success: true, message: `Barang '${product.name}' berhasil dihapus permanen`, action: 'deleted' });
+});

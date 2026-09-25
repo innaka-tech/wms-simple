@@ -106,7 +106,7 @@ async function expectChainIntegrity(orderId: string, expectedSteps: string[]) {
   for (const r of rows) {
     expect(r.id, `checkpoint ${r.step_code} harus punya id (bukan NULL)`).toBeTruthy();
     expect((r.actor_name || '').trim().length).toBeGreaterThanOrEqual(2);
-    expect(r.entity_number).toMatch(/^ORD-/);
+    expect(r.entity_number).toMatch(/^ORD/);
   }
 
   // Telusuri prev_checkpoint_id dari ujung ekor ke kepala
@@ -172,8 +172,8 @@ describe('E2E Rantai Transaksi (PostgreSQL): Waybill → Gate → POD → Invoic
     });
     expect(wb.status).toBe(201);
     expect(wb.data.id).toBeTruthy(); // id bukan NULL (regresi PK)
-    expect(wb.data.sj_number).toMatch(/^SJ-[0-9A-HJ-NP-Z]{8}$/);
-    expect(wb.data.resi_number).toMatch(/^RESI-[0-9A-HJ-NP-Z]{8}$/);
+    expect(wb.data.sj_number).toMatch(/^SJ[0-9A-HJ-NP-Z]{8}$/);
+    expect(wb.data.resi_number).toMatch(/^RESI[0-9A-HJ-NP-Z]{8}$/);
 
     // 5. Pos satpam keluar jalur pool: wajib bawa resi yang sah
     const dep = await req('POST', '/api/fleet/departure', {
@@ -188,7 +188,7 @@ describe('E2E Rantai Transaksi (PostgreSQL): Waybill → Gate → POD → Invoic
     });
     expect(dep.status).toBe(201);
     expect(dep.data.id).toBeTruthy();
-    expect(dep.data.log_number).toMatch(/^GATE-OUT-[0-9A-HJ-NP-Z]{8}$/);
+    expect(dep.data.log_number).toMatch(/^GATEOUT[0-9A-HJ-NP-Z]{8}$/);
 
     const orderAfterShip = await req('GET', `/api/outbound/${order.id}`);
     expect(orderAfterShip.data.status).toBe('SHIPPED');
@@ -208,7 +208,7 @@ describe('E2E Rantai Transaksi (PostgreSQL): Waybill → Gate → POD → Invoic
     });
     expect(inv.status).toBe(201);
     expect(inv.data.id).toBeTruthy();
-    expect(inv.data.invoice_number).toMatch(/^INV-[0-9A-HJ-NP-Z]{8}$/);
+    expect(inv.data.invoice_number).toMatch(/^INV[0-9A-HJ-NP-Z]{8}$/);
     expect(inv.data.currency).toBe('IDR');
 
     // 9. Pembayaran parsial → belum LUNAS
@@ -299,7 +299,7 @@ describe('E2E Rantai Transaksi (PostgreSQL): Waybill → Gate → POD → Invoic
     });
     expect(vexit.status).toBe(201);
     expect(vexit.data.id).toBeTruthy(); // id bukan NULL (regresi PK)
-    expect(vexit.data.log_number).toMatch(/^VEND-OUT-[0-9A-HJ-NP-Z]{8}$/);
+    expect(vexit.data.log_number).toMatch(/^VENDOUT[0-9A-HJ-NP-Z]{8}$/);
 
     const orderShipped = await req('GET', `/api/outbound/${order.id}`);
     expect(orderShipped.data.status).toBe('SHIPPED');

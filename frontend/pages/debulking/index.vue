@@ -17,15 +17,19 @@
     </div>
 
     <!-- Header & Order Picker -->
-    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm space-y-3 transition-colors">
-      <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Fase 2 — Warehouse Operation • Repacking On-Demand</p>
+    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs space-y-3 transition-colors">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/70 dark:border-amber-800">
+          Operasional Gudang &bull; Repacking
+        </span>
+      </div>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <h3 class="font-bold text-slate-900 dark:text-slate-100 text-base">Debulking &amp; Repacking</h3>
-        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Toleransi Susut: &le; 1.00%</span>
+        <h3 class="font-bold text-slate-900 dark:text-slate-100 text-xl">Debulking &amp; Repacking Fisik</h3>
+        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Toleransi Susut: &le; 1.00%</span>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400">
         Konversi Parent SKU (Jumbo Bag / Drum / Pack Besar) menjadi Child SKU (Karung Retail).
-        Work order ini <span class="font-semibold text-slate-700 dark:text-slate-300">tertaut ke Delivery Order</span> — repacking hanya dikerjakan setelah ada permintaan kirim (docs/09 Prinsip 2).
+        Work order ini <span class="font-semibold text-slate-700 dark:text-slate-300">tertaut ke Delivery Order</span> — repacking dikerjakan sesuai order kirim.
       </p>
 
       <div class="space-y-1.5 pt-1">
@@ -122,6 +126,22 @@
                   <span class="block mt-1">Total: <span class="text-emerald-600 dark:text-emerald-400 font-bold">{{ totalOutputWeight.toLocaleString() }} KG</span></span>
                 </p>
               </div>
+            </div>
+
+            <!-- Auto-Kalkulasi UOM Helper Banner (Gap Table 4) -->
+            <div v-if="calculatedSuggestedOutputQty > 0" class="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div class="text-[11px] text-blue-800 dark:text-blue-300">
+                <span v-if="matchingConversion">Rasio Master UOM: 1 {{ inputUomCode }} = {{ matchingConversion.conversion_factor }} {{ outputUomCode }}</span>
+                <span v-else>Estimasi Berat: {{ totalInputWeight.toLocaleString() }} KG &div; {{ outputWeightPerUnit }} KG/unit</span>
+                <span class="block font-bold mt-0.5">Saran Output: {{ calculatedSuggestedOutputQty }} {{ outputUomCode }}</span>
+              </div>
+              <button
+                type="button"
+                @click="applyAutoCalculation"
+                class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-semibold transition shrink-0 cursor-pointer shadow-2xs"
+              >
+                Terapkan Rasio UOM
+              </button>
             </div>
           </div>
         </div>
@@ -229,6 +249,30 @@ const shrinkagePct = computed(() => {
   return ((shrinkageKg.value / totalInputWeight.value) * 100).toFixed(2)
 })
 const isShrinkageHigh = computed(() => parseFloat(shrinkagePct.value) > 1.0)
+
+// Auto-conversion calculation based on master_uom_conversions or unit weights
+const matchingConversion = computed(() => {
+  if (!inputUom.value || !outputUom.value) return null
+  return masterStore.conversions?.find(
+    c => c.from_uom_id === inputUom.value?.id && c.to_uom_id === outputUom.value?.id
+  ) || null
+})
+
+const calculatedSuggestedOutputQty = computed(() => {
+  if (matchingConversion.value && inputQty.value > 0) {
+    return Number((inputQty.value * Number(matchingConversion.value.conversion_factor)).toFixed(2))
+  }
+  if (totalInputWeight.value > 0 && outputWeightPerUnit.value > 0) {
+    return Number((totalInputWeight.value / outputWeightPerUnit.value).toFixed(2))
+  }
+  return 0
+})
+
+function applyAutoCalculation() {
+  if (calculatedSuggestedOutputQty.value > 0) {
+    outputQty.value = calculatedSuggestedOutputQty.value
+  }
+}
 
 async function loadOpenOrders() {
   isLoadingOrders.value = true

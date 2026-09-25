@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import colors from 'tailwindcss/colors'
 
 export default <Config>{
   darkMode: 'class',
@@ -13,6 +14,7 @@ export default <Config>{
   theme: {
     extend: {
       colors: {
+        primary: colors.sky,
         wms: {
           body: 'var(--wms-bg-body)',
           card: 'var(--wms-bg-card)',

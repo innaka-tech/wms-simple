@@ -3,6 +3,9 @@ export default defineNuxtConfig({
   // App internal berbasis localStorage auth — SSR hanya memicu hydration mismatch
   ssr: false,
   devtools: { enabled: false },
+  experimental: {
+    appManifest: false
+  },
   devServer: {
     port: 3001
   },
@@ -31,7 +34,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000/api'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3000/api'
     }
   }
 })

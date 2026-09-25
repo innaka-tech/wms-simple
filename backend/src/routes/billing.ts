@@ -191,8 +191,13 @@ billingRoutes.post('/invoices/:invoiceId/payments', optionalAuth, async (c) => {
       [invoiceId]
     );
     const totalPaid = Number(sumRes.rows[0]?.total_paid || 0);
-    // Faktur tanpa nilai (amount NULL): pembayaran pertama menutup faktur
-    const lunas = invoice.amount == null ? true : totalPaid >= Number(invoice.amount);
+    // Faktur bernilai 0 ditolak (Dokumen 13 Point 11: Cegah pelunasan tagihan Rp 0)
+    const invoiceAmount = invoice.amount == null ? null : Number(invoice.amount);
+    if (invoiceAmount !== null && invoiceAmount <= 0) {
+      await client.query('ROLLBACK');
+      return c.json({ success: false, message: 'Faktur ini bernilai Rp 0 atau tidak valid untuk menerima pembayaran' }, 400);
+    }
+    const lunas = invoiceAmount == null ? true : totalPaid >= invoiceAmount;
 
     if (lunas) {
       await client.query(`UPDATE invoices SET status = 'PAID' WHERE id = $1`, [invoiceId]);

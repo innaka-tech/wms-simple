@@ -6,20 +6,26 @@
     </div>
 
     <!-- Pencarian -->
-    <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg flex flex-col sm:flex-row sm:items-center gap-3 transition-colors">
+    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors">
       <div class="flex-1">
-        <h2 class="text-sm font-bold text-slate-900 dark:text-white">Audit Trail Dokumen</h2>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Masukkan nomor dokumen: PO-, MNF-, SJ/RESI-, XDOC-, ORD-, INV-, VEND-OUT-</p>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/70 dark:border-sky-800">
+            Integritas Data &bull; Audit Trail
+          </span>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white">Audit Trail Rantai Checkpoint</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Masukkan nomor dokumen: PO, MNF, SJ/RESI, XDOC, ORD, INV, VENDOUT</p>
       </div>
       <form class="flex gap-2" @submit.prevent="lookup">
         <input
           v-model="docNumber"
           type="text"
-          placeholder="PO-12345678"
-          class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-md px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none w-44"
+          placeholder="Contoh: SJT2AC1QCW..."
+          class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 dark:text-white focus:border-sky-500 focus:outline-none w-52 shadow-xs"
         />
-        <button type="submit" :disabled="isLoading" class="px-3 py-2 rounded-md bg-slate-900 dark:bg-slate-100 hover:bg-slate-700 dark:hover:bg-white disabled:opacity-50 text-white dark:text-slate-900 text-xs font-semibold transition cursor-pointer">
-          {{ isLoading ? '...' : 'Telusuri' }}
+        <button type="submit" :disabled="isLoading" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-xs font-semibold shadow-xs transition cursor-pointer">
+          <AppIcon name="search" custom-class="w-3.5 h-3.5" />
+          <span>{{ isLoading ? 'Mencari...' : 'Telusuri' }}</span>
         </button>
       </form>
     </div>

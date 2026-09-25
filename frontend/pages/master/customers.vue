@@ -17,11 +17,15 @@
     </div>
 
     <!-- Header -->
-    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
+    <div class="p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
       <div>
-        <p class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-0.5">Master Data</p>
-        <h2 class="text-lg md:text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
-          <AppIcon name="users" custom-class="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2.5 py-0.5 text-[10px] font-semibold rounded-md bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200/70 dark:border-sky-800">
+            Master Data &bull; Mitra Bisnis
+          </span>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+          <AppIcon name="users" custom-class="w-5 h-5 text-sky-600 dark:text-sky-400" />
           <span>Master Customer &amp; Vendor</span>
         </h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Shipper / consignee (PO, DO) dan vendor armada pihak ketiga.</p>
@@ -30,7 +34,7 @@
         v-if="canManage"
         type="button"
         @click="openForm()"
-        class="self-start md:self-auto bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold px-4 py-2.5 rounded-md transition flex items-center space-x-1.5"
+        class="self-start md:self-auto inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm hover:shadow transition cursor-pointer"
       >
         <AppIcon name="plus" custom-class="w-4 h-4" />
         <span>Registrasi Customer</span>
@@ -38,9 +42,20 @@
     </div>
 
     <!-- Table -->
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm overflow-hidden">
-      <div v-if="masterStore.isLoading && !masterStore.customers.length" class="p-8 text-center text-xs text-slate-400">Memuat data…</div>
-      <div v-else-if="!masterStore.customers.length" class="p-8 text-center text-xs text-slate-400">Belum ada customer terdaftar.</div>
+    <div class="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden">
+      <div v-if="masterStore.isLoading && !masterStore.customers.length" class="p-12 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-2">
+        <AppIcon name="refresh" custom-class="w-5 h-5 animate-spin text-sky-600" />
+        <span>Memuat data customer...</span>
+      </div>
+      <AppEmptyState
+        v-else-if="!masterStore.customers.length"
+        icon="users"
+        title="Belum Ada Customer / Vendor Terdaftar"
+        description="Belum ada data customer atau vendor pada database master. Daftarkan mitra shipper/consignee pertama Anda."
+        action-label="Registrasi Customer"
+        action-icon="plus"
+        @action="openForm()"
+      />
       <table v-else class="w-full text-left text-xs">
         <thead class="bg-slate-50 dark:bg-slate-950/60 text-slate-500 dark:text-slate-400 uppercase tracking-wide text-[10px]">
           <tr>
@@ -85,8 +100,18 @@
         <h3 class="text-sm font-bold text-slate-900 dark:text-white">{{ editing ? 'Ubah Customer' : 'Registrasi Customer Baru' }}</h3>
         <div class="grid grid-cols-2 gap-3">
           <label class="block">
-            <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kode *</span>
-            <input v-model="form.code" required class="mt-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs" placeholder="CUST-KDMP" />
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Kode Customer *</span>
+              <button
+                v-if="!editing"
+                type="button"
+                @click="form.code = generateCustomerCode()"
+                class="text-[10px] text-blue-600 dark:text-blue-400 font-semibold hover:underline cursor-pointer"
+              >
+                Auto Generate
+              </button>
+            </div>
+            <input v-model="form.code" required class="mt-1 w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 text-xs font-mono font-bold" placeholder="CUST001" />
           </label>
           <label class="block">
             <span class="text-[11px] font-semibold text-slate-600 dark:text-slate-300">Tipe *</span>
@@ -147,6 +172,20 @@ const emptyForm = () => ({
 });
 const form = ref(emptyForm());
 
+function generateCustomerCode() {
+  const existingCodes = masterStore.customers.map(c => c.code || '').filter(Boolean);
+  let maxNum = 0;
+  for (const c of existingCodes) {
+    const match = c.match(/^CUST(\d+)$/i);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (n > maxNum) maxNum = n;
+    }
+  }
+  const nextNum = maxNum > 0 ? maxNum + 1 : (masterStore.customers.length + 1);
+  return `CUST${String(nextNum).padStart(3, '0')}`;
+}
+
 function openForm(cu = null) {
   editing.value = cu;
   form.value = cu
@@ -156,7 +195,7 @@ function openForm(cu = null) {
         contact_email: cu.contact_email || '', address: cu.address || '',
         is_active: cu.is_active !== false
       }
-    : emptyForm();
+    : { ...emptyForm(), code: generateCustomerCode() };
   showForm.value = true;
 }
 
