@@ -1,7 +1,11 @@
-# Current Task: WMS Simple Enterprise Implementation
-
+**Current Status:** PRODUCTION SYNCHRONIZED & PUBLIC ACCESS VERIFIED (v5.5.0)  
+**Database:** Host PostgreSQL 16 on OS Level (`wms_simple_db` on `172.237.70.58:5432`, non-root user `wms_app`) — Active & Verified  
+**Version:** 5.5.0  
+**Public Gateways:** HTTPS `https://wms.innaka.dev/login` & Fallback `http://172.237.70.58:8090/login` — Tested & Live  
+**Last Verified:** 2026-09-25T11:40:00+07:00  
 
 ---
+
 
 ## 0. Tugas Aktif: Penyesuaian Alur v3.0.0 → v3.2.0 (ADR-11)
 
