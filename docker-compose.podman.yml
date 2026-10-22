@@ -1,4 +1,3 @@
-version: '3.8'
 
 # WMS Simple Enterprise — Podman Production Stack
 # Container Runtime: Podman (rootless or rootful)

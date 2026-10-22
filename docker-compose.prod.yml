@@ -1,4 +1,3 @@
-version: '3.8'
 
 # WMS Simple Enterprise — Production (server innaka, /data/docker-data/wms-simple)
 # PostgreSQL memakai global stack host (container global_postgres, exposed di host 5432).
